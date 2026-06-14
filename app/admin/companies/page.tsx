@@ -1,22 +1,85 @@
 import { db } from "@/lib/db"
-import Card from "@/components/ui/Card"
+import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { formatDate } from "@/lib/utils"
-import { toggleCompany } from "@/lib/actions/admin"
+import { toggleCompany, adminCreateCompany } from "@/lib/actions/admin"
 import Button from "@/components/ui/Button"
+import { Building2, Plus } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
-export default async function AdminCompaniesPage() {
-  const companies = await db.company.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { users: true, customers: true, invoices: true } },
-    },
-  })
+const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+
+export default async function AdminCompaniesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ created?: string; error?: string }>
+}) {
+  const [companies, sp] = await Promise.all([
+    db.company.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        _count: { select: { users: true, customers: true, invoices: true } },
+      },
+    }),
+    searchParams,
+  ])
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl font-bold text-gray-900">Companies ({companies.length})</h1>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Companies ({companies.length})</h1>
+      </div>
+
+      {sp.created && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+          Company created successfully. The owner can now log in.
+        </div>
+      )}
+      {sp.error === "email_exists" && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+          A user with that email already exists.
+        </div>
+      )}
+
+      {/* Create company form */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+            <Plus className="w-4 h-4 text-sky-500" /> Create New Company
+          </h2>
+        </CardHeader>
+        <CardBody>
+          <form action={adminCreateCompany} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+              <input name="companyName" required placeholder="Sunshine Pool Service" className={inputCls} />
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Owner First Name</label>
+                <input name="firstName" required placeholder="Jane" className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Owner Last Name</label>
+                <input name="lastName" required placeholder="Smith" className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Owner Email</label>
+              <input name="email" type="email" required placeholder="owner@company.com" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Temporary Password</label>
+              <input name="password" type="text" required placeholder="Set a temporary password for the owner" className={inputCls} />
+            </div>
+            <Button type="submit">
+              <Building2 className="w-4 h-4" /> Create Company
+            </Button>
+          </form>
+        </CardBody>
+      </Card>
+
+      {/* Company list */}
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -50,8 +113,7 @@ export default async function AdminCompaniesPage() {
                     <td className="px-5 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
                     <td className="px-5 py-3">
                       <form action={action}>
-                        <Button type="submit" size="sm"
-                          variant={c.isActive ? "danger" : "secondary"}>
+                        <Button type="submit" size="sm" variant={c.isActive ? "danger" : "secondary"}>
                           {c.isActive ? "Deactivate" : "Activate"}
                         </Button>
                       </form>

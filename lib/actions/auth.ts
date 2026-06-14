@@ -49,10 +49,11 @@ export async function registerCompany(formData: FormData) {
 }
 
 export async function login(formData: FormData) {
-  const email = formData.get("email") as string
+  const email = (formData.get("email") as string).toLowerCase().trim()
   const password = formData.get("password") as string
+  const redirectTo = email === process.env.SUPER_ADMIN_EMAIL?.toLowerCase() ? "/admin" : "/dashboard"
   try {
-    await signIn("credentials", { email, password, redirectTo: "/dashboard" })
+    await signIn("credentials", { email, password, redirectTo })
   } catch (error: any) {
     // NextAuth throws NEXT_REDIRECT on success — re-throw so Next.js can redirect
     if (error?.digest?.startsWith("NEXT_REDIRECT")) throw error

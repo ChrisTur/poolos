@@ -50,7 +50,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
           name="customerId"
           required
           defaultValue={defaultCustomerId ?? ""}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
         >
           <option value="">Select customer…</option>
           {customers.map((c) => (
@@ -68,7 +68,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
           type="date"
           required
           defaultValue={defaultDueStr}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
         />
       </div>
 
@@ -89,7 +89,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
                 onChange={(e) => updateItem(i, "description", e.target.value)}
                 placeholder="Description"
                 required
-                className="col-span-6 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="col-span-6 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
               <input
                 name="quantity"
@@ -110,7 +110,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
                 step="0.01"
                 placeholder="0.00"
                 required
-                className="col-span-3 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="col-span-3 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
               <button
                 type="button"
@@ -146,7 +146,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
           name="notes"
           rows={2}
           placeholder="Payment instructions, thank you note…"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 resize-y"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-y"
         />
       </div>
 

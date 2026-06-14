@@ -187,11 +187,11 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                       min="0.01"
                       placeholder={`Amount (${formatCurrency(balance)} due)`}
                       required
-                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     />
                     <select
                       name="method"
-                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     >
                       <option value="">Payment method…</option>
                       {["Cash", "Check", "Card", "Zelle", "Venmo", "PayPal", "ACH"].map((m) => (
@@ -202,7 +202,7 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                   <input
                     name="reference"
                     placeholder="Reference / check # (optional)"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                   <Button type="submit" size="sm">Record Payment</Button>
                 </form>

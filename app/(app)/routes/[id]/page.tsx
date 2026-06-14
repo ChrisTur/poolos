@@ -97,7 +97,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
                     name="name"
                     defaultValue={route.name}
                     required
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   />
                 </div>
                 <div>
@@ -105,7 +105,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
                   <select
                     name="dayOfWeek"
                     defaultValue={route.dayOfWeek?.toString() ?? ""}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     <option value="">No fixed day</option>
                     {["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map((d, i) => (
@@ -118,7 +118,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
                   <select
                     name="isActive"
                     defaultValue={route.isActive ? "true" : "false"}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
                     <option value="true">Active</option>
                     <option value="false">Inactive</option>
