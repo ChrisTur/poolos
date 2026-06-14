@@ -1,12 +1,9 @@
 import "server-only"
 import { PrismaClient } from "@/app/generated/prisma/client"
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
-import path from "path"
-
-const dbUrl = `file:${path.resolve(process.cwd(), "dev.db")}`
+import { PrismaNeon } from "@prisma/adapter-neon"
 
 function createPrismaClient() {
-  const adapter = new PrismaBetterSqlite3({ url: dbUrl })
+  const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! })
   return new PrismaClient({ adapter } as any)
 }
 
