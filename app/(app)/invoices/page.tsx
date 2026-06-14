@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, ChevronRight } from "lucide-react"
+import { Plus, ChevronRight, Zap } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -12,10 +12,10 @@ export const dynamic = "force-dynamic"
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; generated?: string }>
 }) {
   const { companyId } = await requireSession()
-  const { status } = await searchParams
+  const { status, generated } = await searchParams
 
   const invoices = await db.invoice.findMany({
     where: status && status !== "all" ? { companyId, status } : { companyId },
@@ -45,20 +45,35 @@ export default async function InvoicesPage({
 
   return (
     <div className="space-y-4 sm:space-y-5">
-      <div className="flex items-center justify-between">
+      {generated && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
+          <Zap className="w-4 h-4 shrink-0" />
+          {generated} invoice{parseInt(generated) !== 1 ? "s" : ""} generated successfully. Review and mark as Sent when ready.
+        </div>
+      )}
+
+      <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {invoices.length} {status && status !== "all" ? status : "total"}
           </p>
         </div>
-        <Link href="/invoices/new">
-          <Button size="sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Invoice</span>
-            <span className="sm:hidden">New</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/invoices/generate">
+            <Button size="sm" variant="secondary">
+              <Zap className="w-4 h-4" />
+              <span className="hidden sm:inline">Generate Monthly</span>
+            </Button>
+          </Link>
+          <Link href="/invoices/new">
+            <Button size="sm">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Invoice</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Status tabs — larger tap targets on mobile */}
