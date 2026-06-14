@@ -9,6 +9,7 @@ import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote } from "@/lib/actions/customers"
 import ConfirmButton from "@/components/ui/ConfirmButton"
+import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 
 export const dynamic = "force-dynamic"
 
@@ -180,22 +181,45 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <CardBody><p className="text-sm text-gray-400">No visits logged yet.</p></CardBody>
             ) : (
               <div className="divide-y divide-gray-50">
-                {customer.serviceVisits.map((v) => (
-                  <div key={v.id} className="px-5 py-3 flex items-start justify-between">
-                    <div className="text-sm">
-                      <p className="font-medium text-gray-900">{formatDate(v.visitedAt)}</p>
-                      {v.notes && <p className="text-gray-500 text-xs mt-0.5">{v.notes}</p>}
-                      {(v.chlorine || v.ph) && (
-                        <p className="text-xs text-gray-400 mt-1">
-                          {v.chlorine != null && `Cl: ${v.chlorine}`}
-                          {v.ph != null && ` · pH: ${v.ph}`}
-                          {v.alkalinity != null && ` · Alk: ${v.alkalinity}`}
-                        </p>
+                {customer.serviceVisits.map((v) => {
+                  const chemReadings = [
+                    { key: "chlorine" as const, label: "Cl", value: v.chlorine },
+                    { key: "ph" as const,       label: "pH", value: v.ph },
+                    { key: "alkalinity" as const, label: "Alk", value: v.alkalinity },
+                    { key: "calcium" as const,  label: "Ca", value: v.calcium },
+                  ].filter((r) => r.value != null)
+                  return (
+                    <div key={v.id} className="px-5 py-3">
+                      <div className="flex items-start justify-between mb-1.5">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{formatDate(v.visitedAt)}</p>
+                          {v.notes && <p className="text-gray-500 text-xs mt-0.5">{v.notes}</p>}
+                        </div>
+                        {statusBadge(v.status)}
+                      </div>
+                      {chemReadings.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1.5">
+                          {chemReadings.map((r) => {
+                            const s = chemStatus(r.key, r.value)
+                            const range = CHEM_RANGES[r.key]
+                            const title = `${range.label}: ${r.value}${range.unit ? " " + range.unit : ""} (normal ${range.low}–${range.high}${range.unit ? " " + range.unit : ""})`
+                            return (
+                              <span
+                                key={r.key}
+                                title={title}
+                                className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${s ? STATUS_BG[s] : "bg-gray-50 text-gray-500 border-gray-200"}`}
+                              >
+                                {r.label}: {r.value}
+                                {s === "low" && " ▼"}
+                                {s === "high" && " ▲"}
+                              </span>
+                            )
+                          })}
+                        </div>
                       )}
                     </div>
-                    {statusBadge(v.status)}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </Card>

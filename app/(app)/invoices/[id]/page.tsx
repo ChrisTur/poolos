@@ -2,20 +2,28 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Trash2, Download } from "lucide-react"
+import { ChevronLeft, Trash2, Mail, BellRing, CheckCircle, AlertCircle } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal, paymentTotal } from "@/lib/utils"
 import { deleteInvoice, updateInvoiceStatus, addPayment } from "@/lib/actions/invoices"
+import { sendInvoiceEmail, sendReminderEmail } from "@/lib/actions/emails"
 import InvoicePDFButton from "@/components/invoices/InvoicePDFButton"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
-export default async function InvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InvoiceDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ emailed?: string; reminded?: string; emailError?: string }>
+}) {
   const { companyId } = await requireSession()
   const { id } = await params
+  const { emailed, reminded, emailError } = await searchParams
 
   const [invoice, company] = await Promise.all([
     db.invoice.findFirst({
@@ -41,8 +49,37 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const markOverdue = updateInvoiceStatus.bind(null, id, "overdue")
   const addPaymentAction = addPayment.bind(null, id)
 
+  const sendAction = sendInvoiceEmail.bind(null, id)
+  const remindAction = sendReminderEmail.bind(null, id)
+  const hasEmail = !!invoice.customer.email
+
+  const emailErrorMsg: Record<string, string> = {
+    no_email: "This customer has no email address on file.",
+    send_failed: "Email delivery failed — check your Resend API key.",
+    not_found: "Invoice not found.",
+  }
+
   return (
     <div className="space-y-6">
+      {emailed && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          Invoice emailed to {invoice.customer.email}.
+        </div>
+      )}
+      {reminded && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          Payment reminder sent to {invoice.customer.email}.
+        </div>
+      )}
+      {emailError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          {emailErrorMsg[emailError] ?? "Failed to send email."}
+        </div>
+      )}
+
       <div>
         <Link href="/invoices" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-3">
           <ChevronLeft className="w-4 h-4" /> Invoices
@@ -59,6 +96,24 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
           </div>
           <div className="flex gap-2 flex-wrap">
             <InvoicePDFButton invoice={invoice} />
+            {hasEmail && (
+              <>
+                <form action={sendAction}>
+                  <Button type="submit" variant="secondary" size="sm" title={`Email to ${invoice.customer.email}`}>
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline">Email</span>
+                  </Button>
+                </form>
+                {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+                  <form action={remindAction}>
+                    <Button type="submit" variant="secondary" size="sm" title="Send payment reminder">
+                      <BellRing className="w-4 h-4" />
+                      <span className="hidden sm:inline">Remind</span>
+                    </Button>
+                  </form>
+                )}
+              </>
+            )}
             {invoice.status === "draft" && (
               <form action={markSent}>
                 <Button type="submit" variant="secondary" size="sm">Mark Sent</Button>

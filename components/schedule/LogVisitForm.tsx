@@ -74,10 +74,10 @@ export default function LogVisitForm({
         <legend className="text-sm font-medium text-gray-700">Chemical Readings</legend>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { name: "chlorine", label: "Chlorine", step: "0.1" },
-            { name: "ph", label: "pH", step: "0.1" },
-            { name: "alkalinity", label: "Alkalinity", step: "1" },
-            { name: "calcium", label: "Calcium", step: "1" },
+            { name: "chlorine",   label: "Chlorine",   step: "0.1", hint: "Normal: 1.0–3.0 ppm" },
+            { name: "ph",         label: "pH",         step: "0.1", hint: "Normal: 7.2–7.8" },
+            { name: "alkalinity", label: "Alkalinity", step: "1",   hint: "Normal: 80–120 ppm" },
+            { name: "calcium",    label: "Calcium",    step: "1",   hint: "Normal: 200–400 ppm" },
           ].map((f) => (
             <div key={f.name}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
@@ -89,6 +89,7 @@ export default function LogVisitForm({
                 placeholder="—"
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               />
+              <p className="text-xs text-gray-400 mt-0.5">{f.hint}</p>
             </div>
           ))}
         </div>
