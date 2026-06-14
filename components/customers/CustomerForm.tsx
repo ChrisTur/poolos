@@ -3,6 +3,7 @@
 import { useActionState } from "react"
 import Input from "@/components/ui/Input"
 import Select from "@/components/ui/Select"
+import StateSelect from "@/components/ui/StateSelect"
 import Textarea from "@/components/ui/Textarea"
 import Button from "@/components/ui/Button"
 import type { Customer } from "@/app/generated/prisma/client"
@@ -38,7 +39,7 @@ export default function CustomerForm({ action, customer, submitLabel = "Save Cus
         <Input id="address" name="address" label="Street Address" defaultValue={customer?.address} required />
         <div className="grid sm:grid-cols-3 gap-4">
           <Input id="city" name="city" label="City" defaultValue={customer?.city} required className="sm:col-span-1" />
-          <Input id="state" name="state" label="State" defaultValue={customer?.state} required maxLength={2} />
+          <StateSelect id="state" label="State" defaultValue={customer?.state} required />
           <Input id="zip" name="zip" label="ZIP" defaultValue={customer?.zip} required />
         </div>
       </fieldset>

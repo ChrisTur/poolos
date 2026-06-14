@@ -4,6 +4,7 @@ import { useActionState } from "react"
 import { completeOnboarding } from "@/lib/actions/company"
 import Button from "@/components/ui/Button"
 import { CheckCircle, Building2, MapPin, Phone, Globe } from "lucide-react"
+import StateSelect from "@/components/ui/StateSelect"
 
 const steps = ["Company details", "Address", "Done"]
 
@@ -73,12 +74,7 @@ export default function OnboardingPage() {
               placeholder="City"
               className="col-span-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
-            <input
-              name="state"
-              placeholder="ST"
-              maxLength={2}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
+            <StateSelect />
             <input
               name="zip"
               placeholder="ZIP"

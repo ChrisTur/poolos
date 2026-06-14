@@ -84,6 +84,15 @@ export async function adminUploadLogo(id: string, formData: FormData) {
   revalidatePath(`/admin/companies/${id}`)
 }
 
+export async function adminResetPassword(companyId: string, userId: string, formData: FormData) {
+  await requireSuperAdmin()
+  const password = formData.get("password") as string
+  if (!password || password.length < 6) redirect(`/admin/companies/${companyId}?resetError=1`)
+  const hashed = await bcrypt.hash(password, 12)
+  await db.user.update({ where: { id: userId, companyId }, data: { password: hashed } })
+  redirect(`/admin/companies/${companyId}?reset=${userId}`)
+}
+
 export async function adminCreateCompany(formData: FormData) {
   await requireSuperAdmin()
 

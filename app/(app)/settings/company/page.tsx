@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { requireOwner } from "@/lib/session"
 import { updateCompany, uploadLogo } from "@/lib/actions/company"
+import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { Upload } from "lucide-react"
@@ -48,8 +49,7 @@ export default async function CompanySettingsPage() {
             <div className="grid grid-cols-3 gap-3">
               <input name="city" defaultValue={company.city ?? ""} placeholder="City"
                 className="col-span-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-              <input name="state" defaultValue={company.state ?? ""} placeholder="ST" maxLength={2}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <StateSelect defaultValue={company.state ?? ""} />
               <input name="zip" defaultValue={company.zip ?? ""} placeholder="ZIP"
                 className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
