@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Company {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name      String
+  slug      String   @unique
+  phone     String?
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  website   String?
+  isActive  Boolean  @default(true)
+
+  users     User[]
+  customers Customer[]
+  routes    Route[]
+  invoices  Invoice[]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email     String  @unique
+  password  String
+  firstName String
+  lastName  String
+  role      String  @default("technician") // owner | technician
+  isActive  Boolean @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  firstName   String
+  lastName    String
+  email       String?
+  phone       String?
+  address     String
+  city        String
+  state       String
+  zip         String
+
+  poolType    String?
+  poolSize    String?
+  poolNotes   String?
+
+  status      String  @default("active")
+  monthlyRate Float?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  routeStops    RouteStop[]
+  serviceVisits ServiceVisit[]
+  invoices      Invoice[]
+  notes         CustomerNote[]
+}
+
+model CustomerNote {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  body       String
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Route {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  description String?
+  dayOfWeek   Int?
+  isActive    Boolean  @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  stops   RouteStop[]
+  visits  ServiceVisit[]
+}
+
+model RouteStop {
+  id         String   @id @default(cuid())
+  position   Int
+  notes      String?
+
+  routeId    String
+  route      Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([routeId, customerId])
+  @@index([routeId, position])
+}
+
+model ServiceVisit {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  visitedAt DateTime @default(now())
+
+  status    String  @default("completed")
+  notes     String?
+
+  chlorine   Float?
+  ph         Float?
+  alkalinity Float?
+  calcium    Float?
+
+  routeId    String?
+  route      Route?   @relation(fields: [routeId], references: [id])
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  invoiceNumber String   @unique
+  status        String   @default("draft")
+  dueDate       DateTime
+  issuedAt      DateTime @default(now())
+  paidAt        DateTime?
+  notes         String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  items    InvoiceItem[]
+  payments Payment[]
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  description String
+  quantity    Float   @default(1)
+  unitPrice   Float
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  amount    Float
+  method    String?
+  reference String?
+  notes     String?
+  invoiceId String
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}

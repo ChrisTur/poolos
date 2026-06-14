@@ -1,0 +1,249 @@
+import { db } from "@/lib/db"
+import { requireSession } from "@/lib/session"
+import { notFound } from "next/navigation"
+import Link from "next/link"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus } from "lucide-react"
+import Card, { CardHeader, CardBody } from "@/components/ui/Card"
+import { statusBadge } from "@/components/ui/Badge"
+import Button from "@/components/ui/Button"
+import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
+import { deleteCustomer, addCustomerNote, deleteCustomerNote } from "@/lib/actions/customers"
+
+export const dynamic = "force-dynamic"
+
+export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { companyId } = await requireSession()
+  const { id } = await params
+
+  const customer = await db.customer.findFirst({
+    where: { id, companyId },
+    include: {
+      notes: { orderBy: { createdAt: "desc" } },
+      serviceVisits: { orderBy: { visitedAt: "desc" }, take: 10 },
+      invoices: {
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        include: { items: true, payments: true },
+      },
+      routeStops: { include: { route: true } },
+    },
+  })
+
+  if (!customer) notFound()
+
+  const deleteAction = deleteCustomer.bind(null, id)
+  const addNoteAction = addCustomerNote.bind(null, id)
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <Link href="/customers" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-3">
+          <ChevronLeft className="w-4 h-4" /> Customers
+        </Link>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {customer.firstName} {customer.lastName}
+            </h1>
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
+              {statusBadge(customer.status)}
+              {customer.poolType && (
+                <span className="text-xs text-gray-400">{customer.poolType} pool</span>
+              )}
+              {customer.monthlyRate && (
+                <span className="text-xs text-gray-400">{formatCurrency(customer.monthlyRate)}/mo</span>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Link href={`/customers/${id}/edit`}>
+              <Button variant="secondary" size="sm">
+                <Pencil className="w-4 h-4" /> Edit
+              </Button>
+            </Link>
+            <form action={deleteAction}>
+              <Button type="submit" variant="danger" size="sm"
+                onClick={(e) => { if (!confirm("Delete this customer?")) e.preventDefault() }}>
+                <Trash2 className="w-4 h-4" /> Delete
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        {/* Left column */}
+        <div className="space-y-5">
+          {/* Contact info */}
+          <Card>
+            <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Contact</h2></CardHeader>
+            <CardBody className="space-y-3 text-sm">
+              {customer.email && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Mail className="w-4 h-4 text-gray-400 shrink-0" />
+                  <a href={`mailto:${customer.email}`} className="hover:text-sky-600">{customer.email}</a>
+                </div>
+              )}
+              {customer.phone && (
+                <div className="flex items-center gap-2 text-gray-600">
+                  <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                  <a href={`tel:${customer.phone}`} className="hover:text-sky-600">{formatPhone(customer.phone)}</a>
+                </div>
+              )}
+              <div className="flex items-start gap-2 text-gray-600">
+                <MapPin className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                <span>{customer.address}<br />{customer.city}, {customer.state} {customer.zip}</span>
+              </div>
+            </CardBody>
+          </Card>
+
+          {/* Pool details */}
+          <Card>
+            <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Pool Details</h2></CardHeader>
+            <CardBody className="space-y-2 text-sm text-gray-600">
+              {customer.poolType && <p><span className="text-gray-400">Type:</span> {customer.poolType}</p>}
+              {customer.poolSize && <p><span className="text-gray-400">Size:</span> {customer.poolSize} gal</p>}
+              {customer.poolNotes && <p className="text-gray-500">{customer.poolNotes}</p>}
+              {!customer.poolType && !customer.poolSize && !customer.poolNotes && (
+                <p className="text-gray-400">No pool details added.</p>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Routes */}
+          <Card>
+            <CardHeader><h2 className="font-semibold text-gray-900 text-sm">On Routes</h2></CardHeader>
+            <CardBody className="space-y-2 text-sm">
+              {customer.routeStops.length === 0 ? (
+                <p className="text-gray-400">Not on any route.</p>
+              ) : (
+                customer.routeStops.map((stop) => (
+                  <Link key={stop.id} href={`/routes/${stop.routeId}`} className="flex items-center justify-between text-gray-700 hover:text-sky-600">
+                    {stop.route.name}
+                    <span className="text-gray-400 text-xs">Stop #{stop.position + 1}</span>
+                  </Link>
+                ))
+              )}
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* Right column */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Notes */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm">Notes</h2>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              <form action={addNoteAction} className="flex gap-2">
+                <input
+                  name="body"
+                  placeholder="Add a note…"
+                  required
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <Button type="submit" size="sm">
+                  <Plus className="w-4 h-4" /> Add
+                </Button>
+              </form>
+              {customer.notes.length === 0 ? (
+                <p className="text-sm text-gray-400">No notes yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {customer.notes.map((note) => {
+                    const deleteNote = deleteCustomerNote.bind(null, note.id, id)
+                    return (
+                      <div key={note.id} className="flex items-start gap-3 bg-gray-50 rounded-lg p-3">
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-700">{note.body}</p>
+                          <p className="text-xs text-gray-400 mt-1">{formatDate(note.createdAt)}</p>
+                        </div>
+                        <form action={deleteNote}>
+                          <button type="submit" className="text-gray-300 hover:text-red-500 transition-colors mt-0.5">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </form>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Service history */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm">Recent Visits</h2>
+            </CardHeader>
+            {customer.serviceVisits.length === 0 ? (
+              <CardBody><p className="text-sm text-gray-400">No visits logged yet.</p></CardBody>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {customer.serviceVisits.map((v) => (
+                  <div key={v.id} className="px-5 py-3 flex items-start justify-between">
+                    <div className="text-sm">
+                      <p className="font-medium text-gray-900">{formatDate(v.visitedAt)}</p>
+                      {v.notes && <p className="text-gray-500 text-xs mt-0.5">{v.notes}</p>}
+                      {(v.chlorine || v.ph) && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          {v.chlorine != null && `Cl: ${v.chlorine}`}
+                          {v.ph != null && ` · pH: ${v.ph}`}
+                          {v.alkalinity != null && ` · Alk: ${v.alkalinity}`}
+                        </p>
+                      )}
+                    </div>
+                    {statusBadge(v.status)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Invoices */}
+          <Card>
+            <CardHeader className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900 text-sm">Invoices</h2>
+              <Link href={`/invoices/new?customerId=${id}`}>
+                <Button size="sm" variant="secondary">
+                  <Plus className="w-4 h-4" /> New Invoice
+                </Button>
+              </Link>
+            </CardHeader>
+            {customer.invoices.length === 0 ? (
+              <CardBody><p className="text-sm text-gray-400">No invoices yet.</p></CardBody>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {customer.invoices.map((inv) => {
+                  const total = invoiceTotal(inv.items)
+                  const paid = inv.payments.reduce((s, p) => s + p.amount, 0)
+                  return (
+                    <Link
+                      key={inv.id}
+                      href={`/invoices/${inv.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">#{inv.invoiceNumber}</p>
+                        <p className="text-xs text-gray-400">{formatDate(inv.issuedAt)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{formatCurrency(total)}</p>
+                        {paid > 0 && paid < total && (
+                          <p className="text-xs text-gray-400">{formatCurrency(paid)} paid</p>
+                        )}
+                        <div className="mt-0.5">{statusBadge(inv.status)}</div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
