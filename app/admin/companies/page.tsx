@@ -26,10 +26,8 @@ export default async function AdminCompaniesPage({
   ])
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Companies ({companies.length})</h1>
-      </div>
+    <div className="space-y-5 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Companies ({companies.length})</h1>
 
       {sp.created && (
         <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
@@ -80,18 +78,53 @@ export default async function AdminCompaniesPage({
         </CardBody>
       </Card>
 
-      {/* Company list */}
-      <Card>
+      {/* Mobile card list */}
+      <div className="sm:hidden space-y-2">
+        {companies.map((c) => {
+          const action = toggleCompany.bind(null, c.id, !c.isActive)
+          return (
+            <Card key={c.id} className="p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div className="min-w-0">
+                  <Link href={`/admin/companies/${c.id}`} className="font-medium text-gray-900 hover:text-sky-600 truncate block">
+                    {c.name}
+                  </Link>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {c._count.users} users · {c._count.customers} customers · {c._count.invoices} invoices
+                  </p>
+                  <p className="text-xs text-gray-400">{formatDate(c.createdAt)}</p>
+                </div>
+                <Link href={`/admin/companies/${c.id}`} className="shrink-0 ml-3">
+                  <ChevronRight className="w-4 h-4 text-gray-300" />
+                </Link>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                  c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                }`}>{c.isActive ? "Active" : "Inactive"}</span>
+                <form action={action} className="ml-auto">
+                  <Button type="submit" size="sm" variant={c.isActive ? "danger" : "secondary"}>
+                    {c.isActive ? "Deactivate" : "Activate"}
+                  </Button>
+                </form>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+
+      {/* Desktop table */}
+      <Card className="hidden sm:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="px-5 py-3 text-left font-medium">Company</th>
-                <th className="px-5 py-3 text-left font-medium">Contact</th>
+                <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Contact</th>
                 <th className="px-5 py-3 text-center font-medium">Users</th>
-                <th className="px-5 py-3 text-center font-medium">Customers</th>
-                <th className="px-5 py-3 text-center font-medium">Invoices</th>
-                <th className="px-5 py-3 text-left font-medium">Joined</th>
+                <th className="px-5 py-3 text-center font-medium hidden lg:table-cell">Customers</th>
+                <th className="px-5 py-3 text-center font-medium hidden lg:table-cell">Invoices</th>
+                <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Joined</th>
                 <th className="px-5 py-3 text-left font-medium">Status</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -105,14 +138,14 @@ export default async function AdminCompaniesPage({
                       <p className="font-medium text-gray-900">{c.name}</p>
                       <p className="text-xs text-gray-400">{c.slug}</p>
                     </td>
-                    <td className="px-5 py-3 text-gray-500 text-xs">
+                    <td className="px-5 py-3 text-gray-500 text-xs hidden md:table-cell">
                       {c.phone && <p>{c.phone}</p>}
                       {c.city && <p>{c.city}, {c.state}</p>}
                     </td>
                     <td className="px-5 py-3 text-center text-gray-600">{c._count.users}</td>
-                    <td className="px-5 py-3 text-center text-gray-600">{c._count.customers}</td>
-                    <td className="px-5 py-3 text-center text-gray-600">{c._count.invoices}</td>
-                    <td className="px-5 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
+                    <td className="px-5 py-3 text-center text-gray-600 hidden lg:table-cell">{c._count.customers}</td>
+                    <td className="px-5 py-3 text-center text-gray-600 hidden lg:table-cell">{c._count.invoices}</td>
+                    <td className="px-5 py-3 text-gray-500 hidden md:table-cell">{formatDate(c.createdAt)}</td>
                     <td className="px-5 py-3">
                       <form action={action}>
                         <Button type="submit" size="sm" variant={c.isActive ? "danger" : "secondary"}>
