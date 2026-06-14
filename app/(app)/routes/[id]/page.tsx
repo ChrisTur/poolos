@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Trash2 } from "lucide-react"
+import { ChevronLeft } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { DAY_NAMES } from "@/lib/utils"
 import RouteStopList from "@/components/routes/RouteStopList"
@@ -10,6 +10,7 @@ import AddStopForm from "@/components/routes/AddStopForm"
 import { deleteRoute, updateRoute } from "@/lib/actions/routes"
 import Button from "@/components/ui/Button"
 import RouteMap from "@/components/routes/RouteMap"
+import DeleteRouteButton from "@/components/routes/DeleteRouteButton"
 
 export const dynamic = "force-dynamic"
 
@@ -54,16 +55,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
               {route.dayOfWeek != null ? DAY_NAMES[route.dayOfWeek] : "No fixed day"} · {route.stops.length} stops
             </p>
           </div>
-          <form action={deleteAction}>
-            <Button
-              type="submit"
-              variant="danger"
-              size="sm"
-              onClick={(e) => { if (!confirm("Delete this route?")) e.preventDefault() }}
-            >
-              <Trash2 className="w-4 h-4" /> Delete Route
-            </Button>
-          </form>
+          <DeleteRouteButton action={deleteAction} />
         </div>
       </div>
 

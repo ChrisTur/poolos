@@ -8,6 +8,7 @@ import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote } from "@/lib/actions/customers"
+import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
@@ -62,12 +63,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 <Pencil className="w-4 h-4" /> Edit
               </Button>
             </Link>
-            <form action={deleteAction}>
-              <Button type="submit" variant="danger" size="sm"
-                onClick={(e) => { if (!confirm("Delete this customer?")) e.preventDefault() }}>
-                <Trash2 className="w-4 h-4" /> Delete
-              </Button>
-            </form>
+            <ConfirmButton action={deleteAction} confirm="Delete this customer?" variant="danger" size="sm">
+              <Trash2 className="w-4 h-4" /> Delete
+            </ConfirmButton>
           </div>
         </div>
       </div>

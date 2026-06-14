@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatDate } from "@/lib/utils"
 import { UserPlus } from "lucide-react"
+import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
@@ -71,13 +72,15 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
                           title="Reset password">↺</Button>
                       </form>
                       {user.isActive && (
-                        <form action={deactivateAction}>
-                          <Button type="submit" size="sm" variant="ghost"
-                            className="text-red-400 hover:text-red-600"
-                            onClick={(e) => { if (!confirm("Deactivate this user?")) e.preventDefault() }}>
-                            ✕
-                          </Button>
-                        </form>
+                        <ConfirmButton
+                          action={deactivateAction}
+                          confirm="Deactivate this user?"
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400 hover:text-red-600"
+                        >
+                          ✕
+                        </ConfirmButton>
                       )}
                     </div>
                   )}

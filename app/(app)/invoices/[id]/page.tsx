@@ -9,6 +9,7 @@ import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal, paymentTotal } from "@/lib/utils"
 import { deleteInvoice, updateInvoiceStatus, addPayment } from "@/lib/actions/invoices"
 import InvoicePDFButton from "@/components/invoices/InvoicePDFButton"
+import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
@@ -72,16 +73,9 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
                 )}
               </>
             )}
-            <form action={deleteAction}>
-              <Button
-                type="submit"
-                variant="danger"
-                size="sm"
-                onClick={(e) => { if (!confirm("Delete this invoice?")) e.preventDefault() }}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            </form>
+            <ConfirmButton action={deleteAction} confirm="Delete this invoice?" variant="danger" size="sm">
+              <Trash2 className="w-4 h-4" />
+            </ConfirmButton>
           </div>
         </div>
       </div>
