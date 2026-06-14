@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth"
 
 // Lightweight config with no DB imports — safe for Edge runtime (proxy/middleware)
 export const authConfig: NextAuthConfig = {
+  trustHost: true,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [],
