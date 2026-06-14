@@ -1,8 +1,9 @@
 import { db } from "@/lib/db"
 import { requireOwner } from "@/lib/session"
-import { updateCompany } from "@/lib/actions/company"
+import { updateCompany, uploadLogo } from "@/lib/actions/company"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
+import { Upload } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -54,6 +55,33 @@ export default async function CompanySettingsPage() {
             </div>
             <Button type="submit">Save Changes</Button>
           </form>
+        </CardBody>
+      </Card>
+
+      {/* Logo */}
+      <Card>
+        <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Company Logo</h2></CardHeader>
+        <CardBody className="space-y-4">
+          {company.logoUrl ? (
+            <img src={company.logoUrl} alt="Company logo" className="h-16 object-contain rounded" />
+          ) : (
+            <div className="h-16 w-32 rounded border-2 border-dashed border-gray-200 flex items-center justify-center text-xs text-gray-400">
+              No logo yet
+            </div>
+          )}
+          <form action={uploadLogo} encType="multipart/form-data" className="flex items-center gap-3">
+            <input
+              name="logo"
+              type="file"
+              accept="image/*"
+              required
+              className="text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100"
+            />
+            <Button type="submit" size="sm" variant="secondary">
+              <Upload className="w-4 h-4" /> Upload
+            </Button>
+          </form>
+          <p className="text-xs text-gray-400">PNG, JPG or SVG. Appears on your invoices.</p>
         </CardBody>
       </Card>
 

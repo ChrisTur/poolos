@@ -75,6 +75,19 @@ export async function deactivateUser(userId: string) {
   revalidatePath("/settings/users")
 }
 
+export async function uploadLogo(formData: FormData) {
+  const user = await requireOwner()
+  const file = formData.get("logo") as File
+  if (!file || file.size === 0) return
+
+  const bytes = await file.arrayBuffer()
+  const base64 = Buffer.from(bytes).toString("base64")
+  const dataUrl = `data:${file.type};base64,${base64}`
+
+  await db.company.update({ where: { id: user.companyId }, data: { logoUrl: dataUrl } })
+  revalidatePath("/settings/company")
+}
+
 export async function resetUserPassword(userId: string) {
   const owner = await requireOwner()
   const target = await db.user.findUnique({ where: { id: userId } })

@@ -3,7 +3,8 @@ import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { formatDate } from "@/lib/utils"
 import { toggleCompany, adminCreateCompany } from "@/lib/actions/admin"
 import Button from "@/components/ui/Button"
-import { Building2, Plus } from "lucide-react"
+import { Building2, Plus, ChevronRight } from "lucide-react"
+import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
@@ -92,6 +93,7 @@ export default async function AdminCompaniesPage({
                 <th className="px-5 py-3 text-center font-medium">Invoices</th>
                 <th className="px-5 py-3 text-left font-medium">Joined</th>
                 <th className="px-5 py-3 text-left font-medium">Status</th>
+                <th className="px-5 py-3" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -117,6 +119,11 @@ export default async function AdminCompaniesPage({
                           {c.isActive ? "Deactivate" : "Activate"}
                         </Button>
                       </form>
+                    </td>
+                    <td className="px-3 py-3">
+                      <Link href={`/admin/companies/${c.id}`} className="text-gray-400 hover:text-sky-600">
+                        <ChevronRight className="w-4 h-4" />
+                      </Link>
                     </td>
                   </tr>
                 )

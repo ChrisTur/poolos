@@ -20,6 +20,7 @@ model Company {
   state     String?
   zip       String?
   website   String?
+  logoUrl   String?
   isActive  Boolean  @default(true)
 
   users     User[]

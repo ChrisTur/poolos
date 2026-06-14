@@ -28,6 +28,36 @@ export async function toggleCompany(id: string, isActive: boolean) {
   revalidatePath("/admin/companies")
 }
 
+export async function adminUpdateCompany(id: string, formData: FormData) {
+  await requireSuperAdmin()
+  await db.company.update({
+    where: { id },
+    data: {
+      name: formData.get("name") as string,
+      phone: (formData.get("phone") as string) || null,
+      address: (formData.get("address") as string) || null,
+      city: (formData.get("city") as string) || null,
+      state: (formData.get("state") as string) || null,
+      zip: (formData.get("zip") as string) || null,
+      website: (formData.get("website") as string) || null,
+    },
+  })
+  revalidatePath(`/admin/companies/${id}`)
+}
+
+export async function adminUploadLogo(id: string, formData: FormData) {
+  await requireSuperAdmin()
+  const file = formData.get("logo") as File
+  if (!file || file.size === 0) return
+
+  const bytes = await file.arrayBuffer()
+  const base64 = Buffer.from(bytes).toString("base64")
+  const dataUrl = `data:${file.type};base64,${base64}`
+
+  await db.company.update({ where: { id }, data: { logoUrl: dataUrl } })
+  revalidatePath(`/admin/companies/${id}`)
+}
+
 export async function adminCreateCompany(formData: FormData) {
   await requireSuperAdmin()
 

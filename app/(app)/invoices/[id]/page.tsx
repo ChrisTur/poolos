@@ -17,16 +17,19 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const invoice = await db.invoice.findFirst({
-    where: { id, companyId },
-    include: {
-      customer: true,
-      items: true,
-      payments: { orderBy: { createdAt: "asc" } },
-    },
-  })
+  const [invoice, company] = await Promise.all([
+    db.invoice.findFirst({
+      where: { id, companyId },
+      include: {
+        customer: true,
+        items: true,
+        payments: { orderBy: { createdAt: "asc" } },
+      },
+    }),
+    db.company.findUnique({ where: { id: companyId } }),
+  ])
 
-  if (!invoice) notFound()
+  if (!invoice || !company) notFound()
 
   const total = invoiceTotal(invoice.items)
   const paid = paymentTotal(invoice.payments)
@@ -84,13 +87,28 @@ export default async function InvoiceDetailPage({ params }: { params: Promise<{ 
         <div className="lg:col-span-2 space-y-5">
           {/* Invoice */}
           <Card>
-            <CardHeader className="flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-900">{invoice.invoiceNumber}</h2>
-                <p className="text-xs text-gray-400">Issued {formatDate(invoice.issuedAt)}</p>
-              </div>
-            </CardHeader>
             <CardBody>
+              {/* Company header */}
+              <div className="flex items-start justify-between mb-8">
+                <div>
+                  {company.logoUrl && (
+                    <img src={company.logoUrl} alt={company.name} className="h-12 object-contain mb-2" />
+                  )}
+                  <p className="font-bold text-gray-900">{company.name}</p>
+                  {company.address && <p className="text-sm text-gray-500">{company.address}</p>}
+                  {company.city && (
+                    <p className="text-sm text-gray-500">{company.city}, {company.state} {company.zip}</p>
+                  )}
+                  {company.phone && <p className="text-sm text-gray-500">{formatPhone(company.phone)}</p>}
+                  {company.website && <p className="text-sm text-gray-500">{company.website}</p>}
+                </div>
+                <div className="text-right">
+                  <p className="text-xl font-bold text-gray-900">{invoice.invoiceNumber}</p>
+                  <p className="text-xs text-gray-400 mt-1">Issued {formatDate(invoice.issuedAt)}</p>
+                  <p className="text-xs text-gray-400">Due {formatDate(invoice.dueDate)}</p>
+                </div>
+              </div>
+
               {/* Customer */}
               <div className="mb-6">
                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Bill To</p>
