@@ -41,11 +41,21 @@ export default async function SchedulePage() {
   const unscheduled = routes.filter((r) => r.dayOfWeek == null)
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Schedule</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Schedule</h1>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-5">
+      {/* Mobile: log-visit form first */}
+      <div className="lg:hidden">
+        <Card>
+          <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
+          <CardBody>
+            <LogVisitForm customers={customers} routes={routes} />
+          </CardBody>
+        </Card>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-5">
           {/* Weekly grid */}
           <div className="space-y-3">
             {DAY_NAMES.map((day, i) => {
@@ -54,11 +64,11 @@ export default async function SchedulePage() {
               return (
                 <Card key={i}>
                   <CardHeader>
-                    <h2 className="font-semibold text-gray-900">{day}</h2>
+                    <h2 className="font-semibold text-gray-900 text-sm sm:text-base">{day}</h2>
                   </CardHeader>
                   <div className="divide-y divide-gray-50">
                     {dayRoutes.map((route) => (
-                      <div key={route.id} className="px-5 py-3">
+                      <div key={route.id} className="px-4 sm:px-5 py-3">
                         <Link href={`/routes/${route.id}`} className="text-sm font-medium text-sky-700 hover:underline">
                           {route.name}
                         </Link>
@@ -68,10 +78,12 @@ export default async function SchedulePage() {
                               <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-medium shrink-0">
                                 {idx + 1}
                               </span>
-                              <span className="font-medium text-gray-700">
+                              <span className="font-medium text-gray-700 shrink-0">
                                 {stop.customer.firstName} {stop.customer.lastName}
                               </span>
-                              <span className="text-gray-400">— {stop.customer.address}, {stop.customer.city}</span>
+                              <span className="text-gray-400 truncate hidden sm:inline">
+                                — {stop.customer.address}, {stop.customer.city}
+                              </span>
                             </div>
                           ))}
                         </div>
@@ -84,9 +96,9 @@ export default async function SchedulePage() {
 
             {unscheduled.length > 0 && (
               <Card>
-                <CardHeader><h2 className="font-semibold text-gray-900">Unscheduled Routes</h2></CardHeader>
+                <CardHeader><h2 className="font-semibold text-gray-900 text-sm sm:text-base">Unscheduled Routes</h2></CardHeader>
                 {unscheduled.map((route) => (
-                  <div key={route.id} className="px-5 py-3 border-b border-gray-50 last:border-0">
+                  <div key={route.id} className="px-4 sm:px-5 py-3 border-b border-gray-50 last:border-0">
                     <Link href={`/routes/${route.id}`} className="text-sm font-medium text-sky-700 hover:underline">
                       {route.name}
                     </Link>
@@ -110,21 +122,21 @@ export default async function SchedulePage() {
 
           {/* Recent visits */}
           <Card>
-            <CardHeader><h2 className="font-semibold text-gray-900">Recent Visits</h2></CardHeader>
+            <CardHeader><h2 className="font-semibold text-gray-900 text-sm sm:text-base">Recent Visits</h2></CardHeader>
             {recentVisits.length === 0 ? (
               <CardBody><p className="text-sm text-gray-400">No visits logged yet.</p></CardBody>
             ) : (
               <div className="divide-y divide-gray-50">
                 {recentVisits.map((v) => (
-                  <div key={v.id} className="flex items-start justify-between px-5 py-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
+                  <div key={v.id} className="flex items-start justify-between px-4 sm:px-5 py-3">
+                    <div className="min-w-0 mr-3">
+                      <p className="text-sm font-medium text-gray-900 truncate">
                         <Link href={`/customers/${v.customerId}`} className="hover:text-sky-600">
                           {v.customer.firstName} {v.customer.lastName}
                         </Link>
                       </p>
-                      {v.route && <p className="text-xs text-gray-400">{v.route.name}</p>}
-                      {v.notes && <p className="text-xs text-gray-500 mt-0.5 italic">{v.notes}</p>}
+                      {v.route && <p className="text-xs text-gray-400 truncate">{v.route.name}</p>}
+                      {v.notes && <p className="text-xs text-gray-500 mt-0.5 italic truncate">{v.notes}</p>}
                       {(v.chlorine != null || v.ph != null) && (
                         <p className="text-xs text-gray-400 mt-0.5">
                           {v.chlorine != null && `Cl: ${v.chlorine}`}
@@ -134,7 +146,7 @@ export default async function SchedulePage() {
                         </p>
                       )}
                     </div>
-                    <div className="text-right shrink-0 ml-4">
+                    <div className="text-right shrink-0">
                       {statusBadge(v.status)}
                       <p className="text-xs text-gray-400 mt-1">{formatDate(v.visitedAt)}</p>
                     </div>
@@ -145,8 +157,8 @@ export default async function SchedulePage() {
           </Card>
         </div>
 
-        {/* Log a visit */}
-        <div>
+        {/* Log a visit — desktop sidebar only */}
+        <div className="hidden lg:block">
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>

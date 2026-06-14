@@ -5,6 +5,7 @@ import Card from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { DAY_NAMES } from "@/lib/utils"
 import NewRouteForm from "@/components/routes/NewRouteForm"
+import { ChevronRight } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -17,16 +18,56 @@ export default async function RoutesPage() {
   })
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Routes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{routes.length} routes</p>
-        </div>
+    <div className="space-y-4 sm:space-y-5">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Routes</h1>
+        <p className="text-sm text-gray-500 mt-0.5">{routes.length} routes</p>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Route list */}
+      {/* Mobile: form first, then list */}
+      <div className="lg:hidden space-y-4">
+        <Card>
+          <div className="px-4 py-3 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900 text-sm">New Route</h2>
+          </div>
+          <div className="px-4 py-4">
+            <NewRouteForm />
+          </div>
+        </Card>
+
+        <Card>
+          {routes.length === 0 ? (
+            <div className="py-12 text-center">
+              <p className="text-gray-400 text-sm">No routes yet. Create your first route above.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {routes.map((route) => (
+                <Link
+                  key={route.id}
+                  href={`/routes/${route.id}`}
+                  className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{route.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {route.dayOfWeek != null ? DAY_NAMES[route.dayOfWeek] : "No schedule"}
+                      {" · "}{route._count.stops} stops
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    {statusBadge(route.isActive ? "active" : "inactive")}
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Desktop: list left, form right */}
+      <div className="hidden lg:grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <Card>
             {routes.length === 0 ? (
@@ -56,7 +97,6 @@ export default async function RoutesPage() {
           </Card>
         </div>
 
-        {/* New route form */}
         <div>
           <Card>
             <div className="px-5 py-4 border-b border-gray-100">

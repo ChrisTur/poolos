@@ -48,54 +48,58 @@ export default async function DashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">{companyName} · {DAY_NAMES[today]}</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <Card key={label} className="p-4">
+          <Card key={label} className="p-3 sm:p-4">
             <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-gray-500 font-medium">{label}</p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500 font-medium leading-tight">{label}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{value}</p>
               </div>
-              <span className={`${bg} ${color} p-2 rounded-lg`}>
-                <Icon className="w-5 h-5" />
+              <span className={`${bg} ${color} p-1.5 sm:p-2 rounded-lg shrink-0 ml-2`}>
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </span>
             </div>
           </Card>
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+        {/* Today's Routes */}
         <Card>
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Today&rsquo;s Routes</h2>
-            <Link href="/routes" className="text-xs text-sky-600 hover:underline">All routes</Link>
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Today&rsquo;s Routes</h2>
+            <Link href="/routes" className="text-xs text-sky-600 hover:underline shrink-0 ml-2">All routes</Link>
           </div>
           <div className="divide-y divide-gray-50">
             {todayRoutes.length === 0 ? (
               <p className="px-5 py-8 text-center text-sm text-gray-400">No routes scheduled for today.</p>
             ) : (
               todayRoutes.map((route) => (
-                <div key={route.id} className="px-5 py-3">
+                <div key={route.id} className="px-4 sm:px-5 py-3">
                   <div className="flex items-center justify-between mb-2">
-                    <Link href={`/routes/${route.id}`} className="font-medium text-sm text-gray-900 hover:text-sky-600">
+                    <Link href={`/routes/${route.id}`} className="font-medium text-sm text-gray-900 hover:text-sky-600 truncate">
                       {route.name}
                     </Link>
-                    <span className="text-xs text-gray-400">{route.stops.length} stops</span>
+                    <span className="text-xs text-gray-400 shrink-0 ml-2">{route.stops.length} stops</span>
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {route.stops.slice(0, 3).map((stop, i) => (
                       <div key={stop.id} className="flex items-center gap-2 text-xs text-gray-500">
                         <span className="w-5 h-5 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-medium shrink-0">
                           {i + 1}
                         </span>
-                        {stop.customer.firstName} {stop.customer.lastName}
-                        <span className="text-gray-400">— {stop.customer.address}</span>
+                        <span className="font-medium text-gray-700 truncate">
+                          {stop.customer.firstName} {stop.customer.lastName}
+                        </span>
+                        <span className="text-gray-400 truncate hidden sm:inline">— {stop.customer.address}</span>
                       </div>
                     ))}
                     {route.stops.length > 3 && (
@@ -108,10 +112,11 @@ export default async function DashboardPage() {
           </div>
         </Card>
 
+        {/* Unpaid Invoices */}
         <Card>
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Unpaid Invoices</h2>
-            <Link href="/invoices" className="text-xs text-sky-600 hover:underline">All invoices</Link>
+          <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Unpaid Invoices</h2>
+            <Link href="/invoices" className="text-xs text-sky-600 hover:underline shrink-0 ml-2">All invoices</Link>
           </div>
           <div className="divide-y divide-gray-50">
             {unpaidInvoices.length === 0 ? (
@@ -124,14 +129,14 @@ export default async function DashboardPage() {
                 const total = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
                 return (
                   <Link key={inv.id} href={`/invoices/${inv.id}`}
-                    className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
+                    className="flex items-center justify-between px-4 sm:px-5 py-3 hover:bg-gray-50 transition-colors">
+                    <div className="min-w-0 mr-3">
+                      <p className="text-sm font-medium text-gray-900 truncate">
                         {inv.customer.firstName} {inv.customer.lastName}
                       </p>
                       <p className="text-xs text-gray-400">#{inv.invoiceNumber}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       <p className="text-sm font-semibold text-gray-900">{formatCurrency(total)}</p>
                       <div className="mt-0.5">{statusBadge(inv.status)}</div>
                     </div>
@@ -143,24 +148,25 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
+      {/* Recent Visits */}
       <Card>
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Recent Visits</h2>
-          <Link href="/schedule" className="text-xs text-sky-600 hover:underline">View schedule</Link>
+        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Recent Visits</h2>
+          <Link href="/schedule" className="text-xs text-sky-600 hover:underline shrink-0 ml-2">View schedule</Link>
         </div>
         <div className="divide-y divide-gray-50">
           {recentVisits.length === 0 ? (
             <p className="px-5 py-8 text-center text-sm text-gray-400">No visits logged yet.</p>
           ) : (
             recentVisits.map((visit) => (
-              <div key={visit.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
+              <div key={visit.id} className="flex items-center justify-between px-4 sm:px-5 py-3">
+                <div className="min-w-0 mr-3">
+                  <p className="text-sm font-medium text-gray-900 truncate">
                     {visit.customer.firstName} {visit.customer.lastName}
                   </p>
-                  {visit.notes && <p className="text-xs text-gray-400 truncate max-w-xs">{visit.notes}</p>}
+                  {visit.notes && <p className="text-xs text-gray-400 truncate">{visit.notes}</p>}
                 </div>
-                <div className="text-right shrink-0 ml-4">
+                <div className="text-right shrink-0">
                   <div>{statusBadge(visit.status)}</div>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {new Date(visit.visitedAt).toLocaleDateString()}
