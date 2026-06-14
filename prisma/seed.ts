@@ -20,7 +20,7 @@ async function main() {
       zip: "85001",
       users: {
         create: [
-          { firstName: "Chris", lastName: "Turner", email: "christopher.turnerl@outlook.com", password, role: "owner" },
+          { firstName: "Chris", lastName: "Turner", email: "owner@sunshine.com", password, role: "owner" },
           { firstName: "Jake", lastName: "Davis", email: "jake@sunshine.com", password, role: "technician" },
         ],
       },
