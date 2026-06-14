@@ -55,11 +55,23 @@ export async function updateCustomer(id: string, formData: FormData) {
   })
   revalidatePath(`/customers/${id}`)
   revalidatePath("/customers")
+  redirect(`/customers/${id}`)
 }
 
 export async function deleteCustomer(id: string) {
   const { companyId } = await requireSession()
-  await db.customer.deleteMany({ where: { id, companyId } })
+  const customer = await db.customer.findFirst({ where: { id, companyId } })
+  if (!customer) redirect("/customers")
+
+  // Explicitly delete related records in case DB cascades aren't applied
+  await db.customerNote.deleteMany({ where: { customerId: id } })
+  await db.serviceVisit.deleteMany({ where: { customerId: id } })
+  await db.routeStop.deleteMany({ where: { customerId: id } })
+  await db.invoiceItem.deleteMany({ where: { invoice: { customerId: id } } })
+  await db.payment.deleteMany({ where: { invoice: { customerId: id } } })
+  await db.invoice.deleteMany({ where: { customerId: id } })
+  await db.customer.delete({ where: { id } })
+
   revalidatePath("/customers")
   redirect("/customers")
 }
