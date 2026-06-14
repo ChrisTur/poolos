@@ -1,10 +1,11 @@
 import { db } from "@/lib/db"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { formatDate } from "@/lib/utils"
-import { toggleCompany, adminCreateCompany } from "@/lib/actions/admin"
+import { toggleCompany, adminCreateCompany, deleteCompany } from "@/lib/actions/admin"
 import Button from "@/components/ui/Button"
 import { Building2, Plus, ChevronRight } from "lucide-react"
 import Link from "next/link"
+import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
@@ -19,7 +20,7 @@ export default async function AdminCompaniesPage({
     db.company.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        _count: { select: { users: true, customers: true, invoices: true } },
+        _count: { select: { users: true } },
       },
     }),
     searchParams,
@@ -81,7 +82,8 @@ export default async function AdminCompaniesPage({
       {/* Mobile card list */}
       <div className="sm:hidden space-y-2">
         {companies.map((c) => {
-          const action = toggleCompany.bind(null, c.id, !c.isActive)
+          const toggleAction = toggleCompany.bind(null, c.id, !c.isActive)
+          const deleteAction = deleteCompany.bind(null, c.id)
           return (
             <Card key={c.id} className="p-4">
               <div className="flex items-start justify-between mb-2">
@@ -90,9 +92,8 @@ export default async function AdminCompaniesPage({
                     {c.name}
                   </Link>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {c._count.users} users · {c._count.customers} customers · {c._count.invoices} invoices
+                    {c._count.users} users · Joined {formatDate(c.createdAt)}
                   </p>
-                  <p className="text-xs text-gray-400">{formatDate(c.createdAt)}</p>
                 </div>
                 <Link href={`/admin/companies/${c.id}`} className="shrink-0 ml-3">
                   <ChevronRight className="w-4 h-4 text-gray-300" />
@@ -102,11 +103,21 @@ export default async function AdminCompaniesPage({
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
                 }`}>{c.isActive ? "Active" : "Inactive"}</span>
-                <form action={action} className="ml-auto">
-                  <Button type="submit" size="sm" variant={c.isActive ? "danger" : "secondary"}>
-                    {c.isActive ? "Deactivate" : "Activate"}
-                  </Button>
-                </form>
+                <div className="ml-auto flex gap-2">
+                  <form action={toggleAction}>
+                    <Button type="submit" size="sm" variant={c.isActive ? "secondary" : "secondary"}>
+                      {c.isActive ? "Deactivate" : "Activate"}
+                    </Button>
+                  </form>
+                  <ConfirmButton
+                    action={deleteAction}
+                    confirm={`Delete ${c.name} and all its data? This cannot be undone.`}
+                    variant="danger"
+                    size="sm"
+                  >
+                    Delete
+                  </ConfirmButton>
+                </div>
               </div>
             </Card>
           )
@@ -122,8 +133,6 @@ export default async function AdminCompaniesPage({
                 <th className="px-5 py-3 text-left font-medium">Company</th>
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Contact</th>
                 <th className="px-5 py-3 text-center font-medium">Users</th>
-                <th className="px-5 py-3 text-center font-medium hidden lg:table-cell">Customers</th>
-                <th className="px-5 py-3 text-center font-medium hidden lg:table-cell">Invoices</th>
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Joined</th>
                 <th className="px-5 py-3 text-left font-medium">Status</th>
                 <th className="px-5 py-3" />
@@ -131,7 +140,8 @@ export default async function AdminCompaniesPage({
             </thead>
             <tbody className="divide-y divide-gray-50">
               {companies.map((c) => {
-                const action = toggleCompany.bind(null, c.id, !c.isActive)
+                const toggleAction = toggleCompany.bind(null, c.id, !c.isActive)
+                const deleteAction = deleteCompany.bind(null, c.id)
                 return (
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
@@ -143,20 +153,31 @@ export default async function AdminCompaniesPage({
                       {c.city && <p>{c.city}, {c.state}</p>}
                     </td>
                     <td className="px-5 py-3 text-center text-gray-600">{c._count.users}</td>
-                    <td className="px-5 py-3 text-center text-gray-600 hidden lg:table-cell">{c._count.customers}</td>
-                    <td className="px-5 py-3 text-center text-gray-600 hidden lg:table-cell">{c._count.invoices}</td>
                     <td className="px-5 py-3 text-gray-500 hidden md:table-cell">{formatDate(c.createdAt)}</td>
                     <td className="px-5 py-3">
-                      <form action={action}>
-                        <Button type="submit" size="sm" variant={c.isActive ? "danger" : "secondary"}>
-                          {c.isActive ? "Deactivate" : "Activate"}
-                        </Button>
-                      </form>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                      }`}>{c.isActive ? "Active" : "Inactive"}</span>
                     </td>
-                    <td className="px-3 py-3">
-                      <Link href={`/admin/companies/${c.id}`} className="text-gray-400 hover:text-sky-600">
-                        <ChevronRight className="w-4 h-4" />
-                      </Link>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center justify-end gap-2">
+                        <form action={toggleAction}>
+                          <Button type="submit" size="sm" variant="secondary">
+                            {c.isActive ? "Deactivate" : "Activate"}
+                          </Button>
+                        </form>
+                        <ConfirmButton
+                          action={deleteAction}
+                          confirm={`Delete ${c.name} and all its data? This cannot be undone.`}
+                          variant="danger"
+                          size="sm"
+                        >
+                          Delete
+                        </ConfirmButton>
+                        <Link href={`/admin/companies/${c.id}`} className="text-gray-400 hover:text-sky-600">
+                          <ChevronRight className="w-4 h-4" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 )

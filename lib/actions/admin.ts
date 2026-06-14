@@ -22,6 +22,12 @@ async function uniqueSlug(base: string) {
   return slug
 }
 
+export async function deleteCompany(id: string) {
+  await requireSuperAdmin()
+  await db.company.delete({ where: { id } })
+  redirect("/admin/companies")
+}
+
 export async function toggleCompany(id: string, isActive: boolean) {
   await requireSuperAdmin()
   await db.company.update({ where: { id }, data: { isActive } })
