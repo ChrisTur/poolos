@@ -4,11 +4,11 @@ import { requireSession } from "@/lib/session"
 import { redirect } from "next/navigation"
 import { auth } from "@/auth"
 import Link from "next/link"
-import { ChevronLeft, Upload } from "lucide-react"
+import { ChevronLeft, Upload, Eye } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { formatDate } from "@/lib/utils"
-import { adminUpdateCompany, adminUploadLogo } from "@/lib/actions/admin"
+import { adminUpdateCompany, adminUploadLogo, startViewAs } from "@/lib/actions/admin"
 
 export const dynamic = "force-dynamic"
 
@@ -31,6 +31,7 @@ export default async function AdminCompanyDetailPage({ params }: { params: Promi
 
   const updateAction = adminUpdateCompany.bind(null, id)
   const logoAction = adminUploadLogo.bind(null, id)
+  const viewAsAction = startViewAs.bind(null, id)
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -38,10 +39,19 @@ export default async function AdminCompanyDetailPage({ params }: { params: Promi
         <Link href="/admin/companies" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-3">
           <ChevronLeft className="w-4 h-4" /> Companies
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
-        <p className="text-sm text-gray-400 mt-0.5">
-          Created {formatDate(company.createdAt)} · {company._count.customers} customers · {company._count.invoices} invoices
-        </p>
+        <div className="flex items-start justify-between gap-4 mt-1">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Created {formatDate(company.createdAt)} · {company._count.customers} customers · {company._count.invoices} invoices
+            </p>
+          </div>
+          <form action={viewAsAction}>
+            <Button type="submit" variant="secondary" size="sm">
+              <Eye className="w-4 h-4" /> View as Company
+            </Button>
+          </form>
+        </div>
       </div>
 
       {/* Logo */}

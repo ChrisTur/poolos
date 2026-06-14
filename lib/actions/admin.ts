@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
 
 async function requireSuperAdmin() {
@@ -20,6 +21,25 @@ async function uniqueSlug(base: string) {
   let slug = base, i = 1
   while (await db.company.findUnique({ where: { slug } })) slug = `${base}-${i++}`
   return slug
+}
+
+export async function startViewAs(id: string) {
+  await requireSuperAdmin()
+  const cookieStore = await cookies()
+  cookieStore.set("poolos_view_as", id, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 8, // 8 hours
+    path: "/",
+  })
+  redirect("/dashboard")
+}
+
+export async function stopViewAs() {
+  const cookieStore = await cookies()
+  cookieStore.delete("poolos_view_as")
+  redirect("/admin/companies")
 }
 
 export async function deleteCompany(id: string) {

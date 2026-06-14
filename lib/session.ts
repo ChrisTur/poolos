@@ -1,10 +1,29 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
+import { db } from "@/lib/db"
 
 export async function requireSession() {
   const session = await auth()
   if (!session?.user) redirect("/login")
-  return session.user
+
+  const user = session.user
+
+  // Super admin: check for view-as cookie to impersonate a company
+  if (user.email === process.env.SUPER_ADMIN_EMAIL) {
+    const cookieStore = await cookies()
+    const viewAs = cookieStore.get("poolos_view_as")?.value
+    if (viewAs) {
+      const company = await db.company.findUnique({ where: { id: viewAs } })
+      if (company) {
+        return { ...user, companyId: company.id, companyName: company.name, role: "owner" }
+      }
+    }
+    // Super admin with no view-as session belongs in /admin, not the app
+    redirect("/admin")
+  }
+
+  return user
 }
 
 export async function requireOwner() {

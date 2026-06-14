@@ -1,10 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Menu, Waves } from "lucide-react"
+import { Menu, Waves, Eye, X } from "lucide-react"
 import Sidebar from "./Sidebar"
+import { stopViewAs } from "@/lib/actions/admin"
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+interface Props {
+  children: React.ReactNode
+  viewAsCompany?: string
+}
+
+export default function AppShell({ children, viewAsCompany }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -12,6 +18,27 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+        {/* View-as banner */}
+        {viewAsCompany && (
+          <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between gap-3 shrink-0 text-sm">
+            <div className="flex items-center gap-2 min-w-0">
+              <Eye className="w-4 h-4 shrink-0" />
+              <span className="truncate">
+                Viewing as <strong>{viewAsCompany}</strong>
+              </span>
+            </div>
+            <form action={stopViewAs}>
+              <button
+                type="submit"
+                className="flex items-center gap-1 text-white/90 hover:text-white font-medium whitespace-nowrap shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+                Exit
+              </button>
+            </form>
+          </div>
+        )}
+
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0 sticky top-0 z-10">
           <button
