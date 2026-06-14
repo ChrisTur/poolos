@@ -1,11 +1,13 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, Search, ChevronRight } from "lucide-react"
+import { Plus, Search, Pencil, Trash2 } from "lucide-react"
 import Card from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatPhone } from "@/lib/utils"
 import Button from "@/components/ui/Button"
+import ConfirmButton from "@/components/ui/ConfirmButton"
+import { deleteCustomer } from "@/lib/actions/customers"
 
 export const dynamic = "force-dynamic"
 
@@ -78,88 +80,112 @@ export default async function CustomersPage({
         </div>
       </form>
 
-      {/* Mobile card list */}
-      <div className="sm:hidden space-y-2">
-        {customers.length === 0 ? (
-          <Card>
-            <div className="py-12 text-center">
-              <p className="text-gray-400 text-sm">No customers found.</p>
-              <Link href="/customers/new" className="mt-3 inline-block text-sm text-sky-600 hover:underline">
-                Add your first customer
-              </Link>
-            </div>
-          </Card>
-        ) : (
-          customers.map((c) => (
-            <Link key={c.id} href={`/customers/${c.id}`}>
-              <Card className="p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors">
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{c.firstName} {c.lastName}</p>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">
-                    {c.phone ? formatPhone(c.phone) : c.email || c.city}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    {statusBadge(c.status)}
-                    <span className="text-xs text-gray-400">{c._count.serviceVisits} visits</span>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 ml-3" />
-              </Card>
-            </Link>
-          ))
-        )}
-      </div>
-
-      {/* Desktop/tablet table */}
-      <Card className="hidden sm:block">
-        {customers.length === 0 ? (
+      {customers.length === 0 ? (
+        <Card>
           <div className="py-16 text-center">
             <p className="text-gray-400 text-sm">No customers found.</p>
             <Link href="/customers/new" className="mt-3 inline-block text-sm text-sky-600 hover:underline">
               Add your first customer
             </Link>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
-                  <th className="px-5 py-3 text-left font-medium">Name</th>
-                  <th className="px-5 py-3 text-left font-medium">Contact</th>
-                  <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Address</th>
-                  <th className="px-5 py-3 text-left font-medium hidden lg:table-cell">Rate</th>
-                  <th className="px-5 py-3 text-left font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {customers.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3">
-                      <Link href={`/customers/${c.id}`} className="font-medium text-gray-900 hover:text-sky-600">
-                        {c.firstName} {c.lastName}
-                      </Link>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {c._count.serviceVisits} visits · {c._count.invoices} invoices
+        </Card>
+      ) : (
+        <>
+          {/* Mobile card list */}
+          <div className="sm:hidden space-y-2">
+            {customers.map((c) => {
+              const deleteAction = deleteCustomer.bind(null, c.id)
+              return (
+                <Card key={c.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <Link href={`/customers/${c.id}`} className="min-w-0 flex-1">
+                      <p className="font-medium text-gray-900 truncate">{c.firstName} {c.lastName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">
+                        {c.phone ? formatPhone(c.phone) : c.email || c.city}
                       </p>
-                    </td>
-                    <td className="px-5 py-3 text-gray-600">
-                      <p className="truncate max-w-[180px]">{c.email || "—"}</p>
-                      <p className="text-gray-400">{c.phone ? formatPhone(c.phone) : ""}</p>
-                    </td>
-                    <td className="px-5 py-3 hidden md:table-cell text-gray-500 max-w-[200px] truncate">
-                      {c.address}, {c.city}
-                    </td>
-                    <td className="px-5 py-3 hidden lg:table-cell text-gray-600">
-                      {c.monthlyRate ? formatCurrency(c.monthlyRate) + "/mo" : "—"}
-                    </td>
-                    <td className="px-5 py-3">{statusBadge(c.status)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {statusBadge(c.status)}
+                        <span className="text-xs text-gray-400">{c._count.serviceVisits} visits</span>
+                        {c.monthlyRate && (
+                          <span className="text-xs text-gray-400">{formatCurrency(c.monthlyRate)}/mo</span>
+                        )}
+                      </div>
+                    </Link>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Link href={`/customers/${c.id}/edit`}>
+                        <button className="p-2 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                      </Link>
+                      <ConfirmButton action={deleteAction} confirm={`Delete ${c.firstName} ${c.lastName}?`} variant="danger" size="sm" className="p-2">
+                        <Trash2 className="w-4 h-4" />
+                      </ConfirmButton>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
           </div>
-        )}
-      </Card>
+
+          {/* Desktop/tablet table */}
+          <Card className="hidden sm:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="px-5 py-3 text-left font-medium">Name</th>
+                    <th className="px-5 py-3 text-left font-medium">Contact</th>
+                    <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Address</th>
+                    <th className="px-5 py-3 text-left font-medium hidden lg:table-cell">Rate</th>
+                    <th className="px-5 py-3 text-left font-medium">Status</th>
+                    <th className="px-5 py-3 text-right font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {customers.map((c) => {
+                    const deleteAction = deleteCustomer.bind(null, c.id)
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-3">
+                          <Link href={`/customers/${c.id}`} className="font-medium text-gray-900 hover:text-sky-600">
+                            {c.firstName} {c.lastName}
+                          </Link>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {c._count.serviceVisits} visits · {c._count.invoices} invoices
+                          </p>
+                        </td>
+                        <td className="px-5 py-3 text-gray-600">
+                          <p className="truncate max-w-[180px]">{c.email || "—"}</p>
+                          <p className="text-gray-400">{c.phone ? formatPhone(c.phone) : ""}</p>
+                        </td>
+                        <td className="px-5 py-3 hidden md:table-cell text-gray-500 max-w-[200px] truncate">
+                          {c.address}, {c.city}
+                        </td>
+                        <td className="px-5 py-3 hidden lg:table-cell text-gray-600">
+                          {c.monthlyRate ? formatCurrency(c.monthlyRate) + "/mo" : "—"}
+                        </td>
+                        <td className="px-5 py-3">{statusBadge(c.status)}</td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Link href={`/customers/${c.id}/edit`}>
+                              <button className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit">
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                            </Link>
+                            <ConfirmButton action={deleteAction} confirm={`Delete ${c.firstName} ${c.lastName}?`} variant="danger" size="sm" className="p-1.5">
+                              <Trash2 className="w-4 h-4" />
+                            </ConfirmButton>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </>
+      )}
     </div>
   )
 }
