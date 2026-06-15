@@ -13,6 +13,7 @@ import {
   Settings,
   UserCog,
   LogOut,
+  BarChart2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { logout } from "@/lib/actions/auth"
@@ -23,6 +24,7 @@ const nav = [
   { href: "/routes", label: "Routes", icon: MapPin },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/reports", label: "Reports", icon: BarChart2 },
 ]
 
 const settingsNav = [

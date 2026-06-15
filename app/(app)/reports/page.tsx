@@ -1,0 +1,362 @@
+import { db } from "@/lib/db"
+import { requireSession } from "@/lib/session"
+import Link from "next/link"
+import { formatCurrency, formatDate } from "@/lib/utils"
+import Card, { CardHeader, CardBody } from "@/components/ui/Card"
+import { statusBadge } from "@/components/ui/Badge"
+import { chemStatus, CHEM_RANGES, STATUS_BG, visitNeedsAttention } from "@/lib/chemistry"
+import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle } from "lucide-react"
+
+export const dynamic = "force-dynamic"
+
+const PERIODS = [
+  { key: "30d",  label: "Last 30 days" },
+  { key: "90d",  label: "Last 90 days" },
+  { key: "ytd",  label: "Year to date" },
+  { key: "all",  label: "All time" },
+]
+
+function getPeriodStart(period: string): Date {
+  const now = new Date()
+  if (period === "30d") return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+  if (period === "90d") return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
+  if (period === "ytd") return new Date(now.getFullYear(), 0, 1)
+  return new Date(0)
+}
+
+function monthKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+}
+function monthLabel(key: string) {
+  const [y, m] = key.split("-")
+  return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>
+}) {
+  const { companyId } = await requireSession()
+  const { period = "30d" } = await searchParams
+  const periodStart = getPeriodStart(period)
+
+  const [
+    periodPayments,
+    openInvoices,
+    allPeriodInvoices,
+    activeCustomers,
+    newCustomers,
+    visitsInPeriod,
+    mrrResult,
+    monthlyPaymentsRaw,
+    customersWithChemistry,
+  ] = await Promise.all([
+    // Payments received in period (revenue collected)
+    db.payment.findMany({
+      where: { invoice: { companyId }, createdAt: { gte: periodStart } },
+    }),
+    // All open invoices for outstanding/overdue balance
+    db.invoice.findMany({
+      where: { companyId, status: { in: ["sent", "overdue"] } },
+      include: { items: true, payments: true },
+    }),
+    // Invoices created in period for breakdown table
+    db.invoice.findMany({
+      where: { companyId, createdAt: { gte: periodStart } },
+      include: { items: true, payments: true },
+    }),
+    db.customer.count({ where: { companyId, status: "active" } }),
+    db.customer.count({ where: { companyId, createdAt: { gte: periodStart } } }),
+    db.serviceVisit.findMany({
+      where: { customer: { companyId }, visitedAt: { gte: periodStart } },
+      select: { status: true },
+    }),
+    db.customer.aggregate({
+      where: { companyId, status: "active", monthlyRate: { not: null, gt: 0 } },
+      _sum: { monthlyRate: true },
+    }),
+    // Payments from last 7 months for the chart
+    db.payment.findMany({
+      where: {
+        invoice: { companyId },
+        createdAt: { gte: new Date(new Date().setMonth(new Date().getMonth() - 6)) },
+      },
+    }),
+    // Customers with their latest chemical reading
+    db.customer.findMany({
+      where: { companyId, status: "active" },
+      include: {
+        serviceVisits: {
+          where: {
+            OR: [
+              { chlorine: { not: null } },
+              { ph: { not: null } },
+              { alkalinity: { not: null } },
+              { calcium: { not: null } },
+            ],
+          },
+          orderBy: { visitedAt: "desc" },
+          take: 1,
+        },
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+  ])
+
+  // ── Business metrics ────────────────────────────────────────────────────────
+  const collected = periodPayments.reduce((s, p) => s + p.amount, 0)
+  const mrr = mrrResult._sum.monthlyRate ?? 0
+
+  const outstanding = openInvoices
+    .filter((i) => i.status === "sent")
+    .reduce((s, inv) => {
+      const t = inv.items.reduce((x, item) => x + item.quantity * item.unitPrice, 0)
+      const p = inv.payments.reduce((x, p) => x + p.amount, 0)
+      return s + Math.max(0, t - p)
+    }, 0)
+
+  const overdue = openInvoices
+    .filter((i) => i.status === "overdue")
+    .reduce((s, inv) => {
+      const t = inv.items.reduce((x, item) => x + item.quantity * item.unitPrice, 0)
+      const p = inv.payments.reduce((x, p) => x + p.amount, 0)
+      return s + Math.max(0, t - p)
+    }, 0)
+
+  const completedVisits = visitsInPeriod.filter((v) => v.status === "completed").length
+
+  // ── Invoice breakdown ───────────────────────────────────────────────────────
+  const breakdown = ["draft", "sent", "overdue", "paid", "cancelled"].map((status) => {
+    const group = allPeriodInvoices.filter((i) => i.status === status)
+    const amount = group.reduce((s, inv) => {
+      return s + inv.items.reduce((x, item) => x + item.quantity * item.unitPrice, 0)
+    }, 0)
+    return { status, count: group.length, amount }
+  })
+
+  // ── Monthly revenue chart (last 6 months) ──────────────────────────────────
+  const now = new Date()
+  const chartMonths = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
+    return monthKey(d)
+  })
+  const monthlyRevenue = new Map<string, number>()
+  for (const p of monthlyPaymentsRaw) {
+    const k = monthKey(new Date(p.createdAt))
+    monthlyRevenue.set(k, (monthlyRevenue.get(k) ?? 0) + p.amount)
+  }
+  const chartData = chartMonths.map((k) => ({ key: k, label: monthLabel(k), amount: monthlyRevenue.get(k) ?? 0 }))
+  const chartMax = Math.max(...chartData.map((d) => d.amount), 1)
+
+  // ── Chemical health ─────────────────────────────────────────────────────────
+  const chemKeys = ["chlorine", "ph", "alkalinity", "calcium"] as const
+  const chemCustomers = customersWithChemistry.map((c) => {
+    const v = c.serviceVisits[0] ?? null
+    return { customer: c, visit: v }
+  })
+  const withReadings  = chemCustomers.filter((x) => x.visit)
+  const noReadings    = chemCustomers.filter((x) => !x.visit)
+  const needsAttention = withReadings.filter(({ visit: v }) =>
+    v && visitNeedsAttention({ chlorine: v.chlorine, ph: v.ph, alkalinity: v.alkalinity, calcium: v.calcium })
+  )
+
+  return (
+    <div className="space-y-6">
+      {/* Header + period tabs */}
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
+        <div className="flex gap-1 mt-3 flex-wrap">
+          {PERIODS.map((p) => (
+            <Link
+              key={p.key}
+              href={`/reports?period=${p.key}`}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                period === p.key ? "bg-sky-600 text-white" : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              {p.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Business overview ── */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Business Overview</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Collected", value: formatCurrency(collected), icon: DollarSign, color: "text-green-600", bg: "bg-green-50", sub: PERIODS.find(p => p.key === period)?.label },
+            { label: "Outstanding", value: formatCurrency(outstanding), icon: TrendingUp, color: "text-sky-600", bg: "bg-sky-50", sub: "sent invoices" },
+            { label: "Overdue", value: formatCurrency(overdue), icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50", sub: "past due" },
+            { label: "MRR", value: formatCurrency(mrr), icon: DollarSign, color: "text-indigo-600", bg: "bg-indigo-50", sub: "monthly recurring" },
+          ].map(({ label, value, icon: Icon, color, bg, sub }) => (
+            <Card key={label} className="p-3 sm:p-4">
+              <div className="flex items-start justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium">{label}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{value}</p>
+                  {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+                </div>
+                <span className={`${bg} ${color} p-1.5 sm:p-2 rounded-lg shrink-0 ml-2`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+          {[
+            { label: "Active Customers", value: activeCustomers, icon: Users, color: "text-sky-600", bg: "bg-sky-50" },
+            { label: "New Customers", value: newCustomers, icon: Users, color: "text-green-600", bg: "bg-green-50" },
+            { label: "Visits", value: visitsInPeriod.length, icon: CalendarDays, color: "text-indigo-600", bg: "bg-indigo-50" },
+            { label: "Completed", value: completedVisits, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
+          ].map(({ label, value, icon: Icon, color, bg }) => (
+            <Card key={label} className="p-3 sm:p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">{label}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{value}</p>
+                </div>
+                <span className={`${bg} ${color} p-1.5 sm:p-2 rounded-lg shrink-0 ml-2`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </span>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Revenue chart + Invoice breakdown ── */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        <Card>
+          <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Monthly Revenue (last 6 months)</h2></CardHeader>
+          <CardBody>
+            <div className="space-y-2">
+              {chartData.map((d) => (
+                <div key={d.key} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 w-12 shrink-0 text-right">{d.label}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                    <div
+                      className="h-full bg-sky-500 rounded-full transition-all"
+                      style={{ width: `${(d.amount / chartMax) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 w-16 shrink-0">{formatCurrency(d.amount)}</span>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Invoice Breakdown ({PERIODS.find(p => p.key === period)?.label})</h2></CardHeader>
+          <div className="divide-y divide-gray-50">
+            {breakdown.filter((b) => b.count > 0).map((b) => (
+              <div key={b.status} className="px-5 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {statusBadge(b.status)}
+                  <span className="text-sm text-gray-500">{b.count} invoice{b.count !== 1 ? "s" : ""}</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">{formatCurrency(b.amount)}</span>
+              </div>
+            ))}
+            {breakdown.every((b) => b.count === 0) && (
+              <div className="px-5 py-8 text-center text-sm text-gray-400">No invoices in this period.</div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Chemical health ── */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Chemical Health</h2>
+          {needsAttention.length > 0 && (
+            <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1">
+              {needsAttention.length} need{needsAttention.length === 1 ? "s" : ""} attention
+            </span>
+          )}
+        </div>
+
+        <Card>
+          {withReadings.length === 0 ? (
+            <CardBody>
+              <div className="text-center py-8">
+                <FlaskConical className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">No chemical readings recorded yet.</p>
+                <p className="text-xs text-gray-400 mt-1">Log readings during service visits to see health data here.</p>
+              </div>
+            </CardBody>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
+                    <th className="px-5 py-3 text-left font-medium">Customer</th>
+                    <th className="px-5 py-3 text-left font-medium">Last Reading</th>
+                    {chemKeys.map((k) => (
+                      <th key={k} className="px-3 py-3 text-center font-medium">{CHEM_RANGES[k].label}</th>
+                    ))}
+                    <th className="px-5 py-3 text-right font-medium">Trends</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {[...withReadings].sort((a, b) => {
+                    const aN = a.visit && visitNeedsAttention({ chlorine: a.visit.chlorine, ph: a.visit.ph, alkalinity: a.visit.alkalinity, calcium: a.visit.calcium }) ? 0 : 1
+                    const bN = b.visit && visitNeedsAttention({ chlorine: b.visit.chlorine, ph: b.visit.ph, alkalinity: b.visit.alkalinity, calcium: b.visit.calcium }) ? 0 : 1
+                    return aN - bN
+                  }).map(({ customer: c, visit: v }) => (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3">
+                        <Link href={`/customers/${c.id}`} className="font-medium text-gray-900 hover:text-sky-600">
+                          {c.firstName} {c.lastName}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-3 text-xs text-gray-400">
+                        {v ? formatDate(v.visitedAt) : "—"}
+                      </td>
+                      {chemKeys.map((k) => {
+                        const val = v?.[k] ?? null
+                        const s = chemStatus(k, val)
+                        return (
+                          <td key={k} className="px-3 py-3 text-center">
+                            {val == null ? (
+                              <span className="text-gray-300">—</span>
+                            ) : (
+                              <span className={`inline-flex items-center justify-center rounded-full border px-2 py-0.5 text-xs font-medium ${s ? STATUS_BG[s] : "bg-gray-50 text-gray-500 border-gray-200"}`}>
+                                {val}
+                                {s === "low" && " ▼"}
+                                {s === "high" && " ▲"}
+                              </span>
+                            )}
+                          </td>
+                        )
+                      })}
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          href={`/reports/chemicals/${c.id}`}
+                          className="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800 font-medium"
+                        >
+                          View <ChevronRight className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                  {noReadings.length > 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-2 text-xs text-gray-400 bg-gray-50">
+                        {noReadings.length} customer{noReadings.length !== 1 ? "s" : ""} with no readings recorded
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+      </section>
+    </div>
+  )
+}
