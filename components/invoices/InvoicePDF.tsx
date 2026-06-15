@@ -3,9 +3,10 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
 } from "@react-pdf/renderer"
-import type { Customer, Invoice, InvoiceItem, Payment } from "@/app/generated/prisma/client"
+import type { Company, Customer, Invoice, InvoiceItem, Payment } from "@/app/generated/prisma/client"
 
 type FullInvoice = Invoice & {
   customer: Customer
@@ -13,10 +14,14 @@ type FullInvoice = Invoice & {
   payments: Payment[]
 }
 
+interface Props {
+  invoice: FullInvoice
+  company: Company
+}
+
 const styles = StyleSheet.create({
   page: { padding: 48, fontFamily: "Helvetica", fontSize: 10, color: "#111827" },
   header: { flexDirection: "row", justifyContent: "space-between", marginBottom: 32 },
-  title: { fontSize: 24, fontFamily: "Helvetica-Bold", color: "#0369a1" },
   label: { fontSize: 8, color: "#9ca3af", marginBottom: 2, textTransform: "uppercase", letterSpacing: 0.5 },
   sectionTitle: { fontFamily: "Helvetica-Bold", fontSize: 11, marginBottom: 8 },
   row: { flexDirection: "row", borderBottomWidth: 1, borderBottomColor: "#f3f4f6", paddingVertical: 6 },
@@ -39,7 +44,7 @@ function fmtDate(d: Date | string) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
-export default function InvoicePDF({ invoice }: { invoice: FullInvoice }) {
+export default function InvoicePDF({ invoice, company }: Props) {
   const total = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
   const paid = invoice.payments.reduce((s, p) => s + p.amount, 0)
   const balance = total - paid
@@ -48,15 +53,25 @@ export default function InvoicePDF({ invoice }: { invoice: FullInvoice }) {
   return (
     <Document>
       <Page size="LETTER" style={styles.page}>
-        {/* Header */}
+        {/* Header: company info left, invoice meta right */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>PoolOS</Text>
-            <Text style={{ color: "#6b7280", marginTop: 4 }}>Pool Service</Text>
+          <View style={{ flex: 1 }}>
+            {company.logoUrl ? (
+              <Image src={company.logoUrl} style={{ height: 48, objectFit: "contain", marginBottom: 6, alignSelf: "flex-start" }} />
+            ) : null}
+            <Text style={[styles.bold, { fontSize: 14 }]}>{company.name}</Text>
+            {company.address ? <Text style={{ color: "#6b7280", marginTop: 2 }}>{company.address}</Text> : null}
+            {company.city ? (
+              <Text style={{ color: "#6b7280" }}>
+                {company.city}{company.state ? `, ${company.state}` : ""}{company.zip ? ` ${company.zip}` : ""}
+              </Text>
+            ) : null}
+            {company.phone ? <Text style={{ color: "#6b7280" }}>{company.phone}</Text> : null}
           </View>
           <View style={{ alignItems: "flex-end" }}>
-            <Text style={[styles.bold, { fontSize: 16 }]}>{invoice.invoiceNumber}</Text>
-            <Text style={{ color: "#6b7280", marginTop: 2 }}>Issued: {fmtDate(invoice.issuedAt)}</Text>
+            <Text style={[styles.bold, { fontSize: 20, color: "#0369a1" }]}>INVOICE</Text>
+            <Text style={[styles.bold, { fontSize: 14, marginTop: 4 }]}>{invoice.invoiceNumber}</Text>
+            <Text style={{ color: "#6b7280", marginTop: 4 }}>Issued: {fmtDate(invoice.issuedAt)}</Text>
             <Text style={{ color: "#6b7280" }}>Due: {fmtDate(invoice.dueDate)}</Text>
           </View>
         </View>
@@ -67,7 +82,7 @@ export default function InvoicePDF({ invoice }: { invoice: FullInvoice }) {
           <Text style={styles.bold}>{customer.firstName} {customer.lastName}</Text>
           <Text style={{ color: "#374151" }}>{customer.address}</Text>
           <Text style={{ color: "#374151" }}>{customer.city}, {customer.state} {customer.zip}</Text>
-          {customer.email && <Text style={{ color: "#374151" }}>{customer.email}</Text>}
+          {customer.email ? <Text style={{ color: "#374151" }}>{customer.email}</Text> : null}
         </View>
 
         <View style={styles.divider} />
@@ -115,7 +130,7 @@ export default function InvoicePDF({ invoice }: { invoice: FullInvoice }) {
         )}
 
         <Text style={{ color: "#9ca3af", textAlign: "center", marginTop: 48, fontSize: 9 }}>
-          Thank you for your business!
+          Thank you for your business · {company.name} · Powered by PoolOS
         </Text>
       </Page>
     </Document>

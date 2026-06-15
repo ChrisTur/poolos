@@ -66,22 +66,27 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
 
-    <!-- Header -->
-    <div style="background:#0c4a6e;padding:24px 32px;color:#fff">
-      <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px">PoolOS</div>
-      <div style="font-size:13px;color:#bae6fd;margin-top:2px">Pool Service Management</div>
+    <!-- Header: company branding -->
+    <div style="background:#0c4a6e;padding:20px 32px;color:#fff;display:flex;align-items:center;gap:16px">
+      ${inv.companyLogoUrl
+        ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="height:40px;object-fit:contain;background:#fff;border-radius:4px;padding:4px" />`
+        : ""}
+      <div>
+        <div style="font-size:20px;font-weight:700">${inv.companyName}</div>
+        ${inv.companyCity ? `<div style="font-size:12px;color:#bae6fd;margin-top:2px">${inv.companyCity}, ${inv.companyState ?? ""}</div>` : ""}
+      </div>
     </div>
 
     <div style="padding:32px">
       ${reminderBanner}
 
-      <!-- Company + invoice meta -->
+      <!-- Invoice meta -->
       <div style="display:flex;justify-content:space-between;margin-bottom:32px;gap:16px;flex-wrap:wrap">
         <div>
-          ${logo}
-          <div style="font-weight:700;font-size:16px;color:#111827">${inv.companyName}</div>
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:6px">From</div>
+          <div style="font-weight:600;font-size:14px;color:#111827">${inv.companyName}</div>
           ${inv.companyAddress ? `<div style="font-size:13px;color:#6b7280">${inv.companyAddress}</div>` : ""}
-          ${inv.companyCity ? `<div style="font-size:13px;color:#6b7280">${inv.companyCity}, ${inv.companyState} ${inv.companyZip ?? ""}</div>` : ""}
+          ${inv.companyCity ? `<div style="font-size:13px;color:#6b7280">${inv.companyCity}, ${inv.companyState ?? ""} ${inv.companyZip ?? ""}</div>` : ""}
           ${inv.companyPhone ? `<div style="font-size:13px;color:#6b7280">${inv.companyPhone}</div>` : ""}
         </div>
         <div style="text-align:right">

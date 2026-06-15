@@ -95,7 +95,7 @@ export default async function InvoiceDetailPage({
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <InvoicePDFButton invoice={invoice} />
+            <InvoicePDFButton invoice={invoice} company={company} />
             {hasEmail && (
               <>
                 <form action={sendAction}>

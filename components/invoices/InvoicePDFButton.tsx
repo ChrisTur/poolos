@@ -5,7 +5,7 @@ import { saveAs } from "file-saver"
 import { Download } from "lucide-react"
 import Button from "@/components/ui/Button"
 import InvoicePDF from "./InvoicePDF"
-import type { Customer, Invoice, InvoiceItem, Payment } from "@/app/generated/prisma/client"
+import type { Company, Customer, Invoice, InvoiceItem, Payment } from "@/app/generated/prisma/client"
 
 type FullInvoice = Invoice & {
   customer: Customer
@@ -13,9 +13,9 @@ type FullInvoice = Invoice & {
   payments: Payment[]
 }
 
-export default function InvoicePDFButton({ invoice }: { invoice: FullInvoice }) {
+export default function InvoicePDFButton({ invoice, company }: { invoice: FullInvoice; company: Company }) {
   const handleDownload = async () => {
-    const blob = await pdf(<InvoicePDF invoice={invoice} />).toBlob()
+    const blob = await pdf(<InvoicePDF invoice={invoice} company={company} />).toBlob()
     saveAs(blob, `${invoice.invoiceNumber}.pdf`)
   }
 
