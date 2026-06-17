@@ -171,49 +171,61 @@ export function buildReceiptHtml(data: ReceiptEmailData): string {
 
   return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:24px">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    @media only screen and (max-width:620px) {
+      .receipt-header-right { padding: 16px 16px 16px 8px !important; }
+      .receipt-header-left  { padding: 16px !important; }
+      .receipt-body         { padding: 20px 16px !important; }
+      .receipt-amount       { font-size: 24px !important; }
+      .receipt-footer       { padding: 16px !important; }
+    }
+  </style>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:600px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
 
     <!-- Header -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:4px solid #16a34a">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:4px solid #16a34a;table-layout:fixed">
       <tr>
-        <td style="padding:24px 32px;vertical-align:middle">
+        <td class="receipt-header-left" style="padding:20px 16px 20px 24px;vertical-align:middle;width:55%">
           ${data.companyLogoUrl
-            ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:56px;max-width:200px;display:block" />`
-            : `<span style="font-size:22px;font-weight:700;color:#16a34a">${data.companyName}</span>`}
+            ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:48px;max-width:160px;width:auto;display:block" />`
+            : `<span style="font-size:18px;font-weight:700;color:#16a34a;word-break:break-word">${data.companyName}</span>`}
         </td>
-        <td style="padding:24px 32px;text-align:right;vertical-align:middle">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af">Payment Receipt</div>
-          <div style="font-size:20px;font-weight:700;color:#111827;margin-top:2px">${data.invoiceNumber}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:4px">${fmtDate(data.paymentDate)}</div>
+        <td class="receipt-header-right" style="padding:20px 24px 20px 8px;text-align:right;vertical-align:middle;width:45%">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;white-space:nowrap">Payment Receipt</div>
+          <div style="font-size:16px;font-weight:700;color:#111827;margin-top:2px;word-break:break-all">${data.invoiceNumber}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;white-space:nowrap">${fmtDate(data.paymentDate)}</div>
         </td>
       </tr>
     </table>
 
-    <div style="padding:32px">
-      <p style="font-size:15px;color:#374151;margin:0 0 24px">Hi ${data.customerFirstName},</p>
+    <div class="receipt-body" style="padding:24px">
+      <p style="font-size:15px;color:#374151;margin:0 0 20px">Hi ${data.customerFirstName},</p>
 
       <!-- Payment confirmation box -->
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px 24px;margin-bottom:24px;text-align:center">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:16px;margin-bottom:20px;text-align:center">
         <div style="font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#16a34a;margin-bottom:4px">Payment Received</div>
-        <div style="font-size:32px;font-weight:700;color:#15803d">${fmt(data.paymentAmount)}</div>
+        <div class="receipt-amount" style="font-size:28px;font-weight:700;color:#15803d;word-break:break-word">${fmt(data.paymentAmount)}</div>
         ${data.paymentMethod ? `<div style="font-size:13px;color:#4ade80;margin-top:4px">via ${data.paymentMethod}</div>` : ""}
       </div>
 
       <!-- Summary -->
-      <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:20px;table-layout:fixed">
         <tr style="border-bottom:1px solid #f3f4f6">
-          <td style="padding:10px 0;font-size:14px;color:#6b7280">Invoice</td>
-          <td style="padding:10px 0;font-size:14px;font-weight:600;color:#111827;text-align:right">${data.invoiceNumber}</td>
+          <td style="padding:10px 8px 10px 0;font-size:14px;color:#6b7280;width:55%">Invoice</td>
+          <td style="padding:10px 0 10px 8px;font-size:14px;font-weight:600;color:#111827;text-align:right;word-break:break-word;width:45%">${data.invoiceNumber}</td>
         </tr>
         <tr style="border-bottom:1px solid #f3f4f6">
-          <td style="padding:10px 0;font-size:14px;color:#6b7280">Amount paid</td>
-          <td style="padding:10px 0;font-size:14px;font-weight:600;color:#16a34a;text-align:right">${fmt(data.paymentAmount)}</td>
+          <td style="padding:10px 8px 10px 0;font-size:14px;color:#6b7280;width:55%">Amount paid</td>
+          <td style="padding:10px 0 10px 8px;font-size:14px;font-weight:600;color:#16a34a;text-align:right;word-break:break-word;width:45%">${fmt(data.paymentAmount)}</td>
         </tr>
         <tr>
-          <td style="padding:10px 0;font-size:14px;color:#6b7280">Remaining balance</td>
-          <td style="padding:10px 0;font-size:14px;font-weight:700;color:${isPaidInFull ? "#16a34a" : "#111827"};text-align:right">
+          <td style="padding:10px 8px 10px 0;font-size:14px;color:#6b7280;width:55%">Remaining balance</td>
+          <td style="padding:10px 0 10px 8px;font-size:14px;font-weight:700;color:${isPaidInFull ? "#16a34a" : "#111827"};text-align:right;word-break:break-word;width:45%">
             ${isPaidInFull ? "Paid in full" : fmt(data.balanceRemaining)}
           </td>
         </tr>
@@ -223,7 +235,7 @@ export function buildReceiptHtml(data: ReceiptEmailData): string {
     </div>
 
     <!-- Footer -->
-    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:12px;color:#9ca3af">
+    <div class="receipt-footer" style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
       Thank you for your business · ${data.companyName} · Powered by PoolOS
     </div>
   </div>
