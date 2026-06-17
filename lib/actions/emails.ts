@@ -40,6 +40,13 @@ function buildEmailData(invoice: NonNullable<Awaited<ReturnType<typeof fetchInvo
     payments: invoice.payments,
     notes: invoice.notes,
     customMessage,
+    paymentLinks: {
+      venmoHandle:  invoice.company.venmoHandle,
+      paypalHandle: invoice.company.paypalHandle,
+      cashAppHandle:invoice.company.cashAppHandle,
+      zellePhone:   invoice.company.zellePhone,
+      zelleEmail:   invoice.company.zelleEmail,
+    },
   }
 }
 

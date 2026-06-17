@@ -3,6 +3,14 @@ import { Resend } from "resend"
 export const resend = new Resend(process.env.RESEND_API_KEY)
 export const FROM = process.env.EMAIL_FROM ?? "PoolOS <noreply@poolos.app>"
 
+interface PaymentLinks {
+  venmoHandle?: string | null
+  paypalHandle?: string | null
+  cashAppHandle?: string | null
+  zellePhone?: string | null
+  zelleEmail?: string | null
+}
+
 interface InvoiceEmailData {
   invoiceNumber: string
   issuedAt: Date
@@ -25,6 +33,7 @@ interface InvoiceEmailData {
   payments: { amount: number }[]
   notes?: string | null
   customMessage?: string | null
+  paymentLinks?: PaymentLinks | null
 }
 
 interface ReceiptEmailData {
@@ -45,6 +54,54 @@ function fmtDate(d: Date) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
 }
 
+function buildPaymentButtonsHtml(links: PaymentLinks, amount: number, invoiceNumber: string): string {
+  const note = encodeURIComponent(invoiceNumber)
+  const amt = amount.toFixed(2)
+
+  const buttons: string[] = []
+
+  if (links.venmoHandle) {
+    const url = `https://venmo.com/${links.venmoHandle}?txn=pay&amount=${amt}&note=${note}`
+    buttons.push(
+      `<a href="${url}" style="display:inline-block;margin:4px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:#ffffff;background:#3D95CE">Pay with Venmo</a>`
+    )
+  }
+
+  if (links.paypalHandle) {
+    const url = `https://paypal.me/${links.paypalHandle}/${amt}`
+    buttons.push(
+      `<a href="${url}" style="display:inline-block;margin:4px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:#ffffff;background:#009CDE">Pay with PayPal</a>`
+    )
+  }
+
+  if (links.cashAppHandle) {
+    const url = `https://cash.app/$${links.cashAppHandle}/${amt}`
+    buttons.push(
+      `<a href="${url}" style="display:inline-block;margin:4px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;color:#ffffff;background:#00A86B">Pay with Cash App</a>`
+    )
+  }
+
+  const zelleLines: string[] = []
+  if (links.zellePhone) zelleLines.push(`<div style="font-size:13px;color:#374151;margin-top:2px">${links.zellePhone}</div>`)
+  if (links.zelleEmail) zelleLines.push(`<div style="font-size:13px;color:#374151;margin-top:2px">${links.zelleEmail}</div>`)
+  const zelleBlock = zelleLines.length
+    ? `<div style="display:inline-block;margin:4px;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;background:#f3e8ff;color:#6D1ED4;vertical-align:top">
+        Zelle: send to<br/>${zelleLines.join("")}
+      </div>`
+    : ""
+
+  if (buttons.length === 0 && !zelleBlock) return ""
+
+  return `
+    <div style="margin-top:20px;text-align:center">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:8px">Pay Online</div>
+      <div>
+        ${buttons.join("\n        ")}
+        ${zelleBlock}
+      </div>
+    </div>`
+}
+
 export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): string {
   const total = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
   const paid  = inv.payments.reduce((s, p) => s + p.amount, 0)
@@ -54,10 +111,10 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
     .map(
       (i) => `
       <tr>
-        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151">${i.description}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;text-align:center">${i.quantity}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#6b7280;text-align:right">${fmt(i.unitPrice)}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-weight:600;text-align:right">${fmt(i.quantity * i.unitPrice)}</td>
+        <td style="padding:7px 4px 7px 0;border-bottom:1px solid #f3f4f6;color:#374151;word-break:break-word">${i.description}</td>
+        <td style="padding:7px 4px;border-bottom:1px solid #f3f4f6;color:#6b7280;text-align:center">${i.quantity}</td>
+        <td style="padding:7px 4px;border-bottom:1px solid #f3f4f6;color:#6b7280;text-align:right;word-break:break-word">${fmt(i.unitPrice)}</td>
+        <td style="padding:7px 0 7px 4px;border-bottom:1px solid #f3f4f6;font-weight:600;text-align:right;word-break:break-word">${fmt(i.quantity * i.unitPrice)}</td>
       </tr>`
     )
     .join("")
@@ -74,41 +131,54 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
 
   return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:24px">
-  <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    @media only screen and (max-width:620px) {
+      .inv-header-left  { padding: 16px !important; }
+      .inv-header-right { padding: 16px 16px 16px 8px !important; }
+      .inv-header-num   { font-size: 16px !important; }
+      .inv-body         { padding: 20px 16px !important; }
+      .inv-total-amt    { font-size: 15px !important; }
+      .inv-footer       { padding: 16px !important; }
+    }
+  </style>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:600px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
 
-    <!-- Header: white background with logo/name + invoice number -->
-    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:4px solid #0c4a6e">
+    <!-- Header -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:4px solid #0c4a6e;table-layout:fixed">
       <tr>
-        <td style="padding:24px 32px;vertical-align:middle">
+        <td class="inv-header-left" style="padding:20px 16px 20px 24px;vertical-align:middle;width:55%">
           ${inv.companyLogoUrl
-            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:56px;max-width:200px;display:block" />`
-            : `<span style="font-size:22px;font-weight:700;color:#0c4a6e">${inv.companyName}</span>`}
+            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:48px;max-width:160px;width:auto;display:block" />`
+            : `<span style="font-size:18px;font-weight:700;color:#0c4a6e;word-break:break-word">${inv.companyName}</span>`}
         </td>
-        <td style="padding:24px 32px;text-align:right;vertical-align:middle">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af">Invoice</div>
-          <div style="font-size:20px;font-weight:700;color:#111827;margin-top:2px">${inv.invoiceNumber}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:4px">Due ${fmtDate(inv.dueDate)}</div>
+        <td class="inv-header-right" style="padding:20px 24px 20px 8px;text-align:right;vertical-align:middle;width:45%">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;white-space:nowrap">Invoice</div>
+          <div class="inv-header-num" style="font-size:18px;font-weight:700;color:#111827;margin-top:2px;word-break:break-all">${inv.invoiceNumber}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;white-space:nowrap">Due ${fmtDate(inv.dueDate)}</div>
         </td>
       </tr>
     </table>
 
-    <div style="padding:32px">
+    <div class="inv-body" style="padding:24px">
       ${reminderBanner}
       ${customMessageBlock}
 
       <!-- From + Bill To -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;table-layout:fixed">
         <tr>
-          <td style="vertical-align:top;width:50%;padding-right:16px">
+          <td style="vertical-align:top;width:50%;padding-right:12px;word-break:break-word">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px">From</div>
             <div style="font-weight:600;font-size:14px;color:#111827">${inv.companyName}</div>
             ${inv.companyAddress ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">${inv.companyAddress}</div>` : ""}
             ${inv.companyCity ? `<div style="font-size:13px;color:#6b7280">${inv.companyCity}, ${inv.companyState ?? ""} ${inv.companyZip ?? ""}</div>` : ""}
             ${inv.companyPhone ? `<div style="font-size:13px;color:#6b7280">${inv.companyPhone}</div>` : ""}
           </td>
-          <td style="vertical-align:top;width:50%;padding-left:16px">
+          <td style="vertical-align:top;width:50%;padding-left:12px;word-break:break-word">
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px">Bill To</div>
             <div style="font-weight:600;font-size:14px;color:#111827">${inv.customerFirstName} ${inv.customerLastName}</div>
             <div style="font-size:13px;color:#6b7280;margin-top:2px">${inv.customerAddress}</div>
@@ -118,47 +188,55 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
       </table>
 
       <!-- Issued date -->
-      <div style="font-size:12px;color:#9ca3af;margin-bottom:20px">Issued ${fmtDate(inv.issuedAt)}</div>
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:16px">Issued ${fmtDate(inv.issuedAt)}</div>
 
-      <!-- Line items -->
-      <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+      <!-- Line items — table-layout:fixed locks column widths so Total can't overflow -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;table-layout:fixed">
+        <colgroup>
+          <col style="width:44%" />
+          <col style="width:12%" />
+          <col style="width:22%" />
+          <col style="width:22%" />
+        </colgroup>
         <thead>
           <tr style="border-bottom:2px solid #e5e7eb">
-            <th style="padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Description</th>
-            <th style="padding:8px 12px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Qty</th>
-            <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Unit</th>
-            <th style="padding:8px 12px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Total</th>
+            <th style="padding:6px 4px 6px 0;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Description</th>
+            <th style="padding:6px 4px;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Qty</th>
+            <th style="padding:6px 4px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Unit</th>
+            <th style="padding:6px 0 6px 4px;text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;font-weight:600">Total</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
         <tfoot>
           <tr>
-            <td colspan="3" style="padding:12px 12px 4px;text-align:right;font-weight:600;color:#374151">Total</td>
-            <td style="padding:12px 12px 4px;text-align:right;font-size:18px;font-weight:700;color:#111827">${fmt(total)}</td>
+            <td colspan="3" style="padding:10px 4px 4px;text-align:right;font-weight:600;color:#374151">Total</td>
+            <td class="inv-total-amt" style="padding:10px 0 4px 4px;text-align:right;font-size:16px;font-weight:700;color:#111827;word-break:break-word">${fmt(total)}</td>
           </tr>
           ${paid > 0 ? `
           <tr>
-            <td colspan="3" style="padding:4px 12px;text-align:right;color:#6b7280">Paid</td>
-            <td style="padding:4px 12px;text-align:right;color:#16a34a">−${fmt(paid)}</td>
+            <td colspan="3" style="padding:3px 4px;text-align:right;color:#6b7280">Paid</td>
+            <td style="padding:3px 0 3px 4px;text-align:right;color:#16a34a;word-break:break-word">−${fmt(paid)}</td>
           </tr>
           <tr>
-            <td colspan="3" style="padding:4px 12px;text-align:right;font-weight:600;color:#374151">Balance Due</td>
-            <td style="padding:4px 12px;text-align:right;font-weight:700;color:#111827">${fmt(balance)}</td>
+            <td colspan="3" style="padding:3px 4px;text-align:right;font-weight:600;color:#374151">Balance Due</td>
+            <td style="padding:3px 0 3px 4px;text-align:right;font-weight:700;color:#111827;word-break:break-word">${fmt(balance)}</td>
           </tr>` : ""}
         </tfoot>
       </table>
 
-      ${inv.notes ? `<div style="background:#f9fafb;border-radius:8px;padding:12px 16px;font-size:13px;color:#6b7280;margin-bottom:24px">${inv.notes}</div>` : ""}
+      ${inv.notes ? `<div style="background:#f9fafb;border-radius:8px;padding:12px 16px;font-size:13px;color:#6b7280;margin-bottom:20px">${inv.notes}</div>` : ""}
 
       <!-- CTA -->
       <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;text-align:center;margin-top:8px">
-        <div style="font-size:14px;font-weight:600;color:#0369a1;margin-bottom:4px">Amount Due: ${fmt(balance > 0 ? balance : total)}</div>
+        <div style="font-size:14px;font-weight:600;color:#0369a1;margin-bottom:4px;word-break:break-word">Amount Due: ${fmt(balance > 0 ? balance : total)}</div>
         <div style="font-size:13px;color:#0284c7">Please contact us with any questions about this invoice.</div>
       </div>
+
+      ${inv.paymentLinks ? buildPaymentButtonsHtml(inv.paymentLinks, balance > 0 ? balance : total, inv.invoiceNumber) : ""}
     </div>
 
     <!-- Footer -->
-    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 32px;text-align:center;font-size:12px;color:#9ca3af">
+    <div class="inv-footer" style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
       Thank you for your business · ${inv.companyName} · Powered by PoolOS
     </div>
   </div>

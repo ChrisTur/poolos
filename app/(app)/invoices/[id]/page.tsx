@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Trash2, Mail, BellRing, CheckCircle, AlertCircle, Send, Pencil } from "lucide-react"
+import { ChevronLeft, Trash2, Mail, BellRing, CheckCircle, AlertCircle, Send, Pencil, CreditCard } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -376,6 +376,59 @@ export default async function InvoiceDetailPage({
               </div>
             </CardBody>
           </Card>
+
+          {/* Pay Now — only if company has configured payment handles and invoice isn't fully paid */}
+          {balance > 0 && (company.venmoHandle || company.paypalHandle || company.cashAppHandle || company.zellePhone || company.zelleEmail) && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                  <CreditCard className="w-3.5 h-3.5 text-gray-400" /> Pay Now
+                </h2>
+              </CardHeader>
+              <CardBody className="space-y-2">
+                {company.venmoHandle && (
+                  <a
+                    href={`https://venmo.com/${company.venmoHandle}?txn=pay&amount=${balance.toFixed(2)}&note=${encodeURIComponent(invoice.invoiceNumber)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    style={{ background: "#3D95CE" }}
+                  >
+                    Pay with Venmo
+                  </a>
+                )}
+                {company.paypalHandle && (
+                  <a
+                    href={`https://paypal.me/${company.paypalHandle}/${balance.toFixed(2)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    style={{ background: "#009CDE" }}
+                  >
+                    Pay with PayPal
+                  </a>
+                )}
+                {company.cashAppHandle && (
+                  <a
+                    href={`https://cash.app/$${company.cashAppHandle}/${balance.toFixed(2)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                    style={{ background: "#00A86B" }}
+                  >
+                    Pay with Cash App
+                  </a>
+                )}
+                {(company.zellePhone || company.zelleEmail) && (
+                  <div className="rounded-lg px-3 py-2 text-sm text-center" style={{ background: "#f3e8ff" }}>
+                    <p className="font-medium" style={{ color: "#6D1ED4" }}>Pay via Zelle</p>
+                    {company.zellePhone && <p className="text-xs text-gray-600 mt-0.5">{company.zellePhone}</p>}
+                    {company.zelleEmail && <p className="text-xs text-gray-600">{company.zelleEmail}</p>}
+                  </div>
+                )}
+              </CardBody>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

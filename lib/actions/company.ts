@@ -78,6 +78,23 @@ export async function deactivateUser(userId: string) {
   revalidatePath("/settings/users")
 }
 
+export async function updatePaymentLinks(formData: FormData) {
+  const user = await requireOwner()
+
+  await db.company.update({
+    where: { id: user.companyId },
+    data: {
+      venmoHandle:  (formData.get("venmoHandle")  as string) || null,
+      paypalHandle: (formData.get("paypalHandle") as string) || null,
+      cashAppHandle:(formData.get("cashAppHandle")as string) || null,
+      zellePhone:   (formData.get("zellePhone")   as string) || null,
+      zelleEmail:   (formData.get("zelleEmail")   as string) || null,
+    },
+  })
+
+  revalidatePath("/settings/payments")
+}
+
 export async function uploadLogo(formData: FormData) {
   const user = await requireOwner()
   const file = formData.get("logo") as File

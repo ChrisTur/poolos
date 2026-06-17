@@ -12,6 +12,7 @@ import {
   X,
   Settings,
   UserCog,
+  CreditCard,
   LogOut,
   BarChart2,
 } from "lucide-react"
@@ -29,6 +30,7 @@ const nav = [
 
 const settingsNav = [
   { href: "/settings/company", label: "Company", icon: Settings },
+  { href: "/settings/payments", label: "Payments", icon: CreditCard },
   { href: "/settings/users", label: "Team", icon: UserCog },
 ]
 
