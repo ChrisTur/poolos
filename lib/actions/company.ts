@@ -37,6 +37,8 @@ export async function updateCompany(formData: FormData) {
       state: (formData.get("state") as string) || null,
       zip: (formData.get("zip") as string) || null,
       website: (formData.get("website") as string) || null,
+      bccEmail: (formData.get("bccEmail") as string) || null,
+      replyToEmail: (formData.get("replyToEmail") as string) || null,
     },
   })
 

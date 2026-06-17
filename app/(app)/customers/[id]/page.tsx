@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
@@ -17,19 +17,27 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const customer = await db.customer.findFirst({
-    where: { id, companyId },
-    include: {
-      notes: { orderBy: { createdAt: "desc" } },
-      serviceVisits: { orderBy: { visitedAt: "desc" }, take: 10 },
-      invoices: {
-        orderBy: { createdAt: "desc" },
-        take: 10,
-        include: { items: true, payments: true },
+  const [customer, emailLogs] = await Promise.all([
+    db.customer.findFirst({
+      where: { id, companyId },
+      include: {
+        notes: { orderBy: { createdAt: "desc" } },
+        serviceVisits: { orderBy: { visitedAt: "desc" }, take: 10 },
+        invoices: {
+          orderBy: { createdAt: "desc" },
+          take: 10,
+          include: { items: true, payments: true },
+        },
+        routeStops: { include: { route: true } },
       },
-      routeStops: { include: { route: true } },
-    },
-  })
+    }),
+    db.emailLog.findMany({
+      where: { customerId: id, companyId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      include: { invoice: { select: { invoiceNumber: true } } },
+    }),
+  ])
 
   if (!customer) notFound()
 
@@ -220,6 +228,40 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     </div>
                   )
                 })}
+              </div>
+            )}
+          </Card>
+
+          {/* Email history */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <Send className="w-3.5 h-3.5 text-gray-400" /> Email History
+              </h2>
+            </CardHeader>
+            {emailLogs.length === 0 ? (
+              <CardBody><p className="text-sm text-gray-400">No emails sent yet.</p></CardBody>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {emailLogs.map((log) => (
+                  <div key={log.id} className="px-5 py-3 flex items-start justify-between gap-4 text-sm">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`font-medium ${log.status === "sent" ? "text-green-700" : "text-red-600"}`}>
+                          {log.type === "reminder" ? "Reminder" : "Invoice"}
+                        </span>
+                        <Link href={`/invoices/${log.invoiceId}`} className="text-sky-700 hover:underline text-xs">
+                          #{log.invoice.invoiceNumber}
+                        </Link>
+                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${log.status === "sent" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
+                          {log.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{log.toEmail}</p>
+                    </div>
+                    <span className="text-xs text-gray-400 shrink-0">{formatDate(log.createdAt)}</span>
+                  </div>
+                ))}
               </div>
             )}
           </Card>
