@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Trash2, Mail, BellRing, CheckCircle, AlertCircle } from "lucide-react"
+import { ChevronLeft, Trash2, CheckCircle, AlertCircle, Send } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -25,7 +25,7 @@ export default async function InvoiceDetailPage({
   const { id } = await params
   const { emailed, reminded, emailError } = await searchParams
 
-  const [invoice, company] = await Promise.all([
+  const [invoice, company, emailLogs] = await Promise.all([
     db.invoice.findFirst({
       where: { id, companyId },
       include: {
@@ -35,6 +35,10 @@ export default async function InvoiceDetailPage({
       },
     }),
     db.company.findUnique({ where: { id: companyId } }),
+    db.emailLog.findMany({
+      where: { invoiceId: id, companyId },
+      orderBy: { createdAt: "desc" },
+    }),
   ])
 
   if (!invoice || !company) notFound()
@@ -52,6 +56,7 @@ export default async function InvoiceDetailPage({
   const sendAction = sendInvoiceEmail.bind(null, id)
   const remindAction = sendReminderEmail.bind(null, id)
   const hasEmail = !!invoice.customer.email
+  const canRemind = hasEmail && invoice.status !== "paid" && invoice.status !== "cancelled"
 
   const emailErrorMsg: Record<string, string> = {
     no_email: "This customer has no email address on file.",
@@ -96,24 +101,6 @@ export default async function InvoiceDetailPage({
           </div>
           <div className="flex gap-2 flex-wrap">
             <InvoicePDFButton invoice={invoice} company={company} />
-            {hasEmail && (
-              <>
-                <form action={sendAction}>
-                  <Button type="submit" variant="secondary" size="sm" title={`Email to ${invoice.customer.email}`}>
-                    <Mail className="w-4 h-4" />
-                    <span className="hidden sm:inline">Email</span>
-                  </Button>
-                </form>
-                {invoice.status !== "paid" && invoice.status !== "cancelled" && (
-                  <form action={remindAction}>
-                    <Button type="submit" variant="secondary" size="sm" title="Send payment reminder">
-                      <BellRing className="w-4 h-4" />
-                      <span className="hidden sm:inline">Remind</span>
-                    </Button>
-                  </form>
-                )}
-              </>
-            )}
             {invoice.status === "draft" && (
               <form action={markSent}>
                 <Button type="submit" variant="secondary" size="sm">Mark Sent</Button>
@@ -230,6 +217,42 @@ export default async function InvoiceDetailPage({
             </CardBody>
           </Card>
 
+          {/* Email */}
+          {hasEmail && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send Email
+                </h2>
+              </CardHeader>
+              <CardBody className={canRemind ? "space-y-4" : "space-y-3"}>
+                <p className="text-xs text-gray-400">To: {invoice.customer.email}</p>
+
+                <form action={sendAction} className="space-y-2">
+                  <textarea
+                    name="message"
+                    placeholder="Personal message for invoice email (optional)…"
+                    rows={2}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                  />
+                  <Button type="submit" variant="secondary" size="sm">Send Invoice</Button>
+                </form>
+
+                {canRemind && (
+                  <form action={remindAction} className="space-y-2 pt-3 border-t border-gray-100">
+                    <textarea
+                      name="message"
+                      placeholder="Personal message for reminder email (optional)…"
+                      rows={2}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                    />
+                    <Button type="submit" variant="secondary" size="sm">Send Reminder</Button>
+                  </form>
+                )}
+              </CardBody>
+            </Card>
+          )}
+
           {/* Payments */}
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Payments</h2></CardHeader>
@@ -314,6 +337,33 @@ export default async function InvoiceDetailPage({
                 <span>Balance Due</span>
                 <span>{formatCurrency(balance)}</span>
               </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <Send className="w-3.5 h-3.5 text-gray-400" /> Email History
+              </h2>
+            </CardHeader>
+            <CardBody>
+              {emailLogs.length === 0 ? (
+                <p className="text-xs text-gray-400">No emails sent yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {emailLogs.map((log) => (
+                    <div key={log.id} className="text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`font-medium ${log.status === "sent" ? "text-green-700" : "text-red-600"}`}>
+                          {log.type === "reminder" ? "Reminder" : "Invoice"} · {log.status}
+                        </span>
+                        <span className="text-gray-400 shrink-0">{formatDate(log.createdAt)}</span>
+                      </div>
+                      <p className="text-gray-400 truncate">{log.toEmail}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardBody>
           </Card>
         </div>

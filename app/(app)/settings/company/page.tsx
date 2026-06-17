@@ -41,6 +41,22 @@ export default async function CompanySettingsPage() {
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               </div>
             </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Reply-To Email</label>
+                <input name="replyToEmail" type="email" defaultValue={company.replyToEmail ?? ""}
+                  placeholder="you@yourcompany.com"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <p className="text-xs text-gray-400 mt-1">Customers who reply to emails will reach this address.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">BCC Email</label>
+                <input name="bccEmail" type="email" defaultValue={company.bccEmail ?? ""}
+                  placeholder="yourteam@example.com"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <p className="text-xs text-gray-400 mt-1">Receives a copy of every invoice and reminder.</p>
+              </div>
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
               <input name="address" defaultValue={company.address ?? ""}

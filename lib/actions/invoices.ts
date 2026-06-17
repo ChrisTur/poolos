@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { sendReceiptEmail } from "@/lib/actions/emails"
 
 async function lastInvoiceNum(companyId: string): Promise<number> {
   const last = await db.invoice.findFirst({
@@ -85,7 +86,7 @@ export async function addPayment(invoiceId: string, formData: FormData) {
 
   const invoice = await db.invoice.findUnique({
     where: { id: invoiceId },
-    include: { items: true, payments: true },
+    include: { items: true, payments: true, customer: true },
   })
   if (invoice) {
     const total = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
@@ -93,6 +94,10 @@ export async function addPayment(invoiceId: string, formData: FormData) {
     if (paid >= total) {
       await db.invoice.update({ where: { id: invoiceId }, data: { status: "paid", paidAt: new Date() } })
     }
+  }
+
+  if (invoice?.customer.email) {
+    await sendReceiptEmail(invoiceId)
   }
 
   revalidatePath(`/invoices/${invoiceId}`)
@@ -155,5 +160,5 @@ export async function generateMonthlyInvoices(formData: FormData) {
   }
 
   revalidatePath("/invoices")
-  redirect(`/invoices?generated=${toCreate.length}`)
+  redirect(`/invoices/generate?result=generated&month=${month}&year=${year}&count=${toCreate.length}`)
 }

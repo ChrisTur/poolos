@@ -20,13 +20,16 @@ model Company {
   state     String?
   zip       String?
   website   String?
-  logoUrl   String?
-  isActive  Boolean  @default(true)
+  logoUrl      String?
+  bccEmail     String?
+  replyToEmail String?
+  isActive     Boolean  @default(true)
 
   users     User[]
   customers Customer[]
   routes    Route[]
   invoices  Invoice[]
+  emailLogs EmailLog[]
 }
 
 model User {
@@ -73,6 +76,7 @@ model Customer {
   serviceVisits ServiceVisit[]
   invoices      Invoice[]
   notes         CustomerNote[]
+  emailLogs     EmailLog[]
 }
 
 model CustomerNote {
@@ -151,8 +155,9 @@ model Invoice {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  items    InvoiceItem[]
-  payments Payment[]
+  items     InvoiceItem[]
+  payments  Payment[]
+  emailLogs EmailLog[]
 }
 
 model InvoiceItem {
@@ -173,4 +178,22 @@ model Payment {
   notes     String?
   invoiceId String
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type      String   // "invoice" | "reminder"
+  status    String   // "sent" | "failed"
+  toEmail   String
+  bccEmail  String?
+  subject   String
+
+  invoiceId  String
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

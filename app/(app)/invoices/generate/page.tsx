@@ -1,10 +1,11 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { generateMonthlyInvoices } from "@/lib/actions/invoices"
+import { sendBulkInvoiceEmails } from "@/lib/actions/emails"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import Link from "next/link"
-import { ChevronLeft, Zap, AlertCircle, Info } from "lucide-react"
+import { ChevronLeft, Zap, AlertCircle, Info, Mail, CheckCircle } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -17,10 +18,10 @@ const MONTHS = [
 export default async function GenerateInvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ result?: string }>
+  searchParams: Promise<{ result?: string; month?: string; year?: string; count?: string; sent?: string; failed?: string }>
 }) {
   const { companyId } = await requireSession()
-  const { result } = await searchParams
+  const { result, month, year, count, sent, failed } = await searchParams
 
   const now = new Date()
   const currentMonth = now.getMonth() + 1
@@ -30,10 +31,32 @@ export default async function GenerateInvoicesPage({
   const eligible = await db.customer.findMany({
     where: { companyId, status: "active", monthlyRate: { not: null, gt: 0 } },
     orderBy: [{ lastName: "asc" }],
-    select: { id: true, firstName: true, lastName: true, monthlyRate: true },
+    select: { id: true, firstName: true, lastName: true, monthlyRate: true, email: true },
   })
 
   const totalMonthly = eligible.reduce((s, c) => s + (c.monthlyRate ?? 0), 0)
+  const eligibleWithEmail = eligible.filter((c) => !!c.email).length
+
+  // For the bulk send banner: count customers in generated month who have email
+  const generatedMonth = month ? parseInt(month) : null
+  const generatedYear = year ? parseInt(year) : null
+  const generatedCount = count ? parseInt(count) : 0
+  const sentCount = sent ? parseInt(sent) : 0
+  const failedCount = failed ? parseInt(failed) : 0
+
+  let emailableCount = 0
+  if (result === "generated" && generatedMonth && generatedYear) {
+    const startOfMonth = new Date(generatedYear, generatedMonth - 1, 1)
+    const endOfMonth = new Date(generatedYear, generatedMonth, 0, 23, 59, 59, 999)
+    emailableCount = await db.invoice.count({
+      where: {
+        companyId,
+        issuedAt: { gte: startOfMonth, lte: endOfMonth },
+        status: { not: "cancelled" },
+        customer: { email: { not: null } },
+      },
+    })
+  }
 
   return (
     <div className="max-w-xl space-y-5">
@@ -59,6 +82,49 @@ export default async function GenerateInvoicesPage({
           No active customers have a monthly rate set. Add rates on the customer page first.
         </div>
       )}
+      {result === "emailed" && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            {sentCount} email{sentCount !== 1 ? "s" : ""} sent successfully.
+            {failedCount > 0 && ` ${failedCount} failed — check the Email History on those invoices.`}
+          </span>
+        </div>
+      )}
+
+      {/* Generated success + bulk send */}
+      {result === "generated" && generatedMonth && generatedYear && (
+        <Card>
+          <CardBody className="space-y-3">
+            <div className="flex items-start gap-2 text-green-800">
+              <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-600" />
+              <span className="text-sm font-medium">
+                {generatedCount} invoice{generatedCount !== 1 ? "s" : ""} generated for{" "}
+                {MONTHS[generatedMonth - 1]} {generatedYear}.
+              </span>
+            </div>
+            {emailableCount > 0 ? (
+              <form action={sendBulkInvoiceEmails} className="flex items-center gap-3 pt-1 border-t border-gray-100">
+                <input type="hidden" name="month" value={generatedMonth} />
+                <input type="hidden" name="year" value={generatedYear} />
+                <Button type="submit" size="sm">
+                  <Mail className="w-4 h-4" />
+                  Email all {emailableCount} to customers
+                </Button>
+                <span className="text-xs text-gray-400">
+                  {eligible.length - emailableCount > 0
+                    ? `${eligible.length - emailableCount} customer${eligible.length - emailableCount !== 1 ? "s" : ""} have no email address.`
+                    : "All customers have email addresses."}
+                </span>
+              </form>
+            ) : (
+              <p className="text-xs text-gray-400 border-t border-gray-100 pt-2">
+                No customers in this batch have email addresses on file.
+              </p>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       {/* Eligible customers preview */}
       <Card>
@@ -81,7 +147,10 @@ export default async function GenerateInvoicesPage({
           <div className="divide-y divide-gray-50 max-h-60 overflow-y-auto">
             {eligible.map((c) => (
               <div key={c.id} className="flex items-center justify-between px-4 sm:px-5 py-2.5">
-                <span className="text-sm text-gray-700">{c.firstName} {c.lastName}</span>
+                <div>
+                  <span className="text-sm text-gray-700">{c.firstName} {c.lastName}</span>
+                  {!c.email && <span className="ml-2 text-xs text-gray-400">no email</span>}
+                </div>
                 <span className="text-sm font-medium text-gray-900">{formatCurrency(c.monthlyRate!)}</span>
               </div>
             ))}
@@ -139,6 +208,7 @@ export default async function GenerateInvoicesPage({
                 <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 Customers who already have an invoice issued in the selected month will be skipped automatically.
                 All invoices are created as <strong>Draft</strong> — review and mark as Sent when ready.
+                {eligibleWithEmail > 0 && ` ${eligibleWithEmail} customer${eligibleWithEmail !== 1 ? "s" : ""} have email addresses and can be bulk-emailed after generation.`}
               </div>
 
               <Button type="submit" className="w-full justify-center">
