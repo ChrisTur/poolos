@@ -66,43 +66,46 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
 
-    <!-- Header: company branding -->
-    <div style="background:#0c4a6e;padding:20px 32px;color:#fff;display:flex;align-items:center;gap:16px">
-      ${inv.companyLogoUrl
-        ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="height:40px;object-fit:contain;background:#fff;border-radius:4px;padding:4px" />`
-        : ""}
-      <div>
-        <div style="font-size:20px;font-weight:700">${inv.companyName}</div>
-        ${inv.companyCity ? `<div style="font-size:12px;color:#bae6fd;margin-top:2px">${inv.companyCity}, ${inv.companyState ?? ""}</div>` : ""}
-      </div>
-    </div>
+    <!-- Header: white background with logo/name + invoice number -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-bottom:4px solid #0c4a6e">
+      <tr>
+        <td style="padding:24px 32px;vertical-align:middle">
+          ${inv.companyLogoUrl
+            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:56px;max-width:200px;display:block" />`
+            : `<span style="font-size:22px;font-weight:700;color:#0c4a6e">${inv.companyName}</span>`}
+        </td>
+        <td style="padding:24px 32px;text-align:right;vertical-align:middle">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af">Invoice</div>
+          <div style="font-size:20px;font-weight:700;color:#111827;margin-top:2px">${inv.invoiceNumber}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px">Due ${fmtDate(inv.dueDate)}</div>
+        </td>
+      </tr>
+    </table>
 
     <div style="padding:32px">
       ${reminderBanner}
 
-      <!-- Invoice meta -->
-      <div style="display:flex;justify-content:space-between;margin-bottom:32px;gap:16px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:6px">From</div>
-          <div style="font-weight:600;font-size:14px;color:#111827">${inv.companyName}</div>
-          ${inv.companyAddress ? `<div style="font-size:13px;color:#6b7280">${inv.companyAddress}</div>` : ""}
-          ${inv.companyCity ? `<div style="font-size:13px;color:#6b7280">${inv.companyCity}, ${inv.companyState ?? ""} ${inv.companyZip ?? ""}</div>` : ""}
-          ${inv.companyPhone ? `<div style="font-size:13px;color:#6b7280">${inv.companyPhone}</div>` : ""}
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:20px;font-weight:700;color:#111827">${inv.invoiceNumber}</div>
-          <div style="font-size:13px;color:#6b7280;margin-top:4px">Issued ${fmtDate(inv.issuedAt)}</div>
-          <div style="font-size:13px;color:#6b7280">Due ${fmtDate(inv.dueDate)}</div>
-        </div>
-      </div>
+      <!-- From + Bill To -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px">
+        <tr>
+          <td style="vertical-align:top;width:50%;padding-right:16px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px">From</div>
+            <div style="font-weight:600;font-size:14px;color:#111827">${inv.companyName}</div>
+            ${inv.companyAddress ? `<div style="font-size:13px;color:#6b7280;margin-top:2px">${inv.companyAddress}</div>` : ""}
+            ${inv.companyCity ? `<div style="font-size:13px;color:#6b7280">${inv.companyCity}, ${inv.companyState ?? ""} ${inv.companyZip ?? ""}</div>` : ""}
+            ${inv.companyPhone ? `<div style="font-size:13px;color:#6b7280">${inv.companyPhone}</div>` : ""}
+          </td>
+          <td style="vertical-align:top;width:50%;padding-left:16px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px">Bill To</div>
+            <div style="font-weight:600;font-size:14px;color:#111827">${inv.customerFirstName} ${inv.customerLastName}</div>
+            <div style="font-size:13px;color:#6b7280;margin-top:2px">${inv.customerAddress}</div>
+            <div style="font-size:13px;color:#6b7280">${inv.customerCity}, ${inv.customerState} ${inv.customerZip}</div>
+          </td>
+        </tr>
+      </table>
 
-      <!-- Bill to -->
-      <div style="margin-bottom:24px">
-        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:6px">Bill To</div>
-        <div style="font-weight:600;color:#111827">${inv.customerFirstName} ${inv.customerLastName}</div>
-        <div style="font-size:13px;color:#6b7280">${inv.customerAddress}</div>
-        <div style="font-size:13px;color:#6b7280">${inv.customerCity}, ${inv.customerState} ${inv.customerZip}</div>
-      </div>
+      <!-- Issued date -->
+      <div style="font-size:12px;color:#9ca3af;margin-bottom:20px">Issued ${fmtDate(inv.issuedAt)}</div>
 
       <!-- Line items -->
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
