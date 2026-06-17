@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Trash2, CheckCircle, AlertCircle, Send } from "lucide-react"
+import { ChevronLeft, Trash2, Mail, BellRing, CheckCircle, AlertCircle, Send } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -101,6 +101,24 @@ export default async function InvoiceDetailPage({
           </div>
           <div className="flex gap-2 flex-wrap">
             <InvoicePDFButton invoice={invoice} company={company} />
+            {hasEmail && (
+              <>
+                <form action={sendAction}>
+                  <Button type="submit" variant="secondary" size="sm" title={`Email invoice to ${invoice.customer.email}`}>
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline">Email</span>
+                  </Button>
+                </form>
+                {canRemind && (
+                  <form action={remindAction}>
+                    <Button type="submit" variant="secondary" size="sm" title="Send payment reminder">
+                      <BellRing className="w-4 h-4" />
+                      <span className="hidden sm:inline">Remind</span>
+                    </Button>
+                  </form>
+                )}
+              </>
+            )}
             {invoice.status === "draft" && (
               <form action={markSent}>
                 <Button type="submit" variant="secondary" size="sm">Mark Sent</Button>
@@ -222,7 +240,7 @@ export default async function InvoiceDetailPage({
             <Card>
               <CardHeader>
                 <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
-                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send Email
+                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send with Message
                 </h2>
               </CardHeader>
               <CardBody className={canRemind ? "space-y-4" : "space-y-3"}>
@@ -231,7 +249,7 @@ export default async function InvoiceDetailPage({
                 <form action={sendAction} className="space-y-2">
                   <textarea
                     name="message"
-                    placeholder="Personal message for invoice email (optional)…"
+                    placeholder="Add a personal note to the invoice email…"
                     rows={2}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                   />
@@ -242,7 +260,7 @@ export default async function InvoiceDetailPage({
                   <form action={remindAction} className="space-y-2 pt-3 border-t border-gray-100">
                     <textarea
                       name="message"
-                      placeholder="Personal message for reminder email (optional)…"
+                      placeholder="Add a personal note to the reminder email…"
                       rows={2}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                     />
