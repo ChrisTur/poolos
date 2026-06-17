@@ -2,12 +2,13 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote } from "@/lib/actions/customers"
+import { addEquipment, deleteEquipment } from "@/lib/actions/equipment"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 
@@ -28,6 +29,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           take: 10,
           include: { items: true, payments: true },
         },
+        equipment: { orderBy: { createdAt: "asc" } },
         routeStops: { include: { route: true } },
       },
     }),
@@ -115,6 +117,90 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               {!customer.poolType && !customer.poolSize && !customer.poolNotes && (
                 <p className="text-gray-400">No pool details added.</p>
               )}
+            </CardBody>
+          </Card>
+
+          {/* Equipment */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-gray-400" /> Equipment
+              </h2>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              {customer.equipment.length > 0 && (
+                <div className="space-y-2">
+                  {customer.equipment.map((eq) => {
+                    const delAction = deleteEquipment.bind(null, eq.id, id)
+                    return (
+                      <div key={eq.id} className="flex items-start justify-between gap-2 text-sm">
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 capitalize">{eq.type.replace("_", " ")}</p>
+                          {(eq.brand || eq.model) && (
+                            <p className="text-xs text-gray-500">{[eq.brand, eq.model].filter(Boolean).join(" ")}</p>
+                          )}
+                          {eq.serialNumber && <p className="text-xs text-gray-400">S/N: {eq.serialNumber}</p>}
+                          {eq.installedAt && (
+                            <p className="text-xs text-gray-400">Installed {formatDate(eq.installedAt)}</p>
+                          )}
+                          {eq.warrantyExpiry && (() => {
+                            const expired = new Date(eq.warrantyExpiry) < new Date()
+                            return (
+                              <p className={`text-xs mt-0.5 ${expired ? "text-red-500" : "text-gray-400"}`}>
+                                Warranty {expired ? "expired" : "until"} {formatDate(eq.warrantyExpiry)}
+                                {eq.warrantyProvider && ` · ${eq.warrantyProvider}`}
+                              </p>
+                            )
+                          })()}
+                          {eq.warrantyNotes && <p className="text-xs text-gray-400 italic mt-0.5">{eq.warrantyNotes}</p>}
+                          {eq.notes && <p className="text-xs text-gray-400 mt-0.5">{eq.notes}</p>}
+                        </div>
+                        <form action={delAction}>
+                          <button type="submit" className="text-gray-300 hover:text-red-500 transition-colors mt-0.5 shrink-0">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </form>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Add equipment form */}
+              <form action={addEquipment.bind(null, id)} className="space-y-2 pt-2 border-t border-gray-100">
+                <p className="text-xs font-medium text-gray-500">Add Equipment</p>
+                <select
+                  name="type"
+                  required
+                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="">Type…</option>
+                  {["pump", "filter", "heater", "salt_system", "cleaner", "light", "other"].map((t) => (
+                    <option key={t} value={t}>{t.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}</option>
+                  ))}
+                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <input name="brand" placeholder="Brand" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <input name="model" placeholder="Model" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </div>
+                <input name="serialNumber" placeholder="Serial # (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-500">Install date</label>
+                    <input name="installedAt" type="date" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mt-0.5" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500">Warranty expiry</label>
+                    <input name="warrantyExpiry" type="date" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mt-0.5" />
+                  </div>
+                </div>
+                <input name="warrantyProvider" placeholder="Warranty provider (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input name="warrantyNotes" placeholder="Warranty notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input name="notes" placeholder="General notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <Button type="submit" size="sm" variant="secondary">
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </Button>
+              </form>
             </CardBody>
           </Card>
 
@@ -248,11 +334,13 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`font-medium ${log.status === "sent" ? "text-green-700" : "text-red-600"}`}>
-                          {log.type === "reminder" ? "Reminder" : "Invoice"}
+                          {log.type === "reminder" ? "Reminder" : log.type === "estimate" ? "Estimate" : log.type === "visit" ? "Visit" : "Invoice"}
                         </span>
-                        <Link href={`/invoices/${log.invoiceId}`} className="text-sky-700 hover:underline text-xs">
-                          #{log.invoice.invoiceNumber}
-                        </Link>
+                        {log.invoiceId && log.invoice && (
+                          <Link href={`/invoices/${log.invoiceId}`} className="text-sky-700 hover:underline text-xs">
+                            #{log.invoice.invoiceNumber}
+                          </Link>
+                        )}
                         <span className={`text-xs px-1.5 py-0.5 rounded-full ${log.status === "sent" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-600"}`}>
                           {log.status}
                         </span>

@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { resend, FROM, buildVisitCompletionHtml } from "@/lib/email"
 
 export async function createRoute(formData: FormData) {
   const { companyId } = await requireSession()
@@ -94,18 +95,81 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 export async function logVisit(formData: FormData) {
   const { companyId } = await requireSession()
 
-  await db.serviceVisit.create({
+  const customerId = formData.get("customerId") as string
+  const status = (formData.get("status") as string) || "completed"
+  const chlorine   = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
+  const ph         = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
+  const alkalinity = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
+  const calcium    = formData.get("calcium")    ? parseFloat(formData.get("calcium")    as string) : null
+  const notes      = (formData.get("notes") as string) || null
+
+  const visit = await db.serviceVisit.create({
     data: {
-      customerId: formData.get("customerId") as string,
+      customerId,
       routeId: (formData.get("routeId") as string) || null,
-      status: (formData.get("status") as string) || "completed",
-      notes: (formData.get("notes") as string) || null,
-      chlorine: formData.get("chlorine") ? parseFloat(formData.get("chlorine") as string) : null,
-      ph: formData.get("ph") ? parseFloat(formData.get("ph") as string) : null,
-      alkalinity: formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null,
-      calcium: formData.get("calcium") ? parseFloat(formData.get("calcium") as string) : null,
+      status,
+      notes,
+      chlorine,
+      ph,
+      alkalinity,
+      calcium,
     },
   })
+
+  // Send completion email if status is completed and customer has an email
+  if (status === "completed") {
+    const [customer, company] = await Promise.all([
+      db.customer.findUnique({ where: { id: customerId }, select: { email: true, firstName: true } }),
+      db.company.findUnique({ where: { id: companyId }, select: { name: true, logoUrl: true, phone: true, bccEmail: true, replyToEmail: true } }),
+    ])
+
+    if (customer?.email && company) {
+      const html = buildVisitCompletionHtml({
+        companyName: company.name,
+        companyLogoUrl: company.logoUrl,
+        companyPhone: company.phone,
+        customerFirstName: customer.firstName,
+        visitedAt: visit.visitedAt,
+        status: visit.status,
+        notes: visit.notes,
+        chlorine,
+        ph,
+        alkalinity,
+        calcium,
+      })
+
+      const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+      const subject = `Service completed — ${new Date(visit.visitedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+
+      let emailStatus: "sent" | "failed" = "sent"
+      try {
+        await resend.emails.send({
+          from: `${company.name} <${fromEmail}>`,
+          to: customer.email,
+          bcc: company.bccEmail ?? undefined,
+          replyTo: company.replyToEmail ?? undefined,
+          subject,
+          html,
+        })
+      } catch {
+        emailStatus = "failed"
+      }
+
+      await db.emailLog.create({
+        data: {
+          type: "visit",
+          status: emailStatus,
+          toEmail: customer.email,
+          bccEmail: company.bccEmail ?? null,
+          subject,
+          customerId,
+          companyId,
+          serviceVisitId: visit.id,
+        },
+      })
+    }
+  }
+
   revalidatePath("/dashboard")
   revalidatePath("/schedule")
 }

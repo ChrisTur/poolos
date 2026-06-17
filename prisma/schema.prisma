@@ -35,6 +35,7 @@ model Company {
   customers Customer[]
   routes    Route[]
   invoices  Invoice[]
+  estimates Estimate[]
   emailLogs EmailLog[]
 }
 
@@ -82,6 +83,8 @@ model Customer {
   routeStops    RouteStop[]
   serviceVisits ServiceVisit[]
   invoices      Invoice[]
+  estimates     Estimate[]
+  equipment     Equipment[]
   notes         CustomerNote[]
   emailLogs     EmailLog[]
 }
@@ -187,20 +190,69 @@ model Payment {
   invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
 
+model Estimate {
+  id             String    @id @default(cuid())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  estimateNumber String    @unique
+  status         String    @default("draft") // draft | sent | accepted | declined | converted
+  validUntil     DateTime?
+  notes          String?
+  convertedInvoiceId String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  items EstimateItem[]
+}
+
+model EstimateItem {
+  id          String   @id @default(cuid())
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  estimateId  String
+  estimate    Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+model Equipment {
+  id           String    @id @default(cuid())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  type         String    // pump | filter | heater | salt_system | cleaner | light | other
+  brand        String?
+  model        String?
+  serialNumber String?
+  installedAt  DateTime?
+  warrantyExpiry   DateTime?
+  warrantyProvider String?
+  warrantyNotes    String?
+  notes        String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
 model EmailLog {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
 
-  type      String   // "invoice" | "reminder"
+  type      String   // "invoice" | "reminder" | "receipt" | "estimate" | "visit"
   status    String   // "sent" | "failed"
   toEmail   String
   bccEmail  String?
   subject   String
 
-  invoiceId  String
-  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId  String?
+  invoice    Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  estimateId String?
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   companyId  String
   company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  serviceVisitId String?
 }
