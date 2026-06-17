@@ -16,10 +16,10 @@ export default async function NewInvoicePage({
   const { companyId } = await requireSession()
   const { customerId } = await searchParams
 
-  const customers = await db.customer.findMany({
-    where: { companyId, status: "active" },
-    orderBy: [{ lastName: "asc" }],
-  })
+  const [customers, company] = await Promise.all([
+    db.customer.findMany({ where: { companyId, status: "active" }, orderBy: [{ lastName: "asc" }] }),
+    db.company.findUnique({ where: { id: companyId }, select: { defaultDueDays: true } }),
+  ])
 
   return (
     <div className="max-w-2xl space-y-5">
@@ -34,7 +34,12 @@ export default async function NewInvoicePage({
           <p className="text-sm text-gray-500">Add line items and set a due date.</p>
         </CardHeader>
         <CardBody>
-          <InvoiceForm action={createInvoice} customers={customers} defaultCustomerId={customerId} />
+          <InvoiceForm
+            action={createInvoice}
+            customers={customers}
+            defaultCustomerId={customerId}
+            defaultDueDays={company?.defaultDueDays ?? 30}
+          />
         </CardBody>
       </Card>
     </div>

@@ -20,10 +20,11 @@ model Company {
   state     String?
   zip       String?
   website   String?
-  logoUrl      String?
-  bccEmail     String?
-  replyToEmail String?
-  isActive     Boolean  @default(true)
+  logoUrl         String?
+  bccEmail        String?
+  replyToEmail    String?
+  defaultDueDays  Int     @default(30)
+  isActive        Boolean @default(true)
 
   users     User[]
   customers Customer[]
@@ -68,6 +69,7 @@ model Customer {
 
   status      String  @default("active")
   monthlyRate Float?
+  dueDays     Int?
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)

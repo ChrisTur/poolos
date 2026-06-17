@@ -85,6 +85,11 @@ export async function sendInvoiceEmail(invoiceId: string, formData: FormData) {
   })
 
   if (status === "failed") redirect(`/invoices/${invoiceId}?emailError=send_failed`)
+
+  if (invoice.status === "draft") {
+    await db.invoice.update({ where: { id: invoiceId }, data: { status: "sent" } })
+  }
+
   redirect(`/invoices/${invoiceId}?emailed=1`)
 }
 
@@ -121,6 +126,11 @@ export async function sendReminderEmail(invoiceId: string, formData: FormData) {
   })
 
   if (status === "failed") redirect(`/invoices/${invoiceId}?emailError=send_failed`)
+
+  if (invoice.status === "draft") {
+    await db.invoice.update({ where: { id: invoiceId }, data: { status: "sent" } })
+  }
+
   redirect(`/invoices/${invoiceId}?reminded=1`)
 }
 
@@ -221,6 +231,10 @@ export async function sendBulkInvoiceEmails(formData: FormData) {
         companyId,
       },
     })
+
+    if (status === "sent" && invoice.status === "draft") {
+      await db.invoice.update({ where: { id: invoice.id }, data: { status: "sent" } })
+    }
   }
 
   redirect(`/invoices/generate?result=emailed&sent=${sent}&failed=${failed}`)
