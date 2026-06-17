@@ -5,7 +5,7 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { chemStatus, CHEM_RANGES, STATUS_BG, visitNeedsAttention } from "@/lib/chemistry"
-import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle } from "lucide-react"
+import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle, Clock } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -268,6 +268,25 @@ export default async function ReportsPage({
           </div>
         </Card>
       </div>
+
+      {/* ── Quick links ── */}
+      <section>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Detailed Reports</h2>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <Link href="/reports/aging">
+            <Card className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <span className="bg-red-50 text-red-600 p-2.5 rounded-lg shrink-0">
+                <Clock className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">AR Aging</p>
+                <p className="text-xs text-gray-500 mt-0.5">Open balances by 30 / 60 / 90 days past due</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
+            </Card>
+          </Link>
+        </div>
+      </section>
 
       {/* ── Chemical health ── */}
       <section>

@@ -8,6 +8,7 @@ import {
   MapPin,
   CalendarDays,
   FileText,
+  FileEdit,
   Waves,
   X,
   Settings,
@@ -25,6 +26,7 @@ const nav = [
   { href: "/routes", label: "Routes", icon: MapPin },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
+  { href: "/estimates", label: "Estimates", icon: FileEdit },
   { href: "/reports", label: "Reports", icon: BarChart2 },
 ]
 
