@@ -35,23 +35,54 @@ interface InvoiceFormProps {
   action: (formData: FormData) => Promise<void>
   customers: Customer[]
   defaultCustomerId?: string
+  defaultDueDays?: number
+  initialDueDate?: string
+  initialNotes?: string
+  initialItems?: LineItem[]
+  hideCustomerSelect?: boolean
+  submitLabel?: string
 }
 
-export default function InvoiceForm({ action, customers, defaultCustomerId }: InvoiceFormProps) {
+function calcDueDate(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split("T")[0]
+}
+
+export default function InvoiceForm({
+  action,
+  customers,
+  defaultCustomerId,
+  defaultDueDays = 30,
+  initialDueDate,
+  initialNotes,
+  initialItems,
+  hideCustomerSelect = false,
+  submitLabel,
+}: InvoiceFormProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId ?? "")
-  const [items, setItems] = useState<LineItem[]>([{ description: "", quantity: "1", unitPrice: "" }])
+  const [items, setItems] = useState<LineItem[]>(
+    initialItems ?? [{ description: "", quantity: "1", unitPrice: "" }]
+  )
+  const [dueDate, setDueDate] = useState(
+    initialDueDate ?? calcDueDate(defaultDueDays)
+  )
 
   const [, formAction, pending] = useActionState(async (_: unknown, formData: FormData) => {
     await action(formData)
     return null
   }, null)
 
-  // Auto-populate first item on mount if defaultCustomerId has a monthly rate
+  // Auto-populate first item and due date on mount if a customer is pre-selected
   useEffect(() => {
-    if (!defaultCustomerId) return
+    if (!defaultCustomerId || initialItems) return
     const customer = customers.find((c) => c.id === defaultCustomerId)
-    if (customer?.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
+    if (!customer) return
+    if (customer.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
       setItems([{ description: "Monthly pool service", quantity: "1", unitPrice: customer.monthlyRate.toString() }])
+    }
+    if (!initialDueDate) {
+      setDueDate(calcDueDate(customer.dueDays ?? defaultDueDays))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -59,7 +90,6 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
   const handleCustomerChange = (id: string) => {
     setSelectedCustomerId(id)
     const customer = customers.find((c) => c.id === id)
-    // Only auto-fill if the first line item is still blank
     if (customer?.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
       setItems((prev) => {
         const next = [...prev]
@@ -67,6 +97,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
         return next
       })
     }
+    setDueDate(calcDueDate(customer?.dueDays ?? defaultDueDays))
   }
 
   const addItem = () => setItems((prev) => [...prev, { description: "", quantity: "1", unitPrice: "" }])
@@ -78,49 +109,48 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
     return sum + (parseFloat(item.quantity) || 0) * (parseFloat(item.unitPrice) || 0)
   }, 0)
 
-  const defaultDue = new Date()
-  defaultDue.setDate(defaultDue.getDate() + 30)
-  const defaultDueStr = defaultDue.toISOString().split("T")[0]
-
   const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
+  const label = submitLabel ?? (hideCustomerSelect ? "Update Invoice" : "Create Invoice")
 
   return (
     <form action={formAction} className="space-y-6">
-      {/* Customer */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
-        <select
-          name="customerId"
-          required
-          value={selectedCustomerId}
-          onChange={(e) => handleCustomerChange(e.target.value)}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-        >
-          <option value="">Select customer…</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.firstName} {c.lastName}
-              {c.monthlyRate ? ` — $${c.monthlyRate}/mo` : ""}
-            </option>
-          ))}
-        </select>
-        {selectedCustomer?.monthlyRate && items[0].description === "" && (
-          <button
-            type="button"
-            onClick={() =>
-              setItems((prev) => {
-                const next = [...prev]
-                next[0] = { description: "Monthly pool service", quantity: "1", unitPrice: selectedCustomer.monthlyRate!.toString() }
-                return next
-              })
-            }
-            className="mt-1.5 flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800"
+      {/* Customer selector — hidden in edit mode */}
+      {!hideCustomerSelect && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
+          <select
+            name="customerId"
+            required
+            value={selectedCustomerId}
+            onChange={(e) => handleCustomerChange(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            Pre-fill monthly service (${selectedCustomer.monthlyRate})
-          </button>
-        )}
-      </div>
+            <option value="">Select customer…</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.firstName} {c.lastName}
+                {c.monthlyRate ? ` — $${c.monthlyRate}/mo` : ""}
+              </option>
+            ))}
+          </select>
+          {selectedCustomer?.monthlyRate && items[0].description === "" && (
+            <button
+              type="button"
+              onClick={() =>
+                setItems((prev) => {
+                  const next = [...prev]
+                  next[0] = { description: "Monthly pool service", quantity: "1", unitPrice: selectedCustomer.monthlyRate!.toString() }
+                  return next
+                })
+              }
+              className="mt-1.5 flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Pre-fill monthly service (${selectedCustomer.monthlyRate})
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Due date */}
       <div>
@@ -129,16 +159,21 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
           name="dueDate"
           type="date"
           required
-          defaultValue={defaultDueStr}
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
         />
+        {selectedCustomer?.dueDays && (
+          <p className="text-xs text-gray-400 mt-1">
+            Defaulting to {selectedCustomer.dueDays} days (this customer&apos;s setting).
+          </p>
+        )}
       </div>
 
       {/* Line items */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Line Items</label>
 
-        {/* Datalist for description suggestions */}
         <datalist id="service-descriptions">
           {SERVICE_DESCRIPTIONS.map((d) => (
             <option key={d} value={d} />
@@ -146,7 +181,6 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
         </datalist>
 
         <div className="space-y-2">
-          {/* Column headers — hidden on mobile */}
           <div className="hidden sm:grid grid-cols-12 gap-2 text-xs text-gray-500 px-1">
             <span className="col-span-6">Description</span>
             <span className="col-span-2 text-center">Qty</span>
@@ -155,7 +189,6 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
 
           {items.map((item, i) => (
             <div key={i} className="flex flex-col sm:grid sm:grid-cols-12 gap-2">
-              {/* Description with datalist */}
               <input
                 list="service-descriptions"
                 name="description"
@@ -226,6 +259,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
         <textarea
           name="notes"
           rows={2}
+          defaultValue={initialNotes ?? ""}
           placeholder="Payment instructions, thank you note…"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-y"
         />
@@ -233,7 +267,7 @@ export default function InvoiceForm({ action, customers, defaultCustomerId }: In
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending}>
-          {pending ? "Creating…" : "Create Invoice"}
+          {pending ? "Saving…" : label}
         </Button>
         <Button type="button" variant="secondary" onClick={() => history.back()}>
           Cancel

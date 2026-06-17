@@ -88,6 +88,18 @@ export default function CustomerForm({ action, customer, submitLabel = "Save Cus
             defaultValue={customer?.monthlyRate?.toString() ?? ""}
           />
         </div>
+        <div>
+          <Input
+            id="dueDays"
+            name="dueDays"
+            label="Invoice Due Days (overrides company default)"
+            type="number"
+            min="1"
+            max="365"
+            defaultValue={customer?.dueDays?.toString() ?? ""}
+            placeholder="Leave blank to use company default"
+          />
+        </div>
       </fieldset>
 
       <div className="flex gap-3 pt-2">

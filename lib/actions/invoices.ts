@@ -104,6 +104,68 @@ export async function addPayment(invoiceId: string, formData: FormData) {
   revalidatePath("/dashboard")
 }
 
+export async function updateInvoice(id: string, formData: FormData) {
+  const { companyId } = await requireSession()
+  const inv = await db.invoice.findFirst({ where: { id, companyId } })
+  if (!inv) return
+
+  const dueDate = new Date(formData.get("dueDate") as string)
+  const notes = (formData.get("notes") as string) || null
+  const descriptions = formData.getAll("description") as string[]
+  const quantities = formData.getAll("quantity") as string[]
+  const unitPrices = formData.getAll("unitPrice") as string[]
+
+  await db.invoiceItem.deleteMany({ where: { invoiceId: id } })
+  await db.invoice.update({
+    where: { id },
+    data: {
+      dueDate,
+      notes,
+      items: {
+        create: descriptions.map((desc, i) => ({
+          description: desc,
+          quantity: parseFloat(quantities[i] || "1"),
+          unitPrice: parseFloat(unitPrices[i] || "0"),
+        })),
+      },
+    },
+  })
+
+  revalidatePath(`/invoices/${id}`)
+  revalidatePath("/invoices")
+  redirect(`/invoices/${id}`)
+}
+
+export async function deletePayment(paymentId: string, invoiceId: string) {
+  const { companyId } = await requireSession()
+  const inv = await db.invoice.findFirst({ where: { id: invoiceId, companyId } })
+  if (!inv) return
+
+  await db.payment.delete({ where: { id: paymentId } })
+
+  const updated = await db.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { items: true, payments: true },
+  })
+  if (updated && inv.status === "paid") {
+    const total = updated.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+    const paid = updated.payments.reduce((s, p) => s + p.amount, 0)
+    if (paid < total) {
+      const newStatus = updated.dueDate < new Date() ? "overdue" : "sent"
+      await db.invoice.update({ where: { id: invoiceId }, data: { status: newStatus, paidAt: null } })
+    }
+  }
+
+  revalidatePath(`/invoices/${invoiceId}`)
+}
+
+export async function markOverdueInvoices(companyId: string) {
+  await db.invoice.updateMany({
+    where: { companyId, status: "sent", dueDate: { lt: new Date() } },
+    data: { status: "overdue" },
+  })
+}
+
 export async function deleteInvoice(id: string) {
   const { companyId } = await requireSession()
   await db.invoice.deleteMany({ where: { id, companyId } })

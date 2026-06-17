@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
+import { markOverdueInvoices } from "@/lib/actions/invoices"
 
 export const dynamic = "force-dynamic"
 
@@ -15,6 +16,7 @@ export default async function InvoicesPage({
   searchParams: Promise<{ status?: string; generated?: string }>
 }) {
   const { companyId } = await requireSession()
+  await markOverdueInvoices(companyId)
   const { status, generated } = await searchParams
 
   const invoices = await db.invoice.findMany({

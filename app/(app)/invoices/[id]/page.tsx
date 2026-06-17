@@ -2,12 +2,12 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Trash2, CheckCircle, AlertCircle, Send } from "lucide-react"
+import { ChevronLeft, Trash2, Mail, BellRing, CheckCircle, AlertCircle, Send, Pencil } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal, paymentTotal } from "@/lib/utils"
-import { deleteInvoice, updateInvoiceStatus, addPayment } from "@/lib/actions/invoices"
+import { deleteInvoice, updateInvoiceStatus, addPayment, deletePayment, markOverdueInvoices } from "@/lib/actions/invoices"
 import { sendInvoiceEmail, sendReminderEmail } from "@/lib/actions/emails"
 import InvoicePDFButton from "@/components/invoices/InvoicePDFButton"
 import ConfirmButton from "@/components/ui/ConfirmButton"
@@ -22,6 +22,7 @@ export default async function InvoiceDetailPage({
   searchParams: Promise<{ emailed?: string; reminded?: string; emailError?: string }>
 }) {
   const { companyId } = await requireSession()
+  await markOverdueInvoices(companyId)
   const { id } = await params
   const { emailed, reminded, emailError } = await searchParams
 
@@ -101,6 +102,32 @@ export default async function InvoiceDetailPage({
           </div>
           <div className="flex gap-2 flex-wrap">
             <InvoicePDFButton invoice={invoice} company={company} />
+            {invoice.status !== "paid" && invoice.status !== "cancelled" && (
+              <Link href={`/invoices/${id}/edit`}>
+                <Button variant="secondary" size="sm">
+                  <Pencil className="w-4 h-4" />
+                  <span className="hidden sm:inline">Edit</span>
+                </Button>
+              </Link>
+            )}
+            {hasEmail && (
+              <>
+                <form action={sendAction}>
+                  <Button type="submit" variant="secondary" size="sm" title={`Email invoice to ${invoice.customer.email}`}>
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline">Email</span>
+                  </Button>
+                </form>
+                {canRemind && (
+                  <form action={remindAction}>
+                    <Button type="submit" variant="secondary" size="sm" title="Send payment reminder">
+                      <BellRing className="w-4 h-4" />
+                      <span className="hidden sm:inline">Remind</span>
+                    </Button>
+                  </form>
+                )}
+              </>
+            )}
             {invoice.status === "draft" && (
               <form action={markSent}>
                 <Button type="submit" variant="secondary" size="sm">Mark Sent</Button>
@@ -222,7 +249,7 @@ export default async function InvoiceDetailPage({
             <Card>
               <CardHeader>
                 <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
-                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send Email
+                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send with Message
                 </h2>
               </CardHeader>
               <CardBody className={canRemind ? "space-y-4" : "space-y-3"}>
@@ -231,7 +258,7 @@ export default async function InvoiceDetailPage({
                 <form action={sendAction} className="space-y-2">
                   <textarea
                     name="message"
-                    placeholder="Personal message for invoice email (optional)…"
+                    placeholder="Add a personal note to the invoice email…"
                     rows={2}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                   />
@@ -242,7 +269,7 @@ export default async function InvoiceDetailPage({
                   <form action={remindAction} className="space-y-2 pt-3 border-t border-gray-100">
                     <textarea
                       name="message"
-                      placeholder="Personal message for reminder email (optional)…"
+                      placeholder="Add a personal note to the reminder email…"
                       rows={2}
                       className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
                     />
@@ -259,16 +286,26 @@ export default async function InvoiceDetailPage({
             <CardBody className="space-y-4">
               {invoice.payments.length > 0 && (
                 <div className="space-y-2">
-                  {invoice.payments.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between text-sm">
-                      <div>
-                        <span className="font-medium text-gray-900">{formatCurrency(p.amount)}</span>
-                        {p.method && <span className="text-gray-400 ml-2">via {p.method}</span>}
-                        {p.reference && <span className="text-gray-400 ml-2">#{p.reference}</span>}
+                  {invoice.payments.map((p) => {
+                    const deletePaymentAction = deletePayment.bind(null, p.id, id)
+                    return (
+                      <div key={p.id} className="flex items-center justify-between text-sm">
+                        <div>
+                          <span className="font-medium text-gray-900">{formatCurrency(p.amount)}</span>
+                          {p.method && <span className="text-gray-400 ml-2">via {p.method}</span>}
+                          {p.reference && <span className="text-gray-400 ml-2">#{p.reference}</span>}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-gray-400 text-xs">{formatDate(p.createdAt)}</span>
+                          <form action={deletePaymentAction}>
+                            <button type="submit" className="text-gray-300 hover:text-red-500 transition-colors" title="Remove payment">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </form>
+                        </div>
                       </div>
-                      <span className="text-gray-400 text-xs">{formatDate(p.createdAt)}</span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 

@@ -23,6 +23,7 @@ export async function createCustomer(formData: FormData) {
       poolSize: (formData.get("poolSize") as string) || null,
       poolNotes: (formData.get("poolNotes") as string) || null,
       monthlyRate: formData.get("monthlyRate") ? parseFloat(formData.get("monthlyRate") as string) : null,
+      dueDays: formData.get("dueDays") ? parseInt(formData.get("dueDays") as string) : null,
       status: (formData.get("status") as string) || "active",
     },
   })
@@ -50,6 +51,7 @@ export async function updateCustomer(id: string, formData: FormData) {
       poolSize: (formData.get("poolSize") as string) || null,
       poolNotes: (formData.get("poolNotes") as string) || null,
       monthlyRate: formData.get("monthlyRate") ? parseFloat(formData.get("monthlyRate") as string) : null,
+      dueDays: formData.get("dueDays") ? parseInt(formData.get("dueDays") as string) : null,
       status: formData.get("status") as string,
     },
   })

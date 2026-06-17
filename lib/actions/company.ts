@@ -39,6 +39,7 @@ export async function updateCompany(formData: FormData) {
       website: (formData.get("website") as string) || null,
       bccEmail: (formData.get("bccEmail") as string) || null,
       replyToEmail: (formData.get("replyToEmail") as string) || null,
+      defaultDueDays: parseInt((formData.get("defaultDueDays") as string) || "30") || 30,
     },
   })
 
