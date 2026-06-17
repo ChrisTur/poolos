@@ -24,6 +24,11 @@ model Company {
   bccEmail        String?
   replyToEmail    String?
   defaultDueDays  Int     @default(30)
+  venmoHandle     String?
+  paypalHandle    String?
+  cashAppHandle   String?
+  zellePhone      String?
+  zelleEmail      String?
   isActive        Boolean @default(true)
 
   users     User[]
