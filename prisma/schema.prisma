@@ -35,8 +35,10 @@ model Company {
   customers Customer[]
   routes    Route[]
   invoices  Invoice[]
-  estimates Estimate[]
-  emailLogs EmailLog[]
+  estimates         Estimate[]
+  estimateTemplates EstimateTemplate[]
+  expenses          Expense[]
+  emailLogs         EmailLog[]
 }
 
 model User {
@@ -154,6 +156,7 @@ model Invoice {
 
   invoiceNumber String   @unique
   status        String   @default("draft")
+  serviceType   String?  // monthly | repair | equipment | chemical | installation | other
   dueDate       DateTime
   issuedAt      DateTime @default(now())
   paidAt        DateTime?
@@ -216,6 +219,45 @@ model EstimateItem {
   unitPrice   Float
   estimateId  String
   estimate    Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  date        DateTime
+  category    String   // chemicals | equipment | labor | fuel | supplies | office | other
+  description String
+  amount      Float
+  vendor      String?
+  notes       String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+model EstimateTemplate {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  name        String
+  description String?
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  items EstimateTemplateItem[]
+}
+
+model EstimateTemplateItem {
+  id          String           @id @default(cuid())
+  description String
+  quantity    Float            @default(1)
+  unitPrice   Float
+  templateId  String
+  template    EstimateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 }
 
 model Equipment {

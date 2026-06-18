@@ -123,6 +123,7 @@ export async function sendEstimateEmail(estimateId: string, formData: FormData) 
     companyState: estimate.company.state,
     companyZip: estimate.company.zip,
     companyPhone: estimate.company.phone,
+    companyReplyTo: estimate.company.replyToEmail,
     customerFirstName: estimate.customer.firstName,
     customerLastName: estimate.customer.lastName,
     customerAddress: estimate.customer.address,

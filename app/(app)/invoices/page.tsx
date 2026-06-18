@@ -1,27 +1,28 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, ChevronRight, Zap } from "lucide-react"
+import { Plus, ChevronRight, Zap, Mail, AlertTriangle, CheckCircle } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
 import { markOverdueInvoices } from "@/lib/actions/invoices"
+import { sendBulkOverdueReminders } from "@/lib/actions/emails"
 
 export const dynamic = "force-dynamic"
 
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; generated?: string }>
+  searchParams: Promise<{ status?: string; generated?: string; reminded?: string; failed?: string }>
 }) {
   const { companyId } = await requireSession()
   await markOverdueInvoices(companyId)
-  const { status, generated } = await searchParams
+  const { status, generated, reminded, failed: reminderFailed } = await searchParams
 
   const invoices = await db.invoice.findMany({
     where: status && status !== "all" ? { companyId, status } : { companyId },
-    orderBy: { createdAt: "desc" },
+    orderBy: status === "overdue" ? { dueDate: "asc" } : { createdAt: "desc" },
     include: {
       customer: true,
       items: true,
@@ -37,6 +38,13 @@ export default async function InvoicesPage({
     overdue: invoices.filter((i) => i.status === "overdue").length,
   }
 
+  const now = Date.now()
+  const daysOverdue = (dueDate: Date) => Math.floor((now - dueDate.getTime()) / 86_400_000)
+
+  const overdueWithEmail = status === "overdue"
+    ? invoices.filter((i) => !!i.customer.email).length
+    : 0
+
   const statusTabs = [
     { key: "all", label: "All" },
     { key: "draft", label: "Draft" },
@@ -51,6 +59,15 @@ export default async function InvoicesPage({
         <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
           <Zap className="w-4 h-4 shrink-0" />
           {generated} invoice{parseInt(generated) !== 1 ? "s" : ""} generated successfully. Review and mark as Sent when ready.
+        </div>
+      )}
+      {reminded && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-2">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          {reminded} reminder{parseInt(reminded) !== 1 ? "s" : ""} sent.
+          {reminderFailed && parseInt(reminderFailed) > 0 && (
+            <span className="text-red-700"> {reminderFailed} failed — check individual invoices.</span>
+          )}
         </div>
       )}
 
@@ -82,22 +99,46 @@ export default async function InvoicesPage({
       <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
         {statusTabs.map((tab) => {
           const active = (status ?? "all") === tab.key
+          const isOverdueTab = tab.key === "overdue"
           return (
             <Link
               key={tab.key}
               href={`/invoices?status=${tab.key}`}
               className={`flex-none px-3 py-2 sm:py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                active ? "bg-sky-600 text-white" : "text-gray-600 hover:bg-gray-100"
+                active
+                  ? isOverdueTab ? "bg-red-600 text-white" : "bg-sky-600 text-white"
+                  : isOverdueTab && totals.overdue > 0 ? "text-red-600 hover:bg-red-50" : "text-gray-600 hover:bg-gray-100"
               }`}
             >
               {tab.label}
-              <span className={`ml-1.5 text-xs ${active ? "text-sky-200" : "text-gray-400"}`}>
+              <span className={`ml-1.5 text-xs ${active ? (isOverdueTab ? "text-red-200" : "text-sky-200") : isOverdueTab && totals.overdue > 0 ? "text-red-400" : "text-gray-400"}`}>
                 {totals[tab.key as keyof typeof totals]}
               </span>
             </Link>
           )
         })}
       </div>
+
+      {/* Bulk remind button — only on overdue tab */}
+      {status === "overdue" && (
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-red-800">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+            <span>
+              {invoices.length} overdue invoice{invoices.length !== 1 ? "s" : ""}
+              {overdueWithEmail < invoices.length && ` · ${invoices.length - overdueWithEmail} customer${invoices.length - overdueWithEmail !== 1 ? "s" : ""} have no email`}
+            </span>
+          </div>
+          {overdueWithEmail > 0 && (
+            <form action={sendBulkOverdueReminders}>
+              <Button type="submit" size="sm" variant="secondary">
+                <Mail className="w-4 h-4" />
+                Remind all {overdueWithEmail}
+              </Button>
+            </form>
+          )}
+        </div>
+      )}
 
       {/* Mobile card list */}
       <div className="sm:hidden space-y-2">
@@ -124,6 +165,9 @@ export default async function InvoicesPage({
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5">
                       {inv.invoiceNumber} · Due {formatDate(inv.dueDate)}
+                      {inv.status === "overdue" && (
+                        <span className="text-red-500"> · {daysOverdue(inv.dueDate)}d overdue</span>
+                      )}
                     </p>
                     <div className="mt-1.5">{statusBadge(inv.status)}</div>
                   </div>
@@ -181,7 +225,12 @@ export default async function InvoicesPage({
                         </Link>
                       </td>
                       <td className="px-5 py-3 text-gray-500 hidden md:table-cell">{formatDate(inv.issuedAt)}</td>
-                      <td className="px-5 py-3 text-gray-500 hidden lg:table-cell">{formatDate(inv.dueDate)}</td>
+                      <td className="px-5 py-3 hidden lg:table-cell">
+                        <span className="text-gray-500">{formatDate(inv.dueDate)}</span>
+                        {inv.status === "overdue" && (
+                          <span className="ml-1.5 text-xs text-red-500 font-medium">{daysOverdue(inv.dueDate)}d</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3 text-right">
                         <p className="font-semibold text-gray-900">{formatCurrency(total)}</p>
                         {paid > 0 && balance > 0 && (

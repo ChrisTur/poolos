@@ -31,6 +31,15 @@ interface LineItem {
   unitPrice: string
 }
 
+export const SERVICE_TYPES = [
+  { value: "monthly",      label: "Monthly Pool Service" },
+  { value: "repair",       label: "Repair / Service Work" },
+  { value: "equipment",    label: "Equipment / Parts" },
+  { value: "chemical",     label: "Chemical Treatment" },
+  { value: "installation", label: "Installation" },
+  { value: "other",        label: "Other" },
+]
+
 interface InvoiceFormProps {
   action: (formData: FormData) => Promise<void>
   customers: Customer[]
@@ -39,6 +48,7 @@ interface InvoiceFormProps {
   initialDueDate?: string
   initialNotes?: string
   initialItems?: LineItem[]
+  initialServiceType?: string
   hideCustomerSelect?: boolean
   submitLabel?: string
 }
@@ -57,6 +67,7 @@ export default function InvoiceForm({
   initialDueDate,
   initialNotes,
   initialItems,
+  initialServiceType,
   hideCustomerSelect = false,
   submitLabel,
 }: InvoiceFormProps) {
@@ -151,6 +162,21 @@ export default function InvoiceForm({
           )}
         </div>
       )}
+
+      {/* Service Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
+        <select
+          name="serviceType"
+          defaultValue={initialServiceType ?? ""}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+        >
+          <option value="">Select type…</option>
+          {SERVICE_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Due date */}
       <div>

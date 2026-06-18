@@ -14,9 +14,10 @@ export default async function NewEstimatePage({
   const { companyId } = await requireSession()
   const { customerId } = await searchParams
 
-  const [customers, company] = await Promise.all([
+  const [customers, , templates] = await Promise.all([
     db.customer.findMany({ where: { companyId, status: "active" }, orderBy: [{ lastName: "asc" }] }),
     db.company.findUnique({ where: { id: companyId }, select: { defaultDueDays: true } }),
+    db.estimateTemplate.findMany({ where: { companyId }, orderBy: { name: "asc" }, include: { items: true } }),
   ])
 
   return (
@@ -33,6 +34,7 @@ export default async function NewEstimatePage({
             action={createEstimate}
             customers={customers}
             defaultCustomerId={customerId}
+            templates={templates}
           />
         </CardBody>
       </Card>

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, ChevronRight, FileEdit } from "lucide-react"
+import { Plus, ChevronRight, FileEdit, LayoutTemplate } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate } from "@/lib/utils"
@@ -56,13 +56,21 @@ export default async function EstimatesPage({
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Estimates</h1>
           <p className="text-sm text-gray-500 mt-0.5">{estimates.length} {status && status !== "all" ? status : "total"}</p>
         </div>
-        <Link href="/estimates/new">
-          <Button size="sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">New Estimate</span>
-            <span className="sm:hidden">New</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/estimates/templates">
+            <Button size="sm" variant="secondary">
+              <LayoutTemplate className="w-4 h-4" />
+              <span className="hidden sm:inline">Templates</span>
+            </Button>
+          </Link>
+          <Link href="/estimates/new">
+            <Button size="sm" className="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Estimate</span>
+              <span className="sm:hidden">New</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">

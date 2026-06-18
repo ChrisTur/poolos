@@ -23,12 +23,13 @@ function invoiceNum(n: number) {
 export async function createInvoice(formData: FormData) {
   const { companyId } = await requireSession()
 
-  const customerId = formData.get("customerId") as string
-  const dueDate = new Date(formData.get("dueDate") as string)
-  const notes = (formData.get("notes") as string) || null
+  const customerId   = formData.get("customerId") as string
+  const dueDate      = new Date(formData.get("dueDate") as string)
+  const notes        = (formData.get("notes") as string) || null
+  const serviceType  = (formData.get("serviceType") as string) || null
   const descriptions = formData.getAll("description") as string[]
-  const quantities = formData.getAll("quantity") as string[]
-  const unitPrices = formData.getAll("unitPrice") as string[]
+  const quantities   = formData.getAll("quantity") as string[]
+  const unitPrices   = formData.getAll("unitPrice") as string[]
 
   const num = await lastInvoiceNum(companyId)
   const invoice = await db.invoice.create({
@@ -38,6 +39,7 @@ export async function createInvoice(formData: FormData) {
       invoiceNumber: invoiceNum(num + 1),
       dueDate,
       notes,
+      serviceType,
       status: "draft",
       items: {
         create: descriptions.map((desc, i) => ({
@@ -57,10 +59,38 @@ export async function updateInvoiceStatus(id: string, status: string) {
   const { companyId } = await requireSession()
   const inv = await db.invoice.findFirst({ where: { id, companyId } })
   if (!inv) return
+  await db.invoice.update({ where: { id }, data: { status } })
+  revalidatePath(`/invoices/${id}`)
+  revalidatePath("/invoices")
+  revalidatePath("/dashboard")
+}
 
-  const data: Record<string, unknown> = { status }
-  if (status === "paid") data.paidAt = new Date()
-  await db.invoice.update({ where: { id }, data })
+export async function markInvoicePaid(id: string, formData: FormData) {
+  const { companyId } = await requireSession()
+  const inv = await db.invoice.findFirst({
+    where: { id, companyId },
+    include: { items: true, payments: true, customer: true },
+  })
+  if (!inv) return
+
+  const method = (formData.get("method") as string) || null
+
+  const total   = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+  const paid    = inv.payments.reduce((s, p) => s + p.amount, 0)
+  const balance = Math.round((total - paid) * 100) / 100
+
+  if (balance > 0) {
+    await db.payment.create({
+      data: { invoiceId: id, amount: balance, method, notes: "Marked as paid" },
+    })
+  }
+
+  await db.invoice.update({ where: { id }, data: { status: "paid", paidAt: new Date() } })
+
+  if (inv.customer.email) {
+    await sendReceiptEmail(id)
+  }
+
   revalidatePath(`/invoices/${id}`)
   revalidatePath("/invoices")
   revalidatePath("/dashboard")
@@ -109,11 +139,12 @@ export async function updateInvoice(id: string, formData: FormData) {
   const inv = await db.invoice.findFirst({ where: { id, companyId } })
   if (!inv) return
 
-  const dueDate = new Date(formData.get("dueDate") as string)
-  const notes = (formData.get("notes") as string) || null
+  const dueDate      = new Date(formData.get("dueDate") as string)
+  const notes        = (formData.get("notes") as string) || null
+  const serviceType  = (formData.get("serviceType") as string) || null
   const descriptions = formData.getAll("description") as string[]
-  const quantities = formData.getAll("quantity") as string[]
-  const unitPrices = formData.getAll("unitPrice") as string[]
+  const quantities   = formData.getAll("quantity") as string[]
+  const unitPrices   = formData.getAll("unitPrice") as string[]
 
   await db.invoiceItem.deleteMany({ where: { invoiceId: id } })
   await db.invoice.update({
@@ -121,6 +152,7 @@ export async function updateInvoice(id: string, formData: FormData) {
     data: {
       dueDate,
       notes,
+      serviceType,
       items: {
         create: descriptions.map((desc, i) => ({
           description: desc,
@@ -213,7 +245,9 @@ export async function generateMonthlyInvoices(formData: FormData) {
         customerId: customer.id,
         invoiceNumber: invoiceNum(nextNum),
         dueDate,
+        issuedAt: startOfMonth,
         status: "draft",
+        serviceType: "monthly",
         items: {
           create: [{ description: "Monthly pool service", quantity: 1, unitPrice: customer.monthlyRate! }],
         },
