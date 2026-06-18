@@ -26,6 +26,7 @@ export async function createEstimate(formData: FormData) {
   const customerId  = formData.get("customerId") as string
   const validUntil  = formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : null
   const notes       = (formData.get("notes") as string) || null
+  const serviceType = (formData.get("serviceType") as string) || null
   const descriptions = formData.getAll("description") as string[]
   const quantities   = formData.getAll("quantity") as string[]
   const unitPrices   = formData.getAll("unitPrice") as string[]
@@ -38,6 +39,7 @@ export async function createEstimate(formData: FormData) {
       estimateNumber: estimateNum(num + 1),
       validUntil,
       notes,
+      serviceType,
       status: "draft",
       items: {
         create: descriptions.map((desc, i) => ({
@@ -60,6 +62,7 @@ export async function updateEstimate(id: string, formData: FormData) {
 
   const validUntil   = formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : null
   const notes        = (formData.get("notes") as string) || null
+  const serviceType  = (formData.get("serviceType") as string) || null
   const descriptions = formData.getAll("description") as string[]
   const quantities   = formData.getAll("quantity") as string[]
   const unitPrices   = formData.getAll("unitPrice") as string[]
@@ -70,6 +73,7 @@ export async function updateEstimate(id: string, formData: FormData) {
     data: {
       validUntil,
       notes,
+      serviceType,
       items: {
         create: descriptions.map((desc, i) => ({
           description: desc,
@@ -204,6 +208,7 @@ export async function convertEstimateToInvoice(estimateId: string) {
       invoiceNumber: `INV-${String(lastNum + 1).padStart(4, "0")}`,
       dueDate,
       notes: estimate.notes,
+      serviceType: estimate.serviceType,
       status: "draft",
       items: {
         create: estimate.items.map((item) => ({

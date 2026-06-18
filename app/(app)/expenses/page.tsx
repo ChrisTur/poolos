@@ -78,13 +78,18 @@ export default async function ExpensesPage({
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Expenses</h1>
           <p className="text-sm text-gray-500 mt-0.5">{formatCurrency(total)} in this view</p>
         </div>
-        <Link href="/expenses/new">
-          <Button size="sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Expense</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/expenses/vendors">
+            <Button size="sm" variant="secondary">Vendors</Button>
+          </Link>
+          <Link href="/expenses/new">
+            <Button size="sm">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Expense</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Period tabs */}

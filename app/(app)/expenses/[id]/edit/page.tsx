@@ -13,7 +13,10 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const exp = await db.expense.findFirst({ where: { id, companyId } })
+  const [exp, vendors] = await Promise.all([
+    db.expense.findFirst({ where: { id, companyId } }),
+    db.vendor.findMany({ where: { companyId }, orderBy: { name: "asc" }, select: { name: true } }),
+  ])
   if (!exp) notFound()
 
   const action = updateExpense.bind(null, id)
@@ -38,6 +41,7 @@ export default async function EditExpensePage({ params }: { params: Promise<{ id
             initialVendor={exp.vendor ?? ""}
             initialNotes={exp.notes ?? ""}
             submitLabel="Update Expense"
+            vendorNames={vendors.map((v) => v.name)}
           />
         </CardBody>
       </Card>

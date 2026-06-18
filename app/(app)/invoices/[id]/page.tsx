@@ -11,6 +11,8 @@ import { deleteInvoice, updateInvoiceStatus, markInvoicePaid, addPayment, delete
 import { sendInvoiceEmail, sendReminderEmail } from "@/lib/actions/emails"
 import InvoicePDFButton from "@/components/invoices/InvoicePDFButton"
 import ConfirmButton from "@/components/ui/ConfirmButton"
+import MarkPaidButton from "@/components/invoices/MarkPaidButton"
+import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
 
 export const dynamic = "force-dynamic"
 
@@ -115,6 +117,9 @@ export default async function InvoiceDetailPage({
           </div>
           <div className="flex gap-2 flex-wrap">
             <InvoicePDFButton invoice={invoice} company={company} />
+            {company.stripeAccountId && invoice.payToken && invoice.status !== "paid" && (
+              <CopyPayLinkButton url={`${process.env.NEXT_PUBLIC_APP_URL}/pay/${invoice.payToken}`} />
+            )}
             {invoice.status !== "paid" && invoice.status !== "cancelled" && (
               <Link href={`/invoices/${id}/edit`}>
                 <Button variant="secondary" size="sm">
@@ -148,18 +153,7 @@ export default async function InvoiceDetailPage({
             )}
             {invoice.status !== "paid" && invoice.status !== "cancelled" && (
               <>
-                <form action={markPaidAction} className="flex items-center gap-1">
-                  <select
-                    name="method"
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                  >
-                    <option value="">Method…</option>
-                    {paymentMethods.map((m) => (
-                      <option key={m.value} value={m.value}>{m.label}</option>
-                    ))}
-                  </select>
-                  <Button type="submit" size="sm">Mark Paid</Button>
-                </form>
+                <MarkPaidButton action={markPaidAction} paymentMethods={paymentMethods} />
                 {invoice.status !== "overdue" && (
                   <form action={markOverdue}>
                     <Button type="submit" variant="secondary" size="sm">Mark Overdue</Button>

@@ -43,7 +43,7 @@ export default async function RouteRevenueReportPage({
             customer: {
               include: {
                 invoices: {
-                  where: { issuedAt: { gte: periodStart } },
+                  where: { issuedAt: { gte: periodStart }, serviceType: "monthly" },
                   include: { items: true, payments: true },
                 },
               },
@@ -65,6 +65,7 @@ export default async function RouteRevenueReportPage({
     where: {
       companyId,
       issuedAt: { gte: periodStart },
+      serviceType: "monthly",
       customer: { id: { notIn: [...routedIds] } },
     },
     include: { items: true, payments: true, customer: true },

@@ -1,3 +1,4 @@
+import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
 import { ChevronLeft } from "lucide-react"
@@ -8,7 +9,13 @@ import ExpenseForm from "@/components/expenses/ExpenseForm"
 export const dynamic = "force-dynamic"
 
 export default async function NewExpensePage() {
-  await requireSession()
+  const { companyId } = await requireSession()
+
+  const vendors = await db.vendor.findMany({
+    where: { companyId },
+    orderBy: { name: "asc" },
+    select: { name: true },
+  })
 
   return (
     <div className="max-w-xl space-y-5">
@@ -16,12 +23,15 @@ export default async function NewExpensePage() {
         <Link href="/expenses" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900 mb-3">
           <ChevronLeft className="w-4 h-4" /> Expenses
         </Link>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Add Expense</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Add Expense</h1>
+          <Link href="/expenses/vendors" className="text-xs text-sky-600 hover:underline">Manage vendors</Link>
+        </div>
       </div>
       <Card>
         <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Expense Details</h2></CardHeader>
         <CardBody>
-          <ExpenseForm action={createExpense} />
+          <ExpenseForm action={createExpense} vendorNames={vendors.map((v) => v.name)} />
         </CardBody>
       </Card>
     </div>

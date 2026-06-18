@@ -42,6 +42,7 @@ export default async function EditEstimatePage({ params }: { params: Promise<{ i
             action={action}
             customers={[]}
             hideCustomerSelect
+            initialServiceType={estimate.serviceType ?? ""}
             initialValidUntil={estimate.validUntil ? estimate.validUntil.toISOString().split("T")[0] : undefined}
             initialNotes={estimate.notes ?? ""}
             initialItems={estimate.items.map((item) => ({

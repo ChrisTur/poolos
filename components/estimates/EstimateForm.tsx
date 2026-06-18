@@ -3,8 +3,10 @@
 import { useState, useActionState } from "react"
 import { Plus, Trash2, LayoutTemplate } from "lucide-react"
 import Button from "@/components/ui/Button"
+import CustomerCombobox from "@/components/ui/CustomerCombobox"
 import { formatCurrency } from "@/lib/utils"
 import type { Customer } from "@/app/generated/prisma/client"
+import { SERVICE_TYPES } from "@/components/invoices/InvoiceForm"
 
 interface LineItem {
   description: string
@@ -27,6 +29,7 @@ interface EstimateFormProps {
   initialValidUntil?: string
   initialNotes?: string
   initialItems?: LineItem[]
+  initialServiceType?: string
   submitLabel?: string
   templates?: Template[]
 }
@@ -45,6 +48,7 @@ export default function EstimateForm({
   initialValidUntil,
   initialNotes,
   initialItems,
+  initialServiceType,
   submitLabel,
   templates = [],
 }: EstimateFormProps) {
@@ -85,21 +89,46 @@ export default function EstimateForm({
       {!hideCustomerSelect && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
-          <select
-            name="customerId"
-            required
-            defaultValue={defaultCustomerId ?? ""}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
-          >
-            <option value="">Select customer…</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.firstName} {c.lastName}
-              </option>
-            ))}
-          </select>
+          {customers.length > 15 ? (
+            <CustomerCombobox
+              customers={customers}
+              defaultCustomerId={defaultCustomerId}
+              required
+              focusRing="amber"
+            />
+          ) : (
+            <select
+              name="customerId"
+              required
+              defaultValue={defaultCustomerId ?? ""}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              <option value="">Select customer…</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       )}
+
+      {/* Service Type */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Service Type *</label>
+        <select
+          name="serviceType"
+          required
+          defaultValue={initialServiceType ?? ""}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+        >
+          <option value="">Select type…</option>
+          {SERVICE_TYPES.map((t) => (
+            <option key={t.value} value={t.value}>{t.label}</option>
+          ))}
+        </select>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Valid Until</label>
