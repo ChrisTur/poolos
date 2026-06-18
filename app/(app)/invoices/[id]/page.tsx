@@ -7,7 +7,7 @@ import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal, paymentTotal } from "@/lib/utils"
-import { deleteInvoice, updateInvoiceStatus, addPayment, deletePayment, markOverdueInvoices } from "@/lib/actions/invoices"
+import { deleteInvoice, updateInvoiceStatus, markInvoicePaid, addPayment, deletePayment, markOverdueInvoices } from "@/lib/actions/invoices"
 import { sendInvoiceEmail, sendReminderEmail } from "@/lib/actions/emails"
 import InvoicePDFButton from "@/components/invoices/InvoicePDFButton"
 import ConfirmButton from "@/components/ui/ConfirmButton"
@@ -48,11 +48,24 @@ export default async function InvoiceDetailPage({
   const paid = paymentTotal(invoice.payments)
   const balance = total - paid
 
-  const deleteAction = deleteInvoice.bind(null, id)
-  const markSent = updateInvoiceStatus.bind(null, id, "sent")
-  const markPaid = updateInvoiceStatus.bind(null, id, "paid")
-  const markOverdue = updateInvoiceStatus.bind(null, id, "overdue")
-  const addPaymentAction = addPayment.bind(null, id)
+  const deleteAction      = deleteInvoice.bind(null, id)
+  const markSent          = updateInvoiceStatus.bind(null, id, "sent")
+  const markOverdue       = updateInvoiceStatus.bind(null, id, "overdue")
+  const markPaidAction    = markInvoicePaid.bind(null, id)
+  const addPaymentAction  = addPayment.bind(null, id)
+
+  // Build payment method options — always-on types plus configured payment handles
+  const paymentMethods = [
+    { value: "cash",   label: "Cash" },
+    { value: "check",  label: "Check" },
+    { value: "card",   label: "Card" },
+    { value: "ach",    label: "ACH" },
+    ...(company.venmoHandle   ? [{ value: "venmo",   label: "Venmo" }]   : []),
+    ...(company.paypalHandle  ? [{ value: "paypal",  label: "PayPal" }]  : []),
+    ...(company.cashAppHandle ? [{ value: "cashapp", label: "Cash App" }] : []),
+    ...(company.zellePhone || company.zelleEmail ? [{ value: "zelle", label: "Zelle" }] : []),
+    { value: "other",  label: "Other" },
+  ]
 
   const sendAction = sendInvoiceEmail.bind(null, id)
   const remindAction = sendReminderEmail.bind(null, id)
@@ -135,7 +148,16 @@ export default async function InvoiceDetailPage({
             )}
             {invoice.status !== "paid" && invoice.status !== "cancelled" && (
               <>
-                <form action={markPaid}>
+                <form action={markPaidAction} className="flex items-center gap-1">
+                  <select
+                    name="method"
+                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    <option value="">Method…</option>
+                    {paymentMethods.map((m) => (
+                      <option key={m.value} value={m.value}>{m.label}</option>
+                    ))}
+                  </select>
                   <Button type="submit" size="sm">Mark Paid</Button>
                 </form>
                 {invoice.status !== "overdue" && (
@@ -327,8 +349,8 @@ export default async function InvoiceDetailPage({
                       className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     >
                       <option value="">Payment method…</option>
-                      {["Cash", "Check", "Card", "Zelle", "Venmo", "PayPal", "ACH"].map((m) => (
-                        <option key={m} value={m.toLowerCase()}>{m}</option>
+                      {paymentMethods.map((m) => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
                       ))}
                     </select>
                   </div>

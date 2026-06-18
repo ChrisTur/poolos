@@ -9,6 +9,7 @@ import {
   CalendarDays,
   FileText,
   FileEdit,
+  Receipt,
   Waves,
   X,
   Settings,
@@ -27,7 +28,8 @@ const nav = [
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/estimates", label: "Estimates", icon: FileEdit },
-  { href: "/reports", label: "Reports", icon: BarChart2 },
+  { href: "/expenses",  label: "Expenses",  icon: Receipt },
+  { href: "/reports",   label: "Reports",   icon: BarChart2 },
 ]
 
 const settingsNav = [

@@ -189,6 +189,54 @@ export async function sendReceiptEmail(invoiceId: string) {
   })
 }
 
+export async function sendBulkOverdueReminders(_formData: FormData) {
+  const { companyId } = await requireSession()
+
+  const invoices = await db.invoice.findMany({
+    where: {
+      companyId,
+      status: "overdue",
+      customer: { email: { not: null } },
+    },
+    include: { customer: true, items: true, payments: true, company: true },
+  })
+
+  let sent = 0
+  let failed = 0
+
+  for (const invoice of invoices) {
+    if (!invoice.customer.email) continue
+
+    const html = buildInvoiceHtml(buildEmailData(invoice), true)
+    const { from, bcc, replyTo } = buildSendParams(invoice)
+    const subject = `Payment Reminder: Invoice ${invoice.invoiceNumber} — ${invoice.company.name}`
+
+    let status: "sent" | "failed" = "sent"
+    try {
+      await resend.emails.send({ from, to: invoice.customer.email, bcc, replyTo, subject, html })
+      sent++
+    } catch {
+      status = "failed"
+      failed++
+    }
+
+    await db.emailLog.create({
+      data: {
+        type: "reminder",
+        status,
+        toEmail: invoice.customer.email,
+        bccEmail: bcc ?? null,
+        subject,
+        invoiceId: invoice.id,
+        customerId: invoice.customerId,
+        companyId,
+      },
+    })
+  }
+
+  redirect(`/invoices?status=overdue&reminded=${sent}&failed=${failed}`)
+}
+
 export async function sendBulkInvoiceEmails(formData: FormData) {
   const { companyId } = await requireSession()
   const month = parseInt(formData.get("month") as string)

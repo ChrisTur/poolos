@@ -48,6 +48,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
             hideCustomerSelect
             defaultDueDays={company?.defaultDueDays ?? 30}
             initialDueDate={invoice.dueDate.toISOString().split("T")[0]}
+            initialServiceType={invoice.serviceType ?? ""}
             initialNotes={invoice.notes ?? ""}
             initialItems={invoice.items.map((item) => ({
               description: item.description,

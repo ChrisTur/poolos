@@ -5,7 +5,8 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { chemStatus, CHEM_RANGES, STATUS_BG, visitNeedsAttention } from "@/lib/chemistry"
-import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle, Clock } from "lucide-react"
+import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle, Clock, MapPin } from "lucide-react"
+import PaymentDonut, { type PaymentSlice } from "@/components/reports/PaymentDonut"
 
 export const dynamic = "force-dynamic"
 
@@ -50,6 +51,7 @@ export default async function ReportsPage({
     visitsInPeriod,
     mrrResult,
     monthlyPaymentsRaw,
+    periodExpenses,
     customersWithChemistry,
   ] = await Promise.all([
     // Payments received in period (revenue collected)
@@ -83,6 +85,11 @@ export default async function ReportsPage({
         createdAt: { gte: new Date(new Date().setMonth(new Date().getMonth() - 6)) },
       },
     }),
+    // Expenses in period
+    db.expense.findMany({
+      where: { companyId, date: { gte: periodStart } },
+      select: { category: true, amount: true },
+    }),
     // Customers with their latest chemical reading
     db.customer.findMany({
       where: { companyId, status: "active" },
@@ -105,7 +112,18 @@ export default async function ReportsPage({
   ])
 
   // ── Business metrics ────────────────────────────────────────────────────────
-  const collected = periodPayments.reduce((s, p) => s + p.amount, 0)
+  const collected     = periodPayments.reduce((s, p) => s + p.amount, 0)
+  const totalExpenses = periodExpenses.reduce((s, e) => s + e.amount, 0)
+  const netProfit     = collected - totalExpenses
+
+  const expenseByCategory = new Map<string, number>()
+  for (const e of periodExpenses) {
+    expenseByCategory.set(e.category, (expenseByCategory.get(e.category) ?? 0) + e.amount)
+  }
+  const EXPENSE_CAT_LABELS: Record<string, string> = {
+    chemicals: "Chemicals", equipment: "Equipment", labor: "Labor",
+    fuel: "Fuel", supplies: "Supplies", office: "Office", other: "Other",
+  }
   const mrr = mrrResult._sum.monthlyRate ?? 0
 
   const outstanding = openInvoices
@@ -126,6 +144,27 @@ export default async function ReportsPage({
 
   const completedVisits = visitsInPeriod.filter((v) => v.status === "completed").length
 
+  // ── Service type breakdown ──────────────────────────────────────────────────
+  const SERVICE_TYPE_LABELS: Record<string, string> = {
+    monthly:      "Monthly Pool Service",
+    repair:       "Repair / Service Work",
+    equipment:    "Equipment / Parts",
+    chemical:     "Chemical Treatment",
+    installation: "Installation",
+    other:        "Other",
+    untagged:     "Untagged",
+  }
+  const serviceTypeTotals = new Map<string, number>()
+  for (const inv of allPeriodInvoices) {
+    const key = inv.serviceType ?? "untagged"
+    const amount = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+    serviceTypeTotals.set(key, (serviceTypeTotals.get(key) ?? 0) + amount)
+  }
+  const serviceTypeData = [...serviceTypeTotals.entries()]
+    .map(([type, amount]) => ({ type, amount, label: SERVICE_TYPE_LABELS[type] ?? type }))
+    .sort((a, b) => b.amount - a.amount)
+  const serviceTypeMax = Math.max(...serviceTypeData.map((d) => d.amount), 1)
+
   // ── Invoice breakdown ───────────────────────────────────────────────────────
   const breakdown = ["draft", "sent", "overdue", "paid", "cancelled"].map((status) => {
     const group = allPeriodInvoices.filter((i) => i.status === status)
@@ -134,6 +173,20 @@ export default async function ReportsPage({
     }, 0)
     return { status, count: group.length, amount }
   })
+
+  // ── Payment method breakdown ────────────────────────────────────────────────
+  const methodTotals = new Map<string, number>()
+  for (const p of periodPayments) {
+    const key = p.method ?? "unknown"
+    methodTotals.set(key, (methodTotals.get(key) ?? 0) + p.amount)
+  }
+  const paymentSlices: PaymentSlice[] = [...methodTotals.entries()]
+    .map(([method, amount]) => ({
+      method,
+      amount,
+      percent: collected > 0 ? (amount / collected) * 100 : 0,
+    }))
+    .sort((a, b) => b.amount - a.amount)
 
   // ── Monthly revenue chart (last 6 months) ──────────────────────────────────
   const now = new Date()
@@ -228,6 +281,49 @@ export default async function ReportsPage({
         </div>
       </section>
 
+      {/* ── P&L Summary ── */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-gray-900 text-sm">
+            Profit & Loss — {PERIODS.find((p) => p.key === period)?.label}
+          </h2>
+        </CardHeader>
+        <CardBody>
+          <div className="grid sm:grid-cols-3 gap-4 mb-4">
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Revenue Collected</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(collected)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Total Expenses</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(totalExpenses)}</p>
+              <Link href="/expenses" className="text-xs text-sky-600 hover:underline mt-0.5 inline-block">View expenses →</Link>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 font-medium">Net Profit</p>
+              <p className={`text-2xl font-bold mt-1 ${netProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {formatCurrency(netProfit)}
+              </p>
+              {collected > 0 && (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {Math.round((netProfit / collected) * 100)}% margin
+                </p>
+              )}
+            </div>
+          </div>
+          {expenseByCategory.size > 0 && (
+            <div className="border-t border-gray-100 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[...expenseByCategory.entries()].sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
+                <div key={cat} className="text-sm">
+                  <p className="text-xs text-gray-400">{EXPENSE_CAT_LABELS[cat] ?? cat}</p>
+                  <p className="font-semibold text-gray-700 mt-0.5">{formatCurrency(amt)}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
       {/* ── Revenue chart + Invoice breakdown ── */}
       <div className="grid lg:grid-cols-2 gap-5">
         <Card>
@@ -269,6 +365,49 @@ export default async function ReportsPage({
         </Card>
       </div>
 
+      {/* ── Revenue by service type ── */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-gray-900 text-sm">
+            Revenue by Service Type — {PERIODS.find((p) => p.key === period)?.label}
+          </h2>
+        </CardHeader>
+        <CardBody>
+          {serviceTypeData.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No invoices in this period.</p>
+          ) : (
+            <div className="space-y-3">
+              {serviceTypeData.map((d) => (
+                <div key={d.type} className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 w-40 shrink-0 truncate">{d.label}</span>
+                  <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-sky-500"
+                      style={{ width: `${(d.amount / serviceTypeMax) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs font-medium text-gray-700 w-20 shrink-0 text-right">
+                    {formatCurrency(d.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
+      {/* ── Payment method breakdown ── */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-gray-900 text-sm">
+            Payment Methods — {PERIODS.find((p) => p.key === period)?.label}
+          </h2>
+        </CardHeader>
+        <CardBody>
+          <PaymentDonut slices={paymentSlices} total={collected} />
+        </CardBody>
+      </Card>
+
       {/* ── Quick links ── */}
       <section>
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Detailed Reports</h2>
@@ -281,6 +420,18 @@ export default async function ReportsPage({
               <div>
                 <p className="font-semibold text-gray-900 text-sm">AR Aging</p>
                 <p className="text-xs text-gray-500 mt-0.5">Open balances by 30 / 60 / 90 days past due</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
+            </Card>
+          </Link>
+          <Link href="/reports/routes">
+            <Card className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <span className="bg-sky-50 text-sky-600 p-2.5 rounded-lg shrink-0">
+                <MapPin className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Revenue by Route</p>
+                <p className="text-xs text-gray-500 mt-0.5">Invoiced and collected per service route</p>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
             </Card>

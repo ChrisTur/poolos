@@ -230,18 +230,24 @@ export default async function EstimateDetailPage({
             <Card>
               <CardHeader>
                 <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
-                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send with Message
+                  <Send className="w-3.5 h-3.5 text-gray-400" /> Send Estimate
                 </h2>
               </CardHeader>
               <CardBody className="space-y-3">
                 <p className="text-xs text-gray-400">To: {estimate.customer.email}</p>
                 <form action={sendAction} className="space-y-2">
-                  <textarea
-                    name="message"
-                    placeholder="Add a personal note to the estimate email…"
-                    rows={2}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
-                  />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Additional details <span className="font-normal text-gray-400">(optional)</span>
+                    </label>
+                    <textarea
+                      name="message"
+                      placeholder={"e.g. This includes all labor and chemicals. Work to be completed within 5 business days. 50% deposit required to schedule."}
+                      rows={5}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-y"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Appears as a highlighted note in the email above the line items.</p>
+                  </div>
                   <Button type="submit" variant="secondary" size="sm">Send Estimate</Button>
                 </form>
               </CardBody>

@@ -332,6 +332,7 @@ export interface EstimateEmailData {
   companyZip?: string | null
   companyPhone?: string | null
   companyLogoUrl?: string | null
+  companyReplyTo?: string | null
   customerFirstName: string
   customerLastName: string
   customerAddress: string
@@ -447,7 +448,13 @@ export function buildEstimateHtml(inv: EstimateEmailData): string {
       <!-- CTA — amber for estimates -->
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;text-align:center;margin-top:8px">
         <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;word-break:break-word">Estimate Total: ${fmt(inv.total)}</div>
-        <div style="font-size:13px;color:#b45309">Reply to this email to approve, ask questions, or request changes.</div>
+        <div style="font-size:13px;color:#b45309">${
+          inv.companyReplyTo
+            ? `Reply to this email to approve, ask questions, or request changes.`
+            : inv.companyPhone
+              ? `Call us at <strong>${inv.companyPhone}</strong> to approve or request changes.`
+              : `Contact us to approve or request any changes.`
+        }</div>
       </div>
     </div>
 
