@@ -55,6 +55,9 @@ model User {
   role      String  @default("technician") // owner | technician
   isActive  Boolean @default(true)
 
+  passwordResetToken  String?   @unique
+  passwordResetExpiry DateTime?
+
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }

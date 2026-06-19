@@ -580,3 +580,37 @@ export function buildVisitCompletionHtml(data: VisitCompletionEmailData): string
 </body>
 </html>`
 }
+
+export function buildPasswordResetHtml(firstName: string, resetUrl: string) {
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:480px;margin:40px auto">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+      <div style="background:#0ea5e9;padding:24px;text-align:center">
+        <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff">PoolOS</p>
+      </div>
+      <div style="padding:32px 24px">
+        <p style="font-size:15px;color:#111827;margin:0 0 8px">Hi ${firstName},</p>
+        <p style="font-size:14px;color:#6b7280;margin:0 0 24px">
+          We received a request to reset your PoolOS password. Click the button below to choose a new one.
+        </p>
+        <div style="text-align:center;margin:0 0 24px">
+          <a href="${resetUrl}" style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px">
+            Reset Password
+          </a>
+        </div>
+        <p style="font-size:13px;color:#9ca3af;margin:0 0 8px">This link expires in 1 hour.</p>
+        <p style="font-size:13px;color:#9ca3af;margin:0">
+          If you didn't request this, you can safely ignore this email — your password won't change.
+        </p>
+      </div>
+      <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+        PoolOS · Password Reset
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+}

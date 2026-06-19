@@ -6,7 +6,7 @@ import { ChevronLeft } from "lucide-react"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { updateVendor } from "@/lib/actions/vendors"
-import { EXPENSE_CATEGORIES } from "@/components/expenses/ExpenseForm"
+import { EXPENSE_CATEGORIES } from "@/lib/expense-categories"
 
 export const dynamic = "force-dynamic"
 

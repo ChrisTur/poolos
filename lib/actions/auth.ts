@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { signIn, signOut } from "@/auth"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
+import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
+import crypto from "crypto"
 
 function slugify(name: string) {
   return name
@@ -63,4 +65,53 @@ export async function login(formData: FormData) {
 
 export async function logout() {
   await signOut({ redirectTo: "/login" })
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = (formData.get("email") as string).toLowerCase().trim()
+
+  const user = await db.user.findUnique({ where: { email } })
+  if (user && user.isActive) {
+    const token = crypto.randomBytes(32).toString("hex")
+    const expiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+
+    await db.user.update({
+      where: { id: user.id },
+      data: { passwordResetToken: token, passwordResetExpiry: expiry },
+    })
+
+    const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password/${token}`
+    await resend.emails.send({
+      from: FROM,
+      to: email,
+      subject: "Reset your PoolOS password",
+      html: buildPasswordResetHtml(user.firstName, resetUrl),
+    })
+  }
+
+  // Always return success to avoid revealing whether the email exists
+  return { success: true }
+}
+
+export async function resetPassword(token: string, formData: FormData) {
+  const password = formData.get("password") as string
+  const confirm = formData.get("confirm") as string
+
+  if (password !== confirm) return { error: "Passwords don't match." }
+  if (password.length < 8) return { error: "Password must be at least 8 characters." }
+
+  const user = await db.user.findUnique({ where: { passwordResetToken: token } })
+
+  if (!user || !user.passwordResetExpiry || user.passwordResetExpiry < new Date()) {
+    return { error: "This link has expired or is invalid. Please request a new one." }
+  }
+
+  const hashed = await bcrypt.hash(password, 12)
+
+  await db.user.update({
+    where: { id: user.id },
+    data: { password: hashed, passwordResetToken: null, passwordResetExpiry: null },
+  })
+
+  return { success: true }
 }
