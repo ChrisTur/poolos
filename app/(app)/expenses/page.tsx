@@ -6,7 +6,7 @@ import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { deleteExpense } from "@/lib/actions/expenses"
-import { EXPENSE_CATEGORIES } from "@/components/expenses/ExpenseForm"
+import { EXPENSE_CATEGORIES } from "@/lib/expense-categories"
 
 export const dynamic = "force-dynamic"
 
