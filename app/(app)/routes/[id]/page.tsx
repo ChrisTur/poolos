@@ -14,6 +14,22 @@ import DeleteRouteButton from "@/components/routes/DeleteRouteButton"
 
 export const dynamic = "force-dynamic"
 
+async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
+  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  if (!key) return null
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`,
+      { next: { revalidate: 60 * 60 * 24 } } // cache geocode results for 24h
+    )
+    const data = await res.json()
+    if (data.status !== "OK" || !data.results?.[0]) return null
+    return data.results[0].geometry.location
+  } catch {
+    return null
+  }
+}
+
 export default async function RouteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { companyId } = await requireSession()
   const { id } = await params
@@ -41,6 +57,21 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
 
   const stopCustomerIds = new Set(route.stops.map((s) => s.customerId))
   const availableCustomers = allCustomers.filter((c) => !stopCustomerIds.has(c.id))
+
+  // Geocode all stops server-side so the map component just places markers
+  const markers = await Promise.all(
+    route.stops.map(async (stop, i) => {
+      const addr = `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`
+      const coords = await geocode(addr)
+      return {
+        label: String(i + 1),
+        name: `${stop.customer.firstName} ${stop.customer.lastName}`,
+        address: addr,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+      }
+    })
+  )
 
   return (
     <div className="space-y-6">
@@ -72,8 +103,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
             </CardBody>
           </Card>
 
-          {/* Map placeholder — replaced with real map when API key is added */}
-          <RouteMap stops={route.stops} />
+          <RouteMap markers={markers} />
         </div>
 
         {/* Sidebar */}

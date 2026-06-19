@@ -3,12 +3,18 @@ import { requireOwner } from "@/lib/session"
 import { updatePaymentLinks } from "@/lib/actions/company"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
-import { Banknote, ExternalLink } from "lucide-react"
+import { Banknote, ExternalLink, CheckCircle, AlertCircle, CreditCard } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
-export default async function PaymentLinksPage() {
+export default async function PaymentLinksPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stripeConnected?: string; stripeError?: string }>
+}) {
   const { companyId } = await requireOwner()
+  const { stripeConnected, stripeError } = await searchParams
+
   const company = await db.company.findUnique({
     where: { id: companyId },
     select: {
@@ -17,6 +23,7 @@ export default async function PaymentLinksPage() {
       cashAppHandle: true,
       zellePhone: true,
       zelleEmail: true,
+      stripeAccountId: true,
     },
   })
   if (!company) return null
@@ -24,11 +31,76 @@ export default async function PaymentLinksPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Payment Links</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Payment Settings</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Configure your payment handles. Customers will see pay buttons on their invoices and in emails.
+          Configure how customers pay. Online card payments via Stripe or manual payment links.
         </p>
       </div>
+
+      {/* Stripe Connect banners */}
+      {stripeConnected && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          Stripe connected successfully! Customers can now pay invoices online.
+        </div>
+      )}
+      {stripeError && (
+        <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Stripe connection failed: {stripeError}. Please try again.
+        </div>
+      )}
+
+      {/* Stripe Connect card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-gray-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Online Payments (Stripe)</h2>
+          </div>
+        </CardHeader>
+        <CardBody>
+          {company.stripeAccountId ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
+                <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-green-800">Stripe connected</p>
+                  <p className="text-xs text-green-600 mt-0.5 truncate">Account: {company.stripeAccountId}</p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Invoice emails include a <strong>Pay Now</strong> button. Customers pay by card and the money deposits directly into your Stripe account.
+              </p>
+              <form action="/api/stripe/disconnect" method="POST">
+                <button
+                  type="submit"
+                  className="text-sm text-red-500 hover:text-red-700 hover:underline"
+                >
+                  Disconnect Stripe account
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Connect your Stripe account to let customers pay invoices online with a credit or debit card. Money deposits directly into your Stripe account — no manual recording needed.
+              </p>
+              <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                <li>Customers get a <strong>Pay Now</strong> button in every invoice email</li>
+                <li>Invoices mark themselves paid automatically on receipt</li>
+                <li>Stripe charges 2.9% + 30¢ per transaction (standard rates)</li>
+              </ul>
+              <a href="/api/stripe/connect">
+                <Button>
+                  <CreditCard className="w-4 h-4" />
+                  Connect with Stripe
+                </Button>
+              </a>
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       <Card>
         <CardHeader>

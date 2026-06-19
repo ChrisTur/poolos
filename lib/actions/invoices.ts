@@ -41,6 +41,7 @@ export async function createInvoice(formData: FormData) {
       notes,
       serviceType,
       status: "draft",
+      payToken: crypto.randomUUID(),
       items: {
         create: descriptions.map((desc, i) => ({
           description: desc,
@@ -248,6 +249,7 @@ export async function generateMonthlyInvoices(formData: FormData) {
         issuedAt: startOfMonth,
         status: "draft",
         serviceType: "monthly",
+        payToken: crypto.randomUUID(),
         items: {
           create: [{ description: "Monthly pool service", quantity: 1, unitPrice: customer.monthlyRate! }],
         },

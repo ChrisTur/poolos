@@ -3,6 +3,7 @@
 import { useState, useEffect, useActionState } from "react"
 import { Plus, Trash2, Sparkles } from "lucide-react"
 import Button from "@/components/ui/Button"
+import CustomerCombobox from "@/components/ui/CustomerCombobox"
 import { formatCurrency } from "@/lib/utils"
 import type { Customer } from "@/app/generated/prisma/client"
 
@@ -72,6 +73,7 @@ export default function InvoiceForm({
   submitLabel,
 }: InvoiceFormProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState(defaultCustomerId ?? "")
+  const [serviceType, setServiceType] = useState(initialServiceType ?? "")
   const [items, setItems] = useState<LineItem[]>(
     initialItems ?? [{ description: "", quantity: "1", unitPrice: "" }]
   )
@@ -84,12 +86,14 @@ export default function InvoiceForm({
     return null
   }, null)
 
+  const isMonthlyType = (type: string) => type === "monthly" || type === ""
+
   // Auto-populate first item and due date on mount if a customer is pre-selected
   useEffect(() => {
     if (!defaultCustomerId || initialItems) return
     const customer = customers.find((c) => c.id === defaultCustomerId)
     if (!customer) return
-    if (customer.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
+    if (isMonthlyType(initialServiceType ?? "") && customer.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
       setItems([{ description: "Monthly pool service", quantity: "1", unitPrice: customer.monthlyRate.toString() }])
     }
     if (!initialDueDate) {
@@ -98,10 +102,34 @@ export default function InvoiceForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const handleServiceTypeChange = (type: string) => {
+    setServiceType(type)
+    if (!isMonthlyType(type)) {
+      // Clear auto-filled monthly item when switching to a non-monthly service type
+      setItems((prev) => {
+        if (prev.length === 1 && prev[0].description === "Monthly pool service") {
+          return [{ description: "", quantity: "1", unitPrice: "" }]
+        }
+        return prev
+      })
+    } else if (type === "monthly") {
+      // Switching back to monthly — re-fill if item is still blank and customer has a rate
+      const customer = customers.find((c) => c.id === selectedCustomerId)
+      if (customer?.monthlyRate) {
+        setItems((prev) => {
+          if (prev.length === 1 && prev[0].description === "" && prev[0].unitPrice === "") {
+            return [{ description: "Monthly pool service", quantity: "1", unitPrice: customer.monthlyRate!.toString() }]
+          }
+          return prev
+        })
+      }
+    }
+  }
+
   const handleCustomerChange = (id: string) => {
     setSelectedCustomerId(id)
     const customer = customers.find((c) => c.id === id)
-    if (customer?.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
+    if (isMonthlyType(serviceType) && customer?.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
       setItems((prev) => {
         const next = [...prev]
         next[0] = { description: "Monthly pool service", quantity: "1", unitPrice: customer.monthlyRate!.toString() }
@@ -129,22 +157,31 @@ export default function InvoiceForm({
       {!hideCustomerSelect && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
-          <select
-            name="customerId"
-            required
-            value={selectedCustomerId}
-            onChange={(e) => handleCustomerChange(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-          >
-            <option value="">Select customer…</option>
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.firstName} {c.lastName}
-                {c.monthlyRate ? ` — $${c.monthlyRate}/mo` : ""}
-              </option>
-            ))}
-          </select>
-          {selectedCustomer?.monthlyRate && items[0].description === "" && (
+          {customers.length > 15 ? (
+            <CustomerCombobox
+              customers={customers}
+              defaultCustomerId={defaultCustomerId}
+              required
+              onChange={(id) => handleCustomerChange(id)}
+            />
+          ) : (
+            <select
+              name="customerId"
+              required
+              value={selectedCustomerId}
+              onChange={(e) => handleCustomerChange(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="">Select customer…</option>
+              {customers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.firstName} {c.lastName}
+                  {c.monthlyRate ? ` — $${c.monthlyRate}/mo` : ""}
+                </option>
+              ))}
+            </select>
+          )}
+          {selectedCustomer?.monthlyRate && isMonthlyType(serviceType) && items[0].description === "" && (
             <button
               type="button"
               onClick={() =>
@@ -168,7 +205,8 @@ export default function InvoiceForm({
         <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
         <select
           name="serviceType"
-          defaultValue={initialServiceType ?? ""}
+          value={serviceType}
+          onChange={(e) => handleServiceTypeChange(e.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
         >
           <option value="">Select type…</option>

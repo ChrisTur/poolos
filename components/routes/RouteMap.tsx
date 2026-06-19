@@ -1,74 +1,127 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import type { RouteStop, Customer } from "@/app/generated/prisma/client"
-import Card, { CardHeader, CardBody } from "@/components/ui/Card"
+import Card, { CardHeader } from "@/components/ui/Card"
 import { MapPin } from "lucide-react"
 
-type StopWithCustomer = RouteStop & { customer: Customer }
+export interface RouteMarker {
+  label: string
+  name: string
+  address: string
+  lat: number | null
+  lng: number | null
+}
 
 const MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
-export default function RouteMap({ stops }: { stops: StopWithCustomer[] }) {
+function loadMapsScript(): Promise<void> {
+  // Already loaded
+  if ((window as any).google?.maps?.Map) return Promise.resolve()
+
+  // Script already in DOM (loading in progress)
+  const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')
+  if (existing) {
+    return new Promise((resolve, reject) => {
+      existing.addEventListener("load", () => resolve())
+      existing.addEventListener("error", reject)
+    })
+  }
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}`
+    script.async = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error("Failed to load Google Maps"))
+    document.head.appendChild(script)
+  })
+}
+
+export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
   const mapRef = useRef<HTMLDivElement>(null)
 
+  const validMarkers = markers.filter((m) => m.lat !== null && m.lng !== null)
+
   useEffect(() => {
-    if (!MAPS_API_KEY || !mapRef.current || stops.length === 0) return
+    if (!MAPS_API_KEY || !mapRef.current || validMarkers.length === 0) return
 
-    const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${MAPS_API_KEY}&callback=initRouteMap`
-    script.async = true
-    ;(window as any).initRouteMap = () => {
-      const map = new (window as any).google.maps.Map(mapRef.current, {
+    let cancelled = false
+
+    loadMapsScript().then(() => {
+      if (cancelled || !mapRef.current) return
+
+      const google = (window as any).google
+      const map = new google.maps.Map(mapRef.current, {
         zoom: 12,
-        center: { lat: 0, lng: 0 },
+        center: { lat: validMarkers[0].lat, lng: validMarkers[0].lng },
+        mapTypeControl: false,
+        fullscreenControl: false,
+        streetViewControl: false,
       })
-      const bounds = new (window as any).google.maps.LatLngBounds()
-      const geocoder = new (window as any).google.maps.Geocoder()
 
-      stops.forEach((stop, i) => {
-        const addr = `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`
-        geocoder.geocode({ address: addr }, (results: any, status: string) => {
-          if (status !== "OK") return
-          const pos = results[0].geometry.location
-          bounds.extend(pos)
-          new (window as any).google.maps.Marker({
-            position: pos,
-            map,
-            label: String(i + 1),
-            title: `${stop.customer.firstName} ${stop.customer.lastName}`,
-          })
-          map.fitBounds(bounds)
+      const bounds = new google.maps.LatLngBounds()
+
+      validMarkers.forEach((m) => {
+        const pos = { lat: m.lat!, lng: m.lng! }
+        bounds.extend(pos)
+        new google.maps.Marker({
+          position: pos,
+          map,
+          label: { text: m.label, color: "#ffffff", fontWeight: "bold" },
+          title: `${m.label}. ${m.name}`,
         })
       })
-    }
-    document.head.appendChild(script)
-    return () => { document.head.removeChild(script) }
-  }, [stops])
+
+      if (validMarkers.length > 1) {
+        map.fitBounds(bounds)
+      }
+    }).catch(() => {
+      // Maps failed to load — the "no key" fallback will show on next render
+    })
+
+    return () => { cancelled = true }
+  }, [validMarkers.map((m) => m.address).join("|")])
 
   if (!MAPS_API_KEY) {
     return (
       <Card>
         <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Route Map</h2></CardHeader>
-        <CardBody>
-          <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
-            <MapPin className="w-8 h-8 text-gray-300" />
-            <div>
-              <p className="text-sm font-medium text-gray-600">Map not configured</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Add <code className="bg-gray-100 px-1 rounded">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to your{" "}
-                <code className="bg-gray-100 px-1 rounded">.env.local</code> to enable the map.
-              </p>
-            </div>
-          </div>
-        </CardBody>
+        <div className="flex flex-col items-center justify-center h-40 gap-2 text-center px-4 pb-4">
+          <MapPin className="w-7 h-7 text-gray-300" />
+          <p className="text-sm text-gray-500">
+            Add <code className="bg-gray-100 px-1 rounded text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to enable the map.
+          </p>
+        </div>
+      </Card>
+    )
+  }
+
+  if (validMarkers.length === 0) {
+    return (
+      <Card>
+        <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Route Map</h2></CardHeader>
+        <div className="flex flex-col items-center justify-center h-40 gap-2 text-center px-4 pb-4">
+          <MapPin className="w-7 h-7 text-gray-300" />
+          <p className="text-sm text-gray-400">
+            {markers.length === 0
+              ? "Add stops to see them on the map."
+              : "Could not geocode any addresses — check that the Maps API key has the Geocoding API enabled in Google Cloud Console."}
+          </p>
+        </div>
       </Card>
     )
   }
 
   return (
     <Card>
-      <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Route Map</h2></CardHeader>
+      <CardHeader>
+        <h2 className="font-semibold text-gray-900 text-sm">Route Map</h2>
+        {markers.length > validMarkers.length && (
+          <span className="text-xs text-amber-600">
+            {markers.length - validMarkers.length} address{markers.length - validMarkers.length !== 1 ? "es" : ""} could not be located
+          </span>
+        )}
+      </CardHeader>
       <div ref={mapRef} className="h-80 rounded-b-xl" />
     </Card>
   )

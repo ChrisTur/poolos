@@ -29,7 +29,6 @@ model Company {
   cashAppHandle   String?
   zellePhone      String?
   zelleEmail      String?
-  stripeAccountId String?   // Stripe Connect connected account ID
   isActive        Boolean @default(true)
 
   users     User[]
@@ -163,8 +162,6 @@ model Invoice {
   issuedAt      DateTime @default(now())
   paidAt        DateTime?
   notes         String?
-  payToken              String?  @unique  // public pay link token
-  stripePaymentIntentId String?           // Stripe PaymentIntent ID
 
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)

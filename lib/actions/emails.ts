@@ -6,15 +6,19 @@ import { redirect } from "next/navigation"
 import { resend, FROM, buildInvoiceHtml, buildReceiptHtml } from "@/lib/email"
 
 async function fetchInvoiceForEmail(invoiceId: string, companyId: string) {
-  return db.invoice.findFirst({
+  const invoice = await db.invoice.findFirst({
     where: { id: invoiceId, companyId },
-    include: {
-      customer: true,
-      items: true,
-      payments: true,
-      company: true,
-    },
+    include: { customer: true, items: true, payments: true, company: true },
   })
+  // Lazily generate payToken for invoices created before Stripe integration
+  if (invoice && !invoice.payToken) {
+    const updated = await db.invoice.update({
+      where: { id: invoiceId },
+      data: { payToken: crypto.randomUUID() },
+    })
+    invoice.payToken = updated.payToken
+  }
+  return invoice
 }
 
 function buildEmailData(invoice: NonNullable<Awaited<ReturnType<typeof fetchInvoiceForEmail>>>, customMessage?: string | null) {
@@ -47,6 +51,8 @@ function buildEmailData(invoice: NonNullable<Awaited<ReturnType<typeof fetchInvo
       zellePhone:   invoice.company.zellePhone,
       zelleEmail:   invoice.company.zelleEmail,
     },
+    payToken:        invoice.payToken,
+    stripeConnected: !!invoice.company.stripeAccountId,
   }
 }
 
@@ -206,6 +212,15 @@ export async function sendBulkOverdueReminders(_formData: FormData) {
 
   for (const invoice of invoices) {
     if (!invoice.customer.email) continue
+
+    // Ensure payToken exists for older invoices
+    if (!invoice.payToken) {
+      const updated = await db.invoice.update({
+        where: { id: invoice.id },
+        data: { payToken: crypto.randomUUID() },
+      })
+      invoice.payToken = updated.payToken
+    }
 
     const html = buildInvoiceHtml(buildEmailData(invoice), true)
     const { from, bcc, replyTo } = buildSendParams(invoice)

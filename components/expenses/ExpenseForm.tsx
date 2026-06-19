@@ -22,6 +22,7 @@ interface ExpenseFormProps {
   initialVendor?: string
   initialNotes?: string
   submitLabel?: string
+  vendorNames?: string[]
 }
 
 function today() {
@@ -37,6 +38,7 @@ export default function ExpenseForm({
   initialVendor,
   initialNotes,
   submitLabel = "Save Expense",
+  vendorNames = [],
 }: ExpenseFormProps) {
   const [, formAction, pending] = useActionState(async (_: unknown, formData: FormData) => {
     await action(formData)
@@ -104,8 +106,14 @@ export default function ExpenseForm({
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Vendor <span className="font-normal text-gray-400">(optional)</span>
           </label>
+          {vendorNames.length > 0 && (
+            <datalist id="vendor-names">
+              {vendorNames.map((n) => <option key={n} value={n} />)}
+            </datalist>
+          )}
           <input
             name="vendor"
+            list={vendorNames.length > 0 ? "vendor-names" : undefined}
             defaultValue={initialVendor ?? ""}
             placeholder="Supplier or vendor name"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"

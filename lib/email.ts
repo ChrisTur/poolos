@@ -34,6 +34,8 @@ interface InvoiceEmailData {
   notes?: string | null
   customMessage?: string | null
   paymentLinks?: PaymentLinks | null
+  payToken?: string | null           // public pay link token
+  stripeConnected?: boolean          // whether this company has Stripe set up
 }
 
 interface ReceiptEmailData {
@@ -226,11 +228,21 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
 
       ${inv.notes ? `<div style="background:#f9fafb;border-radius:8px;padding:12px 16px;font-size:13px;color:#6b7280;margin-bottom:20px">${inv.notes}</div>` : ""}
 
-      <!-- CTA -->
+      ${inv.payToken && inv.stripeConnected ? `
+      <!-- Pay Now CTA (Stripe) -->
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;text-align:center;margin-top:8px">
+        <div style="font-size:14px;font-weight:600;color:#166534;margin-bottom:12px;word-break:break-word">Amount Due: ${fmt(balance > 0 ? balance : total)}</div>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/pay/${inv.payToken}"
+           style="display:inline-block;padding:12px 32px;background:#0ea5e9;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:.01em">
+          Pay Now
+        </a>
+        <div style="font-size:12px;color:#4b5563;margin-top:10px">Secure online payment · Credit or debit card accepted</div>
+      </div>` : `
+      <!-- CTA (no Stripe) -->
       <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;text-align:center;margin-top:8px">
         <div style="font-size:14px;font-weight:600;color:#0369a1;margin-bottom:4px;word-break:break-word">Amount Due: ${fmt(balance > 0 ? balance : total)}</div>
         <div style="font-size:13px;color:#0284c7">Please contact us with any questions about this invoice.</div>
-      </div>
+      </div>`}
 
       ${inv.paymentLinks ? buildPaymentButtonsHtml(inv.paymentLinks, balance > 0 ? balance : total, inv.invoiceNumber) : ""}
     </div>
