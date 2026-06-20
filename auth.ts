@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { db } from "@/lib/db"
 import { authConfig } from "@/auth.config"
+import { isPasswordBreached } from "@/lib/hibp"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -37,6 +38,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(password, user.password)
         if (!valid) return null
 
+        // Flag breached passwords for forced change on next page load
+        const breached = await isPasswordBreached(password)
+        if (breached && !user.mustChangePassword) {
+          await db.user.update({ where: { id: user.id }, data: { mustChangePassword: true } })
+        }
+
         return {
           id: user.id,
           email: user.email,
@@ -44,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           companyId: user.companyId,
           companyName: user.company.name,
           role: user.role,
-          mustChangePassword: user.mustChangePassword,
+          mustChangePassword: user.mustChangePassword || breached,
         }
       },
     }),
