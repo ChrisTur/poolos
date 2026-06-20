@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, Pencil, Trash2 } from "lucide-react"
+import { Plus, Pencil, Trash2, Download } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate } from "@/lib/utils"
@@ -79,6 +79,12 @@ export default async function ExpensesPage({
           <p className="text-sm text-gray-500 mt-0.5">{formatCurrency(total)} in this view</p>
         </div>
         <div className="flex gap-2">
+          <a href="/api/export/expenses" download>
+            <Button size="sm" variant="secondary">
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </a>
           <Link href="/expenses/vendors">
             <Button size="sm" variant="secondary">Vendors</Button>
           </Link>

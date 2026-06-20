@@ -92,3 +92,12 @@ export async function deleteCustomerNote(id: string, customerId: string) {
   await db.customerNote.delete({ where: { id } })
   revalidatePath(`/customers/${customerId}`)
 }
+
+export async function disableAutoPay(customerId: string) {
+  const { companyId } = await requireSession()
+  await db.customer.updateMany({
+    where: { id: customerId, companyId },
+    data: { autoPayEnabled: false, autoPayMethodId: null },
+  })
+  revalidatePath(`/customers/${customerId}`)
+}

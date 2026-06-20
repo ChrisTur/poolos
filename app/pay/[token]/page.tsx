@@ -22,13 +22,25 @@ export default async function PayInvoicePage({
     include: {
       items: true,
       payments: true,
-      customer: { select: { firstName: true, lastName: true } },
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          stripeCustomerId: true,
+          autoPayEnabled: true,
+        },
+      },
       company: {
         select: {
           name: true,
           logoUrl: true,
           phone: true,
           stripeAccountId: true,
+          cardFeeEnabled: true,
+          cardFeePercent: true,
+          cardFeeFixed: true,
         },
       },
     },
@@ -42,8 +54,33 @@ export default async function PayInvoicePage({
 
   const alreadyPaid = invoice.status === "paid" || balance === 0 || paid === "1"
 
+  // Card convenience fee
+  const { cardFeeEnabled, cardFeePercent, cardFeeFixed } = invoice.company
+  const cardFee = (cardFeeEnabled && !alreadyPaid && balance > 0)
+    ? Math.round((balance * (cardFeePercent / 100) + cardFeeFixed) * 100) / 100
+    : 0
+  const chargeAmount = balance + cardFee
+
   // Stripe Connect not configured — show pay handles only
   const stripeReady = !!invoice.company.stripeAccountId && !alreadyPaid
+
+  // Ensure Stripe Customer exists for auto-pay eligibility (requires customer email)
+  let stripeCustomerId = invoice.customer.stripeCustomerId
+  if (stripeReady && invoice.customer.email && !stripeCustomerId) {
+    const stripeCustomer = await stripe.customers.create(
+      {
+        email: invoice.customer.email,
+        name: `${invoice.customer.firstName} ${invoice.customer.lastName}`,
+        metadata: { customerId: invoice.customer.id },
+      },
+      { stripeAccount: invoice.company.stripeAccountId! }
+    )
+    stripeCustomerId = stripeCustomer.id
+    await db.customer.update({
+      where: { id: invoice.customer.id },
+      data: { stripeCustomerId },
+    })
+  }
 
   // Create or retrieve PaymentIntent
   let clientSecret: string | null = null
@@ -64,13 +101,19 @@ export default async function PayInvoicePage({
     }
 
     if (!clientSecret) {
+      const piData: Parameters<typeof stripe.paymentIntents.create>[0] = {
+        amount: Math.round(chargeAmount * 100),
+        currency: "usd",
+        automatic_payment_methods: { enabled: true },
+        metadata: { invoiceId: invoice.id, payToken: token, companyId: invoice.companyId },
+      }
+      // Attach Stripe Customer and enable card saving when customer has email
+      if (stripeCustomerId) {
+        piData.customer = stripeCustomerId
+        piData.setup_future_usage = "off_session"
+      }
       const pi = await stripe.paymentIntents.create(
-        {
-          amount: Math.round(balance * 100),
-          currency: "usd",
-          automatic_payment_methods: { enabled: true },
-          metadata: { invoiceId: invoice.id, payToken: token, companyId: invoice.companyId },
-        },
+        piData,
         { stripeAccount: invoice.company.stripeAccountId! }
       )
       clientSecret = pi.client_secret
@@ -136,6 +179,18 @@ export default async function PayInvoicePage({
               <span>Balance due</span>
               <span className="tabular-nums">{formatCurrency(balance)}</span>
             </div>
+            {cardFee > 0 && (
+              <>
+                <div className="flex justify-between text-sm text-gray-500 mt-1">
+                  <span>Card processing fee ({cardFeePercent}% + ${cardFeeFixed.toFixed(2)})</span>
+                  <span className="tabular-nums">{formatCurrency(cardFee)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold border-t border-gray-200 pt-2 mt-1">
+                  <span>Total charged</span>
+                  <span className="tabular-nums">{formatCurrency(chargeAmount)}</span>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Payment section */}
@@ -155,7 +210,7 @@ export default async function PayInvoicePage({
                   clientSecret={clientSecret}
                   publishableKey={stripePublishableKey()}
                   stripeAccountId={invoice.company.stripeAccountId!}
-                  amount={balance}
+                  amount={chargeAmount}
                 />
               </div>
             ) : (

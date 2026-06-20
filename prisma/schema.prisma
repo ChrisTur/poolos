@@ -32,6 +32,14 @@ model Company {
   stripeAccountId String?   // Stripe Connect connected account ID
   isActive        Boolean @default(true)
 
+  lateFeeEnabled  Boolean @default(false)
+  lateFeePercent  Float   @default(1.5)
+  lateFeeGraceDays Int    @default(0)
+
+  cardFeeEnabled  Boolean @default(false)
+  cardFeePercent  Float   @default(2.9)
+  cardFeeFixed    Float   @default(0.30)
+
   users     User[]
   customers Customer[]
   routes    Route[]
@@ -83,6 +91,11 @@ model Customer {
   status      String  @default("active")
   monthlyRate Float?
   dueDays     Int?
+
+  stripeCustomerId  String?  // Stripe Customer ID on the company's connected account
+  autoPayEnabled    Boolean  @default(false)
+  autoPayMethodId   String?  // saved Stripe PaymentMethod ID for auto-pay
+  portalToken       String?  @unique
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -168,6 +181,7 @@ model Invoice {
   notes         String?
   payToken              String?  @unique  // public pay link token
   stripePaymentIntentId String?           // Stripe PaymentIntent ID
+  lateFeeApplied        Boolean  @default(false)
 
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)

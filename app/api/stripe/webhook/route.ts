@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     })
     if (!invoice || invoice.status === "paid") return NextResponse.json({ received: true })
 
-    const total    = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+    const total       = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
     const alreadyPaid = invoice.payments.reduce((s, p) => s + p.amount, 0)
     const amountPaid  = pi.amount_received / 100
 
@@ -52,6 +52,20 @@ export async function POST(req: NextRequest) {
       await db.invoice.update({
         where: { id: invoiceId },
         data: { status: "paid", paidAt: new Date() },
+      })
+    }
+
+    // If card was saved for auto-pay, store the payment method on the customer
+    if (pi.setup_future_usage === "off_session" && pi.payment_method && pi.customer) {
+      const customerId = pi.metadata?.companyId // we'll use invoice.customerId instead
+      await db.customer.updateMany({
+        where: { id: invoice.customerId },
+        data: {
+          autoPayEnabled: true,
+          autoPayMethodId: typeof pi.payment_method === "string"
+            ? pi.payment_method
+            : pi.payment_method.id,
+        },
       })
     }
   }

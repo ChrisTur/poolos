@@ -109,6 +109,124 @@ export default async function CompanySettingsPage() {
         </CardBody>
       </Card>
 
+      {/* Late Fee */}
+      <Card>
+        <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Late Fee</h2></CardHeader>
+        <CardBody>
+          <form action={updateCompany} className="space-y-4">
+            <input type="hidden" name="name" value={company.name} />
+            <input type="hidden" name="phone" value={company.phone ?? ""} />
+            <input type="hidden" name="address" value={company.address ?? ""} />
+            <input type="hidden" name="city" value={company.city ?? ""} />
+            <input type="hidden" name="state" value={company.state ?? ""} />
+            <input type="hidden" name="zip" value={company.zip ?? ""} />
+            <input type="hidden" name="website" value={company.website ?? ""} />
+            <input type="hidden" name="bccEmail" value={company.bccEmail ?? ""} />
+            <input type="hidden" name="replyToEmail" value={company.replyToEmail ?? ""} />
+            <input type="hidden" name="defaultDueDays" value={String(company.defaultDueDays)} />
+            <input type="hidden" name="cardFeeEnabled" value={String(company.cardFeeEnabled)} />
+            <input type="hidden" name="cardFeePercent" value={String(company.cardFeePercent)} />
+            <input type="hidden" name="cardFeeFixed" value={String(company.cardFeeFixed)} />
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="hidden" name="lateFeeEnabled" value="false" />
+                <input
+                  type="checkbox"
+                  name="lateFeeEnabled"
+                  value="true"
+                  defaultChecked={company.lateFeeEnabled}
+                  onChange={() => {}}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
+              </label>
+              <span className="text-sm font-medium text-gray-700">Automatically add late fees to overdue invoices</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fee percentage</label>
+                <div className="flex items-center gap-2">
+                  <input name="lateFeePercent" type="number" step="0.1" min="0" max="100"
+                    defaultValue={company.lateFeePercent}
+                    className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Grace period after due date</label>
+                <div className="flex items-center gap-2">
+                  <input name="lateFeeGraceDays" type="number" min="0" max="90"
+                    defaultValue={company.lateFeeGraceDays}
+                    className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <span className="text-sm text-gray-500">days</span>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">Late fee is added once when an invoice first becomes overdue past the grace period.</p>
+            <Button type="submit" size="sm">Save Late Fee Settings</Button>
+          </form>
+        </CardBody>
+      </Card>
+
+      {/* Card Convenience Fee */}
+      <Card>
+        <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Card Processing Fee</h2></CardHeader>
+        <CardBody>
+          <form action={updateCompany} className="space-y-4">
+            <input type="hidden" name="name" value={company.name} />
+            <input type="hidden" name="phone" value={company.phone ?? ""} />
+            <input type="hidden" name="address" value={company.address ?? ""} />
+            <input type="hidden" name="city" value={company.city ?? ""} />
+            <input type="hidden" name="state" value={company.state ?? ""} />
+            <input type="hidden" name="zip" value={company.zip ?? ""} />
+            <input type="hidden" name="website" value={company.website ?? ""} />
+            <input type="hidden" name="bccEmail" value={company.bccEmail ?? ""} />
+            <input type="hidden" name="replyToEmail" value={company.replyToEmail ?? ""} />
+            <input type="hidden" name="defaultDueDays" value={String(company.defaultDueDays)} />
+            <input type="hidden" name="lateFeeEnabled" value={String(company.lateFeeEnabled)} />
+            <input type="hidden" name="lateFeePercent" value={String(company.lateFeePercent)} />
+            <input type="hidden" name="lateFeeGraceDays" value={String(company.lateFeeGraceDays)} />
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="hidden" name="cardFeeEnabled" value="false" />
+                <input
+                  type="checkbox"
+                  name="cardFeeEnabled"
+                  value="true"
+                  defaultChecked={company.cardFeeEnabled}
+                  onChange={() => {}}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
+              </label>
+              <span className="text-sm font-medium text-gray-700">Pass card processing fee to customer</span>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Percentage</label>
+                <div className="flex items-center gap-2">
+                  <input name="cardFeePercent" type="number" step="0.1" min="0" max="10"
+                    defaultValue={company.cardFeePercent}
+                    className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Fixed amount</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <input name="cardFeeFixed" type="number" step="0.01" min="0" max="5"
+                    defaultValue={company.cardFeeFixed}
+                    className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">Shown transparently on the payment page. Default matches Stripe's standard rate (2.9% + $0.30).</p>
+            <Button type="submit" size="sm">Save Fee Settings</Button>
+          </form>
+        </CardBody>
+      </Card>
+
       <Card>
         <CardBody>
           <p className="text-xs text-gray-400">Company slug: <code className="bg-gray-100 px-1 rounded">{company.slug}</code></p>

@@ -7,10 +7,11 @@ import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
-import { deleteCustomer, addCustomerNote, deleteCustomerNote } from "@/lib/actions/customers"
+import { deleteCustomer, addCustomerNote, deleteCustomerNote, disableAutoPay } from "@/lib/actions/customers"
 import { addEquipment, deleteEquipment } from "@/lib/actions/equipment"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
+import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
 
 export const dynamic = "force-dynamic"
 
@@ -43,8 +44,18 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
   if (!customer) notFound()
 
-  const deleteAction = deleteCustomer.bind(null, id)
-  const addNoteAction = addCustomerNote.bind(null, id)
+  // Lazily generate portal token so every customer gets a stable portal URL
+  if (!customer.portalToken) {
+    const portalToken = crypto.randomUUID()
+    await db.customer.update({ where: { id }, data: { portalToken } })
+    customer.portalToken = portalToken
+  }
+
+  const deleteAction         = deleteCustomer.bind(null, id)
+  const addNoteAction        = addCustomerNote.bind(null, id)
+  const disableAutoPayAction = disableAutoPay.bind(null, id)
+  const appUrl               = process.env.NEXT_PUBLIC_APP_URL ?? ""
+  const portalUrl            = `${appUrl}/portal/${customer.portalToken}`
 
   return (
     <div className="space-y-6">
@@ -66,6 +77,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               {customer.monthlyRate && (
                 <span className="text-xs text-gray-400">{formatCurrency(customer.monthlyRate)}/mo</span>
               )}
+              {customer.autoPayEnabled && (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                  Auto-pay on
+                </span>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
@@ -74,6 +90,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 <Pencil className="w-4 h-4" /> Edit
               </Button>
             </Link>
+            <CopyPayLinkButton url={portalUrl} label="Portal Link" />
+            {customer.autoPayEnabled && (
+              <ConfirmButton action={disableAutoPayAction} confirm="Disable auto-pay for this customer?" variant="secondary" size="sm">
+                Disable Auto-pay
+              </ConfirmButton>
+            )}
             <ConfirmButton action={deleteAction} confirm="Delete this customer?" variant="danger" size="sm">
               <Trash2 className="w-4 h-4" /> Delete
             </ConfirmButton>
