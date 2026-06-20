@@ -144,7 +144,12 @@ export async function resetPassword(token: string, formData: FormData) {
 
 export async function changePassword(formData: FormData) {
   const session = await auth()
-  if (!session?.user?.email) return { error: "Not authenticated." }
+  if (!session?.user) return { error: "Not authenticated." }
+
+  // Super admin passwords are controlled via environment variables, not the DB
+  if ((session.user as any).role === "super_admin") {
+    return { error: "Super admin passwords are managed via the SUPER_ADMIN_PASSWORD_HASH environment variable." }
+  }
 
   const password = formData.get("password") as string
   const confirm = formData.get("confirm") as string
@@ -155,8 +160,15 @@ export async function changePassword(formData: FormData) {
     return { error: "This password has appeared in a known data breach. Please choose a different one." }
   }
 
-  const dbUser = await db.user.findUnique({ where: { email: session.user.email } })
-  if (!dbUser) return { error: "Account not found." }
+  // Prefer id lookup (token.sub); fall back to email in case id isn't populated
+  const userId = session.user.id
+  const userEmail = session.user.email
+  const dbUser = userId
+    ? await db.user.findUnique({ where: { id: userId } })
+    : userEmail
+      ? await db.user.findUnique({ where: { email: userEmail } })
+      : null
+  if (!dbUser) return { error: "Account not found. Please sign out and sign back in." }
 
   const hashed = await bcrypt.hash(password, 12)
   await db.user.update({
