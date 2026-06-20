@@ -120,7 +120,7 @@ export async function sendMessage(_: unknown, formData: FormData) {
   const [customer, company] = await Promise.all([
     db.customer.findFirst({
       where: { id: customerId, companyId },
-      select: { email: true, firstName: true },
+      select: { email: true, firstName: true, portalToken: true },
     }),
     db.company.findUnique({
       where: { id: companyId },
@@ -132,12 +132,17 @@ export async function sendMessage(_: unknown, formData: FormData) {
 
   let emailSent = false
   if (shouldEmail && customer.email) {
+    const portalUrl = customer.portalToken
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${customer.portalToken}`
+      : null
+
     const html = buildCustomerMessageHtml({
       companyName: company.name,
       companyLogoUrl: company.logoUrl,
       companyPhone: company.phone,
       customerFirstName: customer.firstName,
       message: body,
+      portalUrl,
     })
     const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
     try {
