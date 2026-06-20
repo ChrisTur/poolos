@@ -51,6 +51,7 @@ model Company {
   emailLogs         EmailLog[]
   messages          CustomerMessage[]
   tags              Tag[]
+  attachments       Attachment[]
 }
 
 model User {
@@ -116,6 +117,7 @@ model Customer {
   messages      CustomerMessage[]
   alerts        CustomerAlert[]
   tags          CustomerTag[]
+  attachments   Attachment[]
 }
 
 model CustomerNote {
@@ -369,6 +371,22 @@ model CustomerTag {
   tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([customerId, tagId])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  key       String   // GCS object key, e.g. "companyId/customerId/1234567890-photo.jpg"
+  filename  String
+  mimeType  String?
+  size      Int?     // bytes
+
+  customerId     String?
+  customer       Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  serviceVisitId String?
+  companyId      String
+  company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model EmailLog {

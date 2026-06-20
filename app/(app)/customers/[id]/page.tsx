@@ -16,6 +16,7 @@ import CustomerMessages from "@/components/customers/CustomerMessages"
 import CustomerAlerts from "@/components/customers/CustomerAlerts"
 import CustomerTags from "@/components/customers/CustomerTags"
 import ChemicalChart from "@/components/customers/ChemicalChart"
+import FileUpload from "@/components/ui/FileUpload"
 
 export const dynamic = "force-dynamic"
 
@@ -46,6 +47,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         routeStops: { include: { route: true } },
         alerts: { orderBy: { createdAt: "desc" } },
         tags: { include: { tag: true } },
+        attachments: { orderBy: { createdAt: "desc" } },
       },
     }),
     db.emailLog.findMany({
@@ -447,6 +449,21 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               </CardBody>
             </Card>
           )}
+
+          {/* Attachments */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <Wrench className="w-3.5 h-3.5 text-gray-400" /> Files & Photos
+              </h2>
+            </CardHeader>
+            <CardBody>
+              <FileUpload
+                customerId={id}
+                attachments={customer.attachments}
+              />
+            </CardBody>
+          </Card>
 
           {/* Messages */}
           <Card>
