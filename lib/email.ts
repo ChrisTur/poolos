@@ -487,6 +487,7 @@ export interface VisitCompletionEmailData {
   status: string
   notes?: string | null
   portalUrl?: string | null
+  technicianName?: string | null
   chlorine?: number | null
   ph?: number | null
   alkalinity?: number | null
@@ -546,9 +547,12 @@ export function buildVisitCompletionHtml(data: VisitCompletionEmailData): string
     <!-- Header -->
     <div style="background:#0c4a6e;padding:20px 24px">
       ${data.companyLogoUrl
-        ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:44px;max-width:160px;width:auto;display:block;filter:brightness(0) invert(1)" />`
+        ? `<div style="display:inline-block;background:#ffffff;padding:6px 12px;border-radius:8px;margin-bottom:10px">
+             <img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:40px;max-width:140px;width:auto;display:block" />
+           </div>
+           <div style="font-size:14px;font-weight:600;color:#ffffff">${data.companyName}</div>`
         : `<span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>`}
-      <div style="font-size:13px;color:#bae6fd;margin-top:4px">Service Completed</div>
+      <div style="font-size:13px;color:#bae6fd;margin-top:4px">Service Completed${data.technicianName ? ` · ${data.technicianName}` : ""}</div>
     </div>
 
     <div style="padding:24px">
@@ -596,6 +600,7 @@ export function buildCustomerMessageHtml(data: {
   customerFirstName: string
   message: string
   portalUrl?: string | null
+  sentByName?: string | null
 }): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -607,13 +612,17 @@ export function buildCustomerMessageHtml(data: {
   <div style="max-width:600px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
     <div style="background:#0c4a6e;padding:20px 24px">
       ${data.companyLogoUrl
-        ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:44px;max-width:160px;width:auto;display:block;filter:brightness(0) invert(1)" />`
+        ? `<div style="display:inline-block;background:#ffffff;padding:6px 12px;border-radius:8px;margin-bottom:10px">
+             <img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:40px;max-width:140px;width:auto;display:block" />
+           </div>
+           <div style="font-size:14px;font-weight:600;color:#ffffff">${data.companyName}</div>`
         : `<span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>`}
       <div style="font-size:13px;color:#bae6fd;margin-top:4px">Message from ${data.companyName}</div>
     </div>
     <div style="padding:24px">
       <p style="font-size:15px;color:#111827;margin:0 0 16px">Hi ${data.customerFirstName},</p>
       <div style="background:#f9fafb;border-left:3px solid #0ea5e9;border-radius:0 8px 8px 0;padding:14px 16px;font-size:14px;color:#374151;white-space:pre-wrap;line-height:1.6">${data.message}</div>
+      ${data.sentByName ? `<p style="font-size:12px;color:#9ca3af;margin:8px 0 0;text-align:right">— ${data.sentByName}</p>` : ""}
 
       ${data.portalUrl ? `
       <div style="text-align:center;margin-top:24px">

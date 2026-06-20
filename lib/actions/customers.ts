@@ -109,7 +109,7 @@ export async function disableAutoPay(customerId: string) {
 }
 
 export async function sendMessage(_: unknown, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId, name: senderName } = await requireSession()
 
   const customerId = formData.get("customerId") as string
   const body = (formData.get("body") as string | null)?.trim()
@@ -143,6 +143,7 @@ export async function sendMessage(_: unknown, formData: FormData) {
       customerFirstName: customer.firstName,
       message: body,
       portalUrl,
+      sentByName: senderName,
     })
     const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
     try {
@@ -161,7 +162,7 @@ export async function sendMessage(_: unknown, formData: FormData) {
   }
 
   await db.customerMessage.create({
-    data: { body, fromCompany: true, sentViaEmail: emailSent, customerId, companyId },
+    data: { body, fromCompany: true, sentViaEmail: emailSent, sentByName: senderName, customerId, companyId },
   })
 
   revalidatePath(`/customers/${customerId}`)

@@ -11,6 +11,7 @@ type Message = {
   body: string
   fromCompany: boolean
   sentViaEmail: boolean
+  sentByName: string | null
   serviceVisitId: string | null
 }
 
@@ -71,7 +72,13 @@ export default function CustomerMessages({
                   </p>
                 )}
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.body}</p>
-                <div className={`flex items-center gap-1.5 mt-1 ${m.fromCompany ? "justify-end" : "justify-start"}`}>
+                <div className={`flex items-center gap-1.5 mt-1.5 ${m.fromCompany ? "justify-end" : "justify-start"}`}>
+                  {m.fromCompany && m.sentByName && (
+                    <span className="text-[11px] text-sky-200 font-medium">{m.sentByName}</span>
+                  )}
+                  {m.fromCompany && m.sentByName && (
+                    <span className="text-[11px] text-sky-300">·</span>
+                  )}
                   <span className={`text-[11px] ${m.fromCompany ? "text-sky-200" : "text-gray-400"}`}>
                     {formatTime(m.createdAt)}
                   </span>
