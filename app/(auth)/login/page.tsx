@@ -1,12 +1,13 @@
 "use client"
 
+import { Suspense } from "react"
 import { useActionState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { login } from "@/lib/actions/auth"
 import Button from "@/components/ui/Button"
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams()
   const [state, action, pending] = useActionState(
     async (_: unknown, formData: FormData) => login(formData),
@@ -67,5 +68,22 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
+        <div className="h-8 bg-gray-100 rounded animate-pulse mb-4" />
+        <div className="space-y-3">
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+        </div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   )
 }
