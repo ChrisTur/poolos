@@ -9,9 +9,23 @@ import { Upload } from "lucide-react"
 export const dynamic = "force-dynamic"
 
 export default async function CompanySettingsPage() {
-  const { companyId } = await requireOwner()
-  const company = await db.company.findUnique({ where: { id: companyId } })
-  if (!company) return null
+  let user: any
+  let company: any
+
+  try {
+    user = await requireOwner()
+  } catch (e: any) {
+    if (e?.digest) throw e // re-throw Next.js redirects / not-found
+    return <pre className="p-8 text-red-700 text-sm whitespace-pre-wrap">[requireOwner] {e?.name}: {e?.message}{"\n"}{e?.stack}</pre>
+  }
+
+  try {
+    company = await db.company.findUnique({ where: { id: user.companyId } })
+  } catch (e: any) {
+    return <pre className="p-8 text-red-700 text-sm whitespace-pre-wrap">[db.findUnique companyId={user.companyId}] {(e as any)?.name}: {(e as any)?.message}{"\n"}{(e as any)?.stack}</pre>
+  }
+
+  if (!company) return <pre className="p-8 text-red-700 text-sm">company not found for companyId: {user.companyId}</pre>
 
   return (
     <div className="max-w-2xl space-y-6">
