@@ -207,10 +207,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                   ))}
                 </select>
                 <div className="grid grid-cols-2 gap-2">
-                  <input name="brand" placeholder="Brand" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                  <input name="model" placeholder="Model" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <input name="brand" placeholder="Brand" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <input name="model" placeholder="Model" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 </div>
-                <input name="serialNumber" placeholder="Serial # (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input name="serialNumber" placeholder="Serial # (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-500">Install date</label>
@@ -221,9 +221,9 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     <input name="warrantyExpiry" type="date" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mt-0.5" />
                   </div>
                 </div>
-                <input name="warrantyProvider" placeholder="Warranty provider (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <input name="warrantyNotes" placeholder="Warranty notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <input name="notes" placeholder="General notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input name="warrantyProvider" placeholder="Warranty provider (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input name="warrantyNotes" placeholder="Warranty notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <input name="notes" placeholder="General notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 <Button type="submit" size="sm" variant="secondary">
                   <Plus className="w-3.5 h-3.5" /> Add
                 </Button>
