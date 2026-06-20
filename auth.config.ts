@@ -23,6 +23,7 @@ export const authConfig: NextAuthConfig = {
     session({ session, token }) {
       // Explicitly map token fields → session.user so consumers can rely on them
       session.user.id    = (token.uid ?? token.sub) as string
+      session.user.name  = token.name as string
       session.user.email = token.email as string
       session.user.companyId   = token.companyId as string
       session.user.companyName = token.companyName as string
