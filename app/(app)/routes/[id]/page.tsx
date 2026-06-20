@@ -15,7 +15,8 @@ import DeleteRouteButton from "@/components/routes/DeleteRouteButton"
 export const dynamic = "force-dynamic"
 
 async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  // Prefer a server-only key with no referrer restrictions; fall back to the public key
+  const key = process.env.GOOGLE_MAPS_GEOCODING_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
   if (!key) return null
   try {
     const res = await fetch(

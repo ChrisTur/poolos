@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, Search, Pencil, Trash2 } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Download } from "lucide-react"
 import Card from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatPhone } from "@/lib/utils"
@@ -45,13 +45,21 @@ export default async function CustomersPage({
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Customers</h1>
           <p className="text-sm text-gray-500 mt-0.5">{customers.length} total</p>
         </div>
-        <Link href="/customers/new">
-          <Button size="sm">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Customer</span>
-            <span className="sm:hidden">Add</span>
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <a href={`/api/export/customers${status && status !== "all" ? `?status=${status}` : ""}`} download>
+            <Button size="sm" variant="secondary">
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </a>
+          <Link href="/customers/new">
+            <Button size="sm">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Add Customer</span>
+              <span className="sm:hidden">Add</span>
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

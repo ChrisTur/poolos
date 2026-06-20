@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, ChevronRight, Zap, Mail, AlertTriangle, CheckCircle } from "lucide-react"
+import { Plus, ChevronRight, Zap, Mail, AlertTriangle, CheckCircle, Download } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -79,6 +79,12 @@ export default async function InvoicesPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <a href={`/api/export/invoices${status && status !== "all" ? `?status=${status}` : ""}`} download>
+            <Button size="sm" variant="secondary">
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export</span>
+            </Button>
+          </a>
           <Link href="/invoices/generate">
             <Button size="sm" variant="secondary">
               <Zap className="w-4 h-4" />

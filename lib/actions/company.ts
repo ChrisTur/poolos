@@ -40,6 +40,12 @@ export async function updateCompany(formData: FormData) {
       bccEmail: (formData.get("bccEmail") as string) || null,
       replyToEmail: (formData.get("replyToEmail") as string) || null,
       defaultDueDays: parseInt((formData.get("defaultDueDays") as string) || "30") || 30,
+      lateFeeEnabled:   formData.get("lateFeeEnabled") === "true",
+      lateFeePercent:   parseFloat((formData.get("lateFeePercent") as string) || "1.5") || 1.5,
+      lateFeeGraceDays: parseInt((formData.get("lateFeeGraceDays") as string) || "0") || 0,
+      cardFeeEnabled:   formData.get("cardFeeEnabled") === "true",
+      cardFeePercent:   parseFloat((formData.get("cardFeePercent") as string) || "2.9") || 2.9,
+      cardFeeFixed:     parseFloat((formData.get("cardFeeFixed") as string) || "0.30") || 0,
     },
   })
 

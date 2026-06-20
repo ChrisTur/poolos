@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { sendReceiptEmail } from "@/lib/actions/emails"
+import { stripe } from "@/lib/stripe"
 
 async function lastInvoiceNum(companyId: string): Promise<number> {
   const last = await db.invoice.findFirst({
@@ -193,10 +194,46 @@ export async function deletePayment(paymentId: string, invoiceId: string) {
 }
 
 export async function markOverdueInvoices(companyId: string) {
-  await db.invoice.updateMany({
-    where: { companyId, status: "sent", dueDate: { lt: new Date() } },
-    data: { status: "overdue" },
+  const now = new Date()
+
+  const toMark = await db.invoice.findMany({
+    where: { companyId, status: "sent", dueDate: { lt: now } },
+    include: { items: true, payments: true },
   })
+  if (toMark.length === 0) return
+
+  const company = await db.company.findUnique({
+    where: { id: companyId },
+    select: { lateFeeEnabled: true, lateFeePercent: true, lateFeeGraceDays: true },
+  })
+
+  for (const inv of toMark) {
+    await db.invoice.update({ where: { id: inv.id }, data: { status: "overdue" } })
+
+    if (company?.lateFeeEnabled && !inv.lateFeeApplied) {
+      const graceDeadline = new Date(inv.dueDate)
+      graceDeadline.setDate(graceDeadline.getDate() + (company.lateFeeGraceDays ?? 0))
+      if (now >= graceDeadline) {
+        const subtotal = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+        const paid     = inv.payments.reduce((s, p) => s + p.amount, 0)
+        const balance  = Math.max(0, subtotal - paid)
+        if (balance > 0) {
+          const fee = Math.round(balance * (company.lateFeePercent / 100) * 100) / 100
+          if (fee > 0) {
+            await db.invoiceItem.create({
+              data: {
+                invoiceId:   inv.id,
+                description: `Late fee (${company.lateFeePercent}%)`,
+                quantity:    1,
+                unitPrice:   fee,
+              },
+            })
+            await db.invoice.update({ where: { id: inv.id }, data: { lateFeeApplied: true } })
+          }
+        }
+      }
+    }
+  }
 }
 
 export async function deleteInvoice(id: string) {
@@ -216,7 +253,7 @@ export async function generateMonthlyInvoices(formData: FormData) {
   // All active customers with a monthly rate
   const customers = await db.customer.findMany({
     where: { companyId, status: "active", monthlyRate: { not: null, gt: 0 } },
-    select: { id: true, monthlyRate: true },
+    select: { id: true, monthlyRate: true, autoPayEnabled: true, autoPayMethodId: true, stripeCustomerId: true },
   })
 
   if (customers.length === 0) redirect("/invoices/generate?result=none")
@@ -238,9 +275,17 @@ export async function generateMonthlyInvoices(formData: FormData) {
 
   let nextNum = await lastInvoiceNum(companyId)
 
+  const company = await db.company.findUnique({
+    where: { id: companyId },
+    select: { stripeAccountId: true },
+  })
+
+  let autoCharged = 0
+
   for (const customer of toCreate) {
     nextNum++
-    await db.invoice.create({
+    const token = crypto.randomUUID()
+    const invoice = await db.invoice.create({
       data: {
         companyId,
         customerId: customer.id,
@@ -249,14 +294,57 @@ export async function generateMonthlyInvoices(formData: FormData) {
         issuedAt: startOfMonth,
         status: "draft",
         serviceType: "monthly",
-        payToken: crypto.randomUUID(),
+        payToken: token,
         items: {
           create: [{ description: "Monthly pool service", quantity: 1, unitPrice: customer.monthlyRate! }],
         },
       },
     })
+
+    // Auto-charge customers with a saved card
+    if (
+      customer.autoPayEnabled &&
+      customer.autoPayMethodId &&
+      customer.stripeCustomerId &&
+      company?.stripeAccountId
+    ) {
+      try {
+        const pi = await stripe.paymentIntents.create(
+          {
+            amount: Math.round(customer.monthlyRate! * 100),
+            currency: "usd",
+            customer: customer.stripeCustomerId,
+            payment_method: customer.autoPayMethodId,
+            confirm: true,
+            off_session: true,
+            metadata: { invoiceId: invoice.id, companyId },
+          },
+          { stripeAccount: company.stripeAccountId }
+        )
+        if (pi.status === "succeeded") {
+          await db.payment.create({
+            data: {
+              invoiceId: invoice.id,
+              amount: customer.monthlyRate!,
+              method: "card",
+              reference: pi.id,
+              notes: "Auto-pay via saved card",
+            },
+          })
+          await db.invoice.update({
+            where: { id: invoice.id },
+            data: { status: "paid", paidAt: new Date() },
+          })
+          autoCharged++
+        }
+      } catch {
+        // Auto-pay failed (expired card, etc.) — invoice stays as draft, customer pays manually
+      }
+    }
   }
 
   revalidatePath("/invoices")
-  redirect(`/invoices/generate?result=generated&month=${month}&year=${year}&count=${toCreate.length}`)
+  redirect(
+    `/invoices/generate?result=generated&month=${month}&year=${year}&count=${toCreate.length}&autoCharged=${autoCharged}`
+  )
 }
