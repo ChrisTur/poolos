@@ -1,11 +1,13 @@
 "use client"
 
 import { useActionState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { login } from "@/lib/actions/auth"
 import Button from "@/components/ui/Button"
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
   const [state, action, pending] = useActionState(
     async (_: unknown, formData: FormData) => login(formData),
     null
@@ -15,6 +17,12 @@ export default function LoginPage() {
     <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
       <h1 className="text-xl font-bold text-gray-900 mb-1">Sign in to PoolOS</h1>
       <p className="text-sm text-gray-500 mb-6">Enter your credentials to continue.</p>
+
+      {searchParams.get("changed") && (
+        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700">
+          Password updated successfully. Please sign in with your new password.
+        </div>
+      )}
 
       <form action={action} className="space-y-4">
         <div>

@@ -1,14 +1,13 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { signIn, signOut } from "@/auth"
+import { auth, signIn, signOut } from "@/auth"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { isPasswordBreached } from "@/lib/hibp"
-import { auth } from "@/auth"
 
 function slugify(name: string) {
   return name
@@ -156,17 +155,16 @@ export async function changePassword(formData: FormData) {
     return { error: "This password has appeared in a known data breach. Please choose a different one." }
   }
 
+  const dbUser = await db.user.findUnique({ where: { email: session.user.email } })
+  if (!dbUser) return { error: "Account not found." }
+
   const hashed = await bcrypt.hash(password, 12)
   await db.user.update({
-    where: { id: session.user.id! },
+    where: { id: dbUser.id },
     data: { password: hashed, mustChangePassword: false },
   })
 
-  // Re-authenticate to issue a fresh JWT without mustChangePassword flag
-  try {
-    await signIn("credentials", { email: session.user.email, password, redirectTo: "/dashboard" })
-  } catch (error: any) {
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) throw error
-    return { error: "Password updated but sign-in failed. Please log in again." }
-  }
+  // Sign out so the old JWT (with mustChangePassword: true) is discarded.
+  // User logs back in fresh — new JWT will have mustChangePassword: false.
+  await signOut({ redirectTo: "/login?changed=1" })
 }
