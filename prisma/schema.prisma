@@ -65,6 +65,7 @@ model User {
 
   passwordResetToken  String?   @unique
   passwordResetExpiry DateTime?
+  mustChangePassword  Boolean   @default(false)
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)

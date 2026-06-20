@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
+import { checkRateLimit } from "@/lib/rate-limit"
+import { isPasswordBreached } from "@/lib/hibp"
+import { auth } from "@/auth"
 
 function slugify(name: string) {
   return name
@@ -31,6 +34,11 @@ export async function registerCompany(formData: FormData) {
   const email = (formData.get("email") as string).toLowerCase()
   const password = formData.get("password") as string
 
+  if (password.length < 8) return { error: "Password must be at least 8 characters." }
+  if (await isPasswordBreached(password)) {
+    return { error: "This password has appeared in a known data breach. Please choose a different one." }
+  }
+
   const existing = await db.user.findUnique({ where: { email } })
   if (existing) return { error: "An account with that email already exists." }
 
@@ -53,6 +61,11 @@ export async function registerCompany(formData: FormData) {
 export async function login(formData: FormData) {
   const email = (formData.get("email") as string).toLowerCase().trim()
   const password = formData.get("password") as string
+
+  if (!checkRateLimit(`login:${email}`, 5, 15 * 60 * 1000)) {
+    return { error: "Too many login attempts. Please try again in 15 minutes." }
+  }
+
   const redirectTo = email === process.env.SUPER_ADMIN_EMAIL?.toLowerCase() ? "/admin" : "/dashboard"
   try {
     await signIn("credentials", { email, password, redirectTo })
@@ -69,6 +82,17 @@ export async function logout() {
 
 export async function requestPasswordReset(formData: FormData) {
   const email = (formData.get("email") as string).toLowerCase().trim()
+
+  // Clean up all expired tokens on every reset request
+  await db.user.updateMany({
+    where: { passwordResetExpiry: { lt: new Date() }, passwordResetToken: { not: null } },
+    data: { passwordResetToken: null, passwordResetExpiry: null },
+  })
+
+  // Rate-limit by email: max 3 requests per hour (still return success to prevent enumeration)
+  if (!checkRateLimit(`reset:${email}`, 3, 60 * 60 * 1000)) {
+    return { success: true }
+  }
 
   const user = await db.user.findUnique({ where: { email } })
   if (user && user.isActive) {
@@ -99,6 +123,9 @@ export async function resetPassword(token: string, formData: FormData) {
 
   if (password !== confirm) return { error: "Passwords don't match." }
   if (password.length < 8) return { error: "Password must be at least 8 characters." }
+  if (await isPasswordBreached(password)) {
+    return { error: "This password has appeared in a known data breach. Please choose a different one." }
+  }
 
   const user = await db.user.findUnique({ where: { passwordResetToken: token } })
 
@@ -114,4 +141,32 @@ export async function resetPassword(token: string, formData: FormData) {
   })
 
   return { success: true }
+}
+
+export async function changePassword(formData: FormData) {
+  const session = await auth()
+  if (!session?.user?.email) return { error: "Not authenticated." }
+
+  const password = formData.get("password") as string
+  const confirm = formData.get("confirm") as string
+
+  if (password !== confirm) return { error: "Passwords don't match." }
+  if (password.length < 8) return { error: "Password must be at least 8 characters." }
+  if (await isPasswordBreached(password)) {
+    return { error: "This password has appeared in a known data breach. Please choose a different one." }
+  }
+
+  const hashed = await bcrypt.hash(password, 12)
+  await db.user.update({
+    where: { id: session.user.id! },
+    data: { password: hashed, mustChangePassword: false },
+  })
+
+  // Re-authenticate to issue a fresh JWT without mustChangePassword flag
+  try {
+    await signIn("credentials", { email: session.user.email, password, redirectTo: "/dashboard" })
+  } catch (error: any) {
+    if (error?.digest?.startsWith("NEXT_REDIRECT")) throw error
+    return { error: "Password updated but sign-in failed. Please log in again." }
+  }
 }
