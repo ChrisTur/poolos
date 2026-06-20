@@ -2,7 +2,8 @@ import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
-import { CheckCircle, Clock, AlertCircle, Droplets } from "lucide-react"
+import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle } from "lucide-react"
+import PortalReplyForm from "@/components/portal/PortalReplyForm"
 
 export const dynamic = "force-dynamic"
 
@@ -29,6 +30,9 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
       serviceVisits: {
         orderBy: { visitedAt: "desc" },
         take: 10,
+      },
+      messages: {
+        orderBy: { createdAt: "asc" },
       },
     },
   })
@@ -142,28 +146,68 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
             </h2>
             <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-50">
               {customer.serviceVisits.map((v) => (
-                <div key={v.id} className="px-5 py-3 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center shrink-0">
+                <div key={v.id} className="px-5 py-3 flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center shrink-0 mt-0.5">
                       <Droplets className="w-4 h-4 text-sky-500" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">{formatDate(v.visitedAt)}</p>
-                      {v.notes && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{v.notes}</p>}
+                      {v.notes && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{v.notes}</p>}
+                      {(v.chlorine || v.ph || v.alkalinity || v.calcium) && (
+                        <div className="flex flex-wrap gap-2 mt-1.5">
+                          {v.chlorine   != null && <span className="text-xs text-gray-500">Cl {v.chlorine} ppm</span>}
+                          {v.ph         != null && <span className="text-xs text-gray-500">pH {v.ph}</span>}
+                          {v.alkalinity != null && <span className="text-xs text-gray-500">Alk {v.alkalinity} ppm</span>}
+                          {v.calcium    != null && <span className="text-xs text-gray-500">Ca {v.calcium} ppm</span>}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {(v.chlorine || v.ph) && (
-                    <div className="text-xs text-gray-400 text-right shrink-0">
-                      {v.chlorine && <span>Cl {v.chlorine}</span>}
-                      {v.chlorine && v.ph && <span> · </span>}
-                      {v.ph && <span>pH {v.ph}</span>}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>
           </section>
         )}
+
+        {/* Messages */}
+        <section>
+          <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <MessageCircle className="w-4 h-4" /> Messages
+          </h2>
+          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            {/* Thread */}
+            <div className="px-4 py-3 space-y-3 max-h-80 overflow-y-auto">
+              {customer.messages.length === 0 ? (
+                <p className="text-sm text-gray-400 text-center py-4">
+                  No messages yet. Send us a message below!
+                </p>
+              ) : (
+                customer.messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.fromCompany ? "justify-start" : "justify-end"}`}>
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${m.fromCompany ? "bg-sky-500 text-white rounded-tl-sm" : "bg-gray-100 text-gray-900 rounded-tr-sm"}`}>
+                      {m.serviceVisitId && (
+                        <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 text-sky-200">
+                          Visit summary
+                        </p>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.body}</p>
+                      <p className={`text-[11px] mt-1 ${m.fromCompany ? "text-sky-200" : "text-gray-400"}`}>
+                        {new Date(m.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        {m.fromCompany ? ` · ${customer.company.name}` : " · You"}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Reply form */}
+            <div className="border-t border-gray-100 p-4">
+              <PortalReplyForm token={token} />
+            </div>
+          </div>
+        </section>
 
         {/* Payment history */}
         {history.length > 0 && (

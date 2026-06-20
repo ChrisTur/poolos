@@ -12,6 +12,7 @@ import { addEquipment, deleteEquipment } from "@/lib/actions/equipment"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
+import CustomerMessages from "@/components/customers/CustomerMessages"
 
 export const dynamic = "force-dynamic"
 
@@ -19,7 +20,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [customer, emailLogs] = await Promise.all([
+  const [customer, emailLogs, messages] = await Promise.all([
     db.customer.findFirst({
       where: { id, companyId },
       include: {
@@ -39,6 +40,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       orderBy: { createdAt: "desc" },
       take: 20,
       include: { invoice: { select: { invoiceNumber: true } } },
+    }),
+    db.customerMessage.findMany({
+      where: { customerId: id, companyId },
+      orderBy: { createdAt: "asc" },
     }),
   ])
 
@@ -340,6 +345,20 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             )}
           </Card>
 
+          {/* Messages */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <Send className="w-3.5 h-3.5 text-gray-400" /> Messages
+              </h2>
+            </CardHeader>
+            <CustomerMessages
+              customerId={id}
+              messages={messages}
+              hasEmail={!!customer.email}
+            />
+          </Card>
+
           {/* Email history */}
           <Card>
             <CardHeader>
@@ -356,7 +375,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className={`font-medium ${log.status === "sent" ? "text-green-700" : "text-red-600"}`}>
-                          {log.type === "reminder" ? "Reminder" : log.type === "estimate" ? "Estimate" : log.type === "visit" ? "Visit" : "Invoice"}
+                          {log.type === "reminder" ? "Reminder" : log.type === "estimate" ? "Estimate" : log.type === "visit" ? "Visit summary" : log.type === "message" ? "Message" : "Invoice"}
                         </span>
                         {log.invoiceId && log.invoice && (
                           <Link href={`/invoices/${log.invoiceId}`} className="text-sky-700 hover:underline text-xs">

@@ -581,6 +581,74 @@ export function buildVisitCompletionHtml(data: VisitCompletionEmailData): string
 </html>`
 }
 
+export function buildCustomerMessageHtml(data: {
+  companyName: string
+  companyLogoUrl?: string | null
+  companyPhone?: string | null
+  customerFirstName: string
+  message: string
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:600px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+    <div style="background:#0c4a6e;padding:20px 24px">
+      ${data.companyLogoUrl
+        ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:44px;max-width:160px;width:auto;display:block;filter:brightness(0) invert(1)" />`
+        : `<span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>`}
+      <div style="font-size:13px;color:#bae6fd;margin-top:4px">Message from ${data.companyName}</div>
+    </div>
+    <div style="padding:24px">
+      <p style="font-size:15px;color:#111827;margin:0 0 16px">Hi ${data.customerFirstName},</p>
+      <div style="background:#f9fafb;border-left:3px solid #0ea5e9;border-radius:0 8px 8px 0;padding:14px 16px;font-size:14px;color:#374151;white-space:pre-wrap;line-height:1.6">${data.message}</div>
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:14px 16px;margin-top:20px;font-size:13px;color:#0369a1">
+        ${data.companyPhone
+          ? `Questions? Call us at <strong>${data.companyPhone}</strong>.`
+          : `Reply to this email — we're happy to help.`}
+      </div>
+    </div>
+    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+      ${data.companyName} · Powered by PoolOS
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+export function buildPortalReplyNotificationHtml(data: {
+  companyName: string
+  customerFirstName: string
+  customerLastName: string
+  message: string
+}): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:560px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+    <div style="background:#0c4a6e;padding:20px 24px">
+      <span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>
+      <div style="font-size:13px;color:#bae6fd;margin-top:4px">Customer Reply</div>
+    </div>
+    <div style="padding:24px">
+      <p style="font-size:15px;color:#111827;margin:0 0 4px">
+        <strong>${data.customerFirstName} ${data.customerLastName}</strong> sent you a message via their portal:
+      </p>
+      <div style="background:#f9fafb;border-left:3px solid #6b7280;border-radius:0 8px 8px 0;padding:14px 16px;font-size:14px;color:#374151;margin-top:16px;white-space:pre-wrap;line-height:1.6">${data.message}</div>
+      <p style="font-size:13px;color:#6b7280;margin-top:16px">Log in to your PoolOS dashboard to reply.</p>
+    </div>
+    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+      ${data.companyName} · Powered by PoolOS
+    </div>
+  </div>
+</body>
+</html>`
+}
+
 export function buildPasswordResetHtml(firstName: string, resetUrl: string) {
   return `<!DOCTYPE html>
 <html>

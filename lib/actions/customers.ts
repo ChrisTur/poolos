@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { resend, FROM, buildCustomerMessageHtml } from "@/lib/email"
 
 export async function createCustomer(formData: FormData) {
   const { companyId } = await requireSession()
@@ -105,4 +106,59 @@ export async function disableAutoPay(customerId: string) {
     data: { autoPayEnabled: false, autoPayMethodId: null },
   })
   revalidatePath(`/customers/${customerId}`)
+}
+
+export async function sendMessage(_: unknown, formData: FormData) {
+  const { companyId } = await requireSession()
+
+  const customerId = formData.get("customerId") as string
+  const body = (formData.get("body") as string | null)?.trim()
+  const shouldEmail = formData.get("sendEmail") === "true"
+
+  if (!body) return { error: "Message cannot be empty." }
+
+  const [customer, company] = await Promise.all([
+    db.customer.findFirst({
+      where: { id: customerId, companyId },
+      select: { email: true, firstName: true },
+    }),
+    db.company.findUnique({
+      where: { id: companyId },
+      select: { name: true, logoUrl: true, phone: true, bccEmail: true, replyToEmail: true },
+    }),
+  ])
+
+  if (!customer || !company) return { error: "Not found." }
+
+  let emailSent = false
+  if (shouldEmail && customer.email) {
+    const html = buildCustomerMessageHtml({
+      companyName: company.name,
+      companyLogoUrl: company.logoUrl,
+      companyPhone: company.phone,
+      customerFirstName: customer.firstName,
+      message: body,
+    })
+    const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+    try {
+      await resend.emails.send({
+        from: `${company.name} <${fromEmail}>`,
+        to: customer.email,
+        bcc: company.bccEmail ?? undefined,
+        replyTo: company.replyToEmail ?? undefined,
+        subject: `Message from ${company.name}`,
+        html,
+      })
+      emailSent = true
+    } catch {
+      // Message still saves even if email fails
+    }
+  }
+
+  await db.customerMessage.create({
+    data: { body, fromCompany: true, sentViaEmail: emailSent, customerId, companyId },
+  })
+
+  revalidatePath(`/customers/${customerId}`)
+  return { success: true }
 }

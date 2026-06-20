@@ -101,13 +101,14 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 export async function logVisit(formData: FormData) {
   const { companyId } = await requireSession()
 
-  const customerId = formData.get("customerId") as string
-  const status = (formData.get("status") as string) || "completed"
-  const chlorine   = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
-  const ph         = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
-  const alkalinity = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
-  const calcium    = formData.get("calcium")    ? parseFloat(formData.get("calcium")    as string) : null
-  const notes      = (formData.get("notes") as string) || null
+  const customerId  = formData.get("customerId") as string
+  const status      = (formData.get("status") as string) || "completed"
+  const sendEmail   = formData.get("sendEmail") === "true"
+  const chlorine    = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
+  const ph          = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
+  const alkalinity  = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
+  const calcium     = formData.get("calcium")    ? parseFloat(formData.get("calcium")    as string) : null
+  const notes       = (formData.get("notes") as string) || null
 
   const visit = await db.serviceVisit.create({
     data: {
@@ -122,55 +123,82 @@ export async function logVisit(formData: FormData) {
     },
   })
 
-  // Send completion email if status is completed and customer has an email
+  // On completed visits: store a CustomerMessage in the thread, optionally email the customer
   if (status === "completed") {
     const [customer, company] = await Promise.all([
       db.customer.findUnique({ where: { id: customerId }, select: { email: true, firstName: true } }),
       db.company.findUnique({ where: { id: companyId }, select: { name: true, logoUrl: true, phone: true, bccEmail: true, replyToEmail: true } }),
     ])
 
-    if (customer?.email && company) {
-      const html = buildVisitCompletionHtml({
-        companyName: company.name,
-        companyLogoUrl: company.logoUrl,
-        companyPhone: company.phone,
-        customerFirstName: customer.firstName,
-        visitedAt: visit.visitedAt,
-        status: visit.status,
-        notes: visit.notes,
-        chlorine,
-        ph,
-        alkalinity,
-        calcium,
-      })
+    if (customer && company) {
+      // Build a human-readable visit summary for the message thread
+      const parts: string[] = [`Visit on ${new Date(visit.visitedAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}`]
+      if (notes) parts.push(`Notes: ${notes}`)
+      const readings: string[] = []
+      if (chlorine   != null) readings.push(`Chlorine ${chlorine} ppm`)
+      if (ph         != null) readings.push(`pH ${ph}`)
+      if (alkalinity != null) readings.push(`Alkalinity ${alkalinity} ppm`)
+      if (calcium    != null) readings.push(`Calcium ${calcium} ppm`)
+      if (readings.length) parts.push(`Chemicals: ${readings.join(", ")}`)
+      const messageBody = parts.join("\n")
 
-      const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
-      const subject = `Service completed — ${new Date(visit.visitedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+      let emailSent = false
 
-      let emailStatus: "sent" | "failed" = "sent"
-      try {
-        await resend.emails.send({
-          from: `${company.name} <${fromEmail}>`,
-          to: customer.email,
-          bcc: company.bccEmail ?? undefined,
-          replyTo: company.replyToEmail ?? undefined,
-          subject,
-          html,
+      if (sendEmail && customer.email) {
+        const html = buildVisitCompletionHtml({
+          companyName: company.name,
+          companyLogoUrl: company.logoUrl,
+          companyPhone: company.phone,
+          customerFirstName: customer.firstName,
+          visitedAt: visit.visitedAt,
+          status: visit.status,
+          notes: visit.notes,
+          chlorine,
+          ph,
+          alkalinity,
+          calcium,
         })
-      } catch {
-        emailStatus = "failed"
+
+        const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+        const subject = `Service completed — ${new Date(visit.visitedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+
+        let emailStatus: "sent" | "failed" = "sent"
+        try {
+          await resend.emails.send({
+            from: `${company.name} <${fromEmail}>`,
+            to: customer.email,
+            bcc: company.bccEmail ?? undefined,
+            replyTo: company.replyToEmail ?? undefined,
+            subject,
+            html,
+          })
+          emailSent = true
+        } catch {
+          emailStatus = "failed"
+        }
+
+        await db.emailLog.create({
+          data: {
+            type: "visit",
+            status: emailStatus,
+            toEmail: customer.email,
+            bccEmail: company.bccEmail ?? null,
+            subject,
+            customerId,
+            companyId,
+            serviceVisitId: visit.id,
+          },
+        })
       }
 
-      await db.emailLog.create({
+      await db.customerMessage.create({
         data: {
-          type: "visit",
-          status: emailStatus,
-          toEmail: customer.email,
-          bccEmail: company.bccEmail ?? null,
-          subject,
+          body: messageBody,
+          fromCompany: true,
+          sentViaEmail: emailSent,
+          serviceVisitId: visit.id,
           customerId,
           companyId,
-          serviceVisitId: visit.id,
         },
       })
     }

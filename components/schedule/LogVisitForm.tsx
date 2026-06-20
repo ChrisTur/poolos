@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { useActionState } from "react"
 import { logVisit } from "@/lib/actions/routes"
 import Button from "@/components/ui/Button"
@@ -12,6 +13,7 @@ export default function LogVisitForm({
   customers: Customer[]
   routes: Route[]
 }) {
+  const [status, setStatus] = useState("completed")
   const [, action, pending] = useActionState(async (_: unknown, formData: FormData) => {
     await logVisit(formData)
     return null
@@ -52,6 +54,8 @@ export default function LogVisitForm({
         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
         <select
           name="status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
         >
           <option value="completed">Completed</option>
@@ -94,6 +98,19 @@ export default function LogVisitForm({
           ))}
         </div>
       </fieldset>
+
+      {status === "completed" && (
+        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            name="sendEmail"
+            value="true"
+            defaultChecked
+            className="w-4 h-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500"
+          />
+          <span className="text-sm text-gray-700">Email visit summary to customer</span>
+        </label>
+      )}
 
       <Button type="submit" disabled={pending} className="w-full">
         {pending ? "Logging…" : "Log Visit"}
