@@ -39,6 +39,9 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
 
   if (!customer) notFound()
 
+  // Fire-and-forget portal access tracking
+  db.customer.update({ where: { id: customer.id }, data: { portalLastAccessedAt: new Date() } }).catch(() => {})
+
   const outstanding = customer.invoices.filter((i) => i.status !== "paid" && i.status !== "draft")
   const history     = customer.invoices.filter((i) => i.status === "paid")
 

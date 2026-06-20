@@ -8,9 +8,25 @@ import Link from "next/link"
 
 export const dynamic = "force-dynamic"
 
+const FREQUENCY_DAYS: Record<string, number> = {
+  weekly:    7,
+  biweekly:  14,
+  monthly:   30,
+  quarterly: 90,
+  as_needed: Infinity,
+}
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  weekly:    "Weekly",
+  biweekly:  "Bi-weekly",
+  monthly:   "Monthly",
+  quarterly: "Quarterly",
+  as_needed: "As needed",
+}
+
 export default async function SchedulePage() {
   const { companyId } = await requireSession()
-  const [routes, recentVisits, customers] = await Promise.all([
+  const [routes, recentVisits, customers, scheduledCustomers] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -31,6 +47,21 @@ export default async function SchedulePage() {
       where: { companyId, status: "active" },
       orderBy: [{ lastName: "asc" }],
     }),
+    db.customer.findMany({
+      where: {
+        companyId,
+        status: "active",
+        serviceFrequency: { not: null },
+      },
+      include: {
+        alerts: { orderBy: { createdAt: "desc" } },
+        serviceVisits: {
+          orderBy: { visitedAt: "desc" },
+          take: 1,
+        },
+      },
+      orderBy: [{ lastName: "asc" }],
+    }),
   ])
 
   const byDay = DAY_NAMES.reduce<Record<number, typeof routes>>((acc, _, i) => {
@@ -40,16 +71,104 @@ export default async function SchedulePage() {
 
   const unscheduled = routes.filter((r) => r.dayOfWeek == null)
 
+  // Build due/overdue list for customers with serviceFrequency set
+  const now = Date.now()
+  const dueCustomers = scheduledCustomers
+    .filter((c) => c.serviceFrequency && c.serviceFrequency !== "as_needed")
+    .map((c) => {
+      const lastVisit = c.serviceVisits[0]
+      const daysSince = lastVisit
+        ? Math.floor((now - new Date(lastVisit.visitedAt).getTime()) / (1000 * 60 * 60 * 24))
+        : null
+      const freqDays  = FREQUENCY_DAYS[c.serviceFrequency!] ?? Infinity
+      const isOverdue = daysSince == null || daysSince > freqDays
+      const isDueSoon = !isOverdue && daysSince != null && daysSince >= freqDays - 3
+
+      return { customer: c, daysSince, freqDays, isOverdue, isDueSoon }
+    })
+    .filter((e) => e.isOverdue || e.isDueSoon)
+    .sort((a, b) => {
+      // Overdue first, then by days since (most overdue at top)
+      if (a.isOverdue && !b.isOverdue) return -1
+      if (!a.isOverdue && b.isOverdue) return 1
+      if (a.daysSince == null) return -1
+      if (b.daysSince == null) return 1
+      return b.daysSince - a.daysSince
+    })
+
+  // All customer alerts for the log visit form (keyed by customerId)
+  const alertsByCustomer: Record<string, { id: string; body: string }[]> = {}
+  for (const c of scheduledCustomers) {
+    if (c.alerts.length > 0) {
+      alertsByCustomer[c.id] = c.alerts.map((a) => ({ id: a.id, body: a.body }))
+    }
+  }
+  // Also include alerts from non-scheduled active customers
+  const allActiveWithAlerts = await db.customerAlert.findMany({
+    where: { customer: { companyId, status: "active" } },
+    include: { customer: { select: { id: true } } },
+  })
+  for (const alert of allActiveWithAlerts) {
+    if (!alertsByCustomer[alert.customer.id]) {
+      alertsByCustomer[alert.customer.id] = []
+    }
+    if (!alertsByCustomer[alert.customer.id].find((a) => a.id === alert.id)) {
+      alertsByCustomer[alert.customer.id].push({ id: alert.id, body: alert.body })
+    }
+  }
+
+  // Flatten all active customer alerts for the LogVisitForm (we pass all alerts and the form will show them based on selection — but since LogVisitForm is not reactive to customer selection, we pass an empty array here and rely on per-customer detail pages)
+  // Actually, for the schedule page, we show a combined list of all alerts. Pass a stable prop.
+  const allAlerts = Object.values(alertsByCustomer).flat()
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Schedule</h1>
+
+      {/* Overdue / Due Soon section */}
+      {dueCustomers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Overdue / Due Soon</h2>
+          </CardHeader>
+          <div className="divide-y divide-gray-50">
+            {dueCustomers.map(({ customer: c, daysSince, freqDays, isOverdue, isDueSoon }) => (
+              <div key={c.id} className="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
+                <div className="min-w-0">
+                  <Link href={`/customers/${c.id}`} className="text-sm font-medium text-gray-900 hover:text-sky-600">
+                    {c.firstName} {c.lastName}
+                  </Link>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {FREQUENCY_LABELS[c.serviceFrequency!] ?? c.serviceFrequency}
+                    {" · "}
+                    {daysSince == null
+                      ? "No visits yet"
+                      : `${daysSince} day${daysSince !== 1 ? "s" : ""} since last visit`}
+                  </p>
+                </div>
+                <span
+                  className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    isOverdue
+                      ? "bg-red-100 text-red-700"
+                      : isDueSoon
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {isOverdue ? "Overdue" : "Due soon"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Mobile: log-visit form first */}
       <div className="lg:hidden">
         <Card>
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
           <CardBody>
-            <LogVisitForm customers={customers} routes={routes} />
+            <LogVisitForm customers={customers} routes={routes} alerts={allAlerts} />
           </CardBody>
         </Card>
       </div>
@@ -162,7 +281,7 @@ export default async function SchedulePage() {
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>
-              <LogVisitForm customers={customers} routes={routes} />
+              <LogVisitForm customers={customers} routes={routes} alerts={allAlerts} />
             </CardBody>
           </Card>
         </div>

@@ -14,29 +14,38 @@ export const dynamic = "force-dynamic"
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string }>
+  searchParams: Promise<{ q?: string; status?: string; tag?: string }>
 }) {
   const { companyId } = await requireSession()
-  const { q, status } = await searchParams
+  const { q, status, tag: tagFilter } = await searchParams
 
-  const customers = await db.customer.findMany({
-    where: {
-      companyId,
-      status: status && status !== "all" ? status : undefined,
-      OR: q
-        ? [
-            { firstName: { contains: q, mode: "insensitive" } },
-            { lastName: { contains: q, mode: "insensitive" } },
-            { email: { contains: q, mode: "insensitive" } },
-            { phone: { contains: q } },
-            { address: { contains: q, mode: "insensitive" } },
-            { city: { contains: q, mode: "insensitive" } },
-          ]
-        : undefined,
-    },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-    include: { _count: { select: { invoices: true, serviceVisits: true } } },
-  })
+  const [customers, companyTags] = await Promise.all([
+    db.customer.findMany({
+      where: {
+        companyId,
+        status: status && status !== "all" ? status : undefined,
+        OR: q
+          ? [
+              { firstName: { contains: q, mode: "insensitive" } },
+              { lastName: { contains: q, mode: "insensitive" } },
+              { email: { contains: q, mode: "insensitive" } },
+              { phone: { contains: q } },
+              { address: { contains: q, mode: "insensitive" } },
+              { city: { contains: q, mode: "insensitive" } },
+            ]
+          : undefined,
+        tags: tagFilter
+          ? { some: { tag: { id: tagFilter } } }
+          : undefined,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+      include: {
+        _count: { select: { invoices: true, serviceVisits: true } },
+        tags: { include: { tag: true } },
+      },
+    }),
+    db.tag.findMany({ where: { companyId }, orderBy: { name: "asc" } }),
+  ])
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -84,9 +93,44 @@ export default async function CustomersPage({
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
           </select>
+          {companyTags.length > 0 && (
+            <select
+              name="tag"
+              defaultValue={tagFilter || ""}
+              className="flex-1 sm:flex-none text-sm text-gray-900 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="">All tags</option>
+              {companyTags.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          )}
           <Button type="submit" variant="secondary" size="sm">Search</Button>
         </div>
       </form>
+
+      {/* Active tag filter chip */}
+      {tagFilter && (() => {
+        const activeTag = companyTags.find((t) => t.id === tagFilter)
+        if (!activeTag) return null
+        return (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Filtered by:</span>
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+              style={{ backgroundColor: activeTag.color }}
+            >
+              {activeTag.name}
+            </span>
+            <Link
+              href={`/customers${q ? `?q=${q}` : ""}${status && status !== "all" ? `&status=${status}` : ""}`}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Clear
+            </Link>
+          </div>
+        )
+      })()}
 
       {customers.length === 0 ? (
         <Card>
@@ -111,12 +155,21 @@ export default async function CustomersPage({
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
                         {c.phone ? formatPhone(c.phone) : c.email || c.city}
                       </p>
-                      <div className="flex items-center gap-2 mt-1.5">
+                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                         {statusBadge(c.status)}
                         <span className="text-xs text-gray-400">{c._count.serviceVisits} visits</span>
                         {c.monthlyRate && (
                           <span className="text-xs text-gray-400">{formatCurrency(c.monthlyRate)}/mo</span>
                         )}
+                        {c.tags.map(({ tag }) => (
+                          <span
+                            key={tag.id}
+                            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-white"
+                            style={{ backgroundColor: tag.color }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
                       </div>
                     </Link>
                     <div className="flex items-center gap-1 shrink-0">
@@ -146,6 +199,7 @@ export default async function CustomersPage({
                     <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Address</th>
                     <th className="px-5 py-3 text-left font-medium hidden lg:table-cell">Rate</th>
                     <th className="px-5 py-3 text-left font-medium">Status</th>
+                    <th className="px-5 py-3 text-left font-medium hidden lg:table-cell">Tags</th>
                     <th className="px-5 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -173,6 +227,19 @@ export default async function CustomersPage({
                           {c.monthlyRate ? formatCurrency(c.monthlyRate) + "/mo" : "—"}
                         </td>
                         <td className="px-5 py-3">{statusBadge(c.status)}</td>
+                        <td className="px-5 py-3 hidden lg:table-cell">
+                          <div className="flex flex-wrap gap-1">
+                            {c.tags.map(({ tag }) => (
+                              <span
+                                key={tag.id}
+                                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-white"
+                                style={{ backgroundColor: tag.color }}
+                              >
+                                {tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
                         <td className="px-5 py-3">
                           <div className="flex items-center justify-end gap-1">
                             <Link href={`/customers/${c.id}/edit`}>

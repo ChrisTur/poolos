@@ -27,11 +27,9 @@ function formatTime(d: Date) {
 export default function CustomerMessages({
   customerId,
   messages,
-  hasEmail,
 }: {
   customerId: string
   messages: Message[]
-  hasEmail: boolean
 }) {
   const [state, action, pending] = useActionState(
     async (_: unknown, formData: FormData) => sendMessage(_, formData),
@@ -105,20 +103,7 @@ export default function CustomerMessages({
             placeholder="Type a message…"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
           />
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            {hasEmail ? (
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  name="sendEmail"
-                  value="true"
-                  className="w-4 h-4 rounded border-gray-300 text-sky-500 focus:ring-sky-500"
-                />
-                Also email to customer
-              </label>
-            ) : (
-              <p className="text-xs text-gray-400">No email on file — message stored in-app only.</p>
-            )}
+          <div className="flex justify-end">
             <Button type="submit" size="sm" disabled={pending}>
               <Send className="w-3.5 h-3.5" />
               {pending ? "Sending…" : "Send"}

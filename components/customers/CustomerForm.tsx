@@ -100,6 +100,22 @@ export default function CustomerForm({ action, customer, submitLabel = "Save Cus
             placeholder="Leave blank to use company default"
           />
         </div>
+        <div>
+          <Select
+            id="serviceFrequency"
+            name="serviceFrequency"
+            label="Service Frequency"
+            defaultValue={customer?.serviceFrequency ?? ""}
+            options={[
+              { value: "",           label: "Not set" },
+              { value: "weekly",     label: "Weekly" },
+              { value: "biweekly",   label: "Bi-weekly" },
+              { value: "monthly",    label: "Monthly" },
+              { value: "quarterly",  label: "Quarterly" },
+              { value: "as_needed",  label: "As needed" },
+            ]}
+          />
+        </div>
       </fieldset>
 
       <div className="flex gap-3 pt-2">

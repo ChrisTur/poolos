@@ -160,15 +160,23 @@ export async function changePassword(formData: FormData) {
     return { error: "This password has appeared in a known data breach. Please choose a different one." }
   }
 
-  // Prefer id lookup (token.sub); fall back to email in case id isn't populated
   const userId = session.user.id
   const userEmail = session.user.email
-  const dbUser = userId
-    ? await db.user.findUnique({ where: { id: userId } })
-    : userEmail
-      ? await db.user.findUnique({ where: { email: userEmail } })
-      : null
-  if (!dbUser) return { error: "Account not found. Please sign out and sign back in." }
+
+  // Try id first, then email — both independently so a bad id doesn't block the email path
+  let dbUser = userId ? await db.user.findUnique({ where: { id: userId } }) : null
+  if (!dbUser && userEmail) {
+    dbUser = await db.user.findUnique({ where: { email: userEmail } })
+  }
+  if (!dbUser) {
+    console.error("[changePassword] user not found — session.user:", {
+      id: userId ?? "(none)",
+      email: userEmail ?? "(none)",
+      role: (session.user as any).role,
+      companyId: (session.user as any).companyId,
+    })
+    return { error: "Account not found. Please sign out and sign back in." }
+  }
 
   const hashed = await bcrypt.hash(password, 12)
   await db.user.update({
