@@ -99,7 +99,7 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 }
 
 export async function logVisit(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId, name: technicianName } = await requireSession()
 
   const customerId  = formData.get("customerId") as string
   const status      = (formData.get("status") as string) || "completed"
@@ -126,7 +126,7 @@ export async function logVisit(formData: FormData) {
   // On completed visits: store a CustomerMessage in the thread, optionally email the customer
   if (status === "completed") {
     const [customer, company] = await Promise.all([
-      db.customer.findUnique({ where: { id: customerId }, select: { email: true, firstName: true } }),
+      db.customer.findUnique({ where: { id: customerId }, select: { email: true, firstName: true, portalToken: true } }),
       db.company.findUnique({ where: { id: companyId }, select: { name: true, logoUrl: true, phone: true, bccEmail: true, replyToEmail: true } }),
     ])
 
@@ -144,6 +144,10 @@ export async function logVisit(formData: FormData) {
 
       let emailSent = false
 
+      const portalUrl = customer.portalToken
+        ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${customer.portalToken}`
+        : null
+
       if (sendEmail && customer.email) {
         const html = buildVisitCompletionHtml({
           companyName: company.name,
@@ -153,6 +157,8 @@ export async function logVisit(formData: FormData) {
           visitedAt: visit.visitedAt,
           status: visit.status,
           notes: visit.notes,
+          portalUrl,
+          technicianName,
           chlorine,
           ph,
           alkalinity,
@@ -196,6 +202,7 @@ export async function logVisit(formData: FormData) {
           body: messageBody,
           fromCompany: true,
           sentViaEmail: emailSent,
+          sentByName: technicianName,
           serviceVisitId: visit.id,
           customerId,
           companyId,
