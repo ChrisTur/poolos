@@ -22,9 +22,13 @@ export default async function CompanySettingsPage() {
 }
 
 async function renderPage() {
+  console.log("[CompanySettings] step 1: calling requireOwner")
   const user = await requireOwner()
+  console.log("[CompanySettings] step 2: requireOwner ok, companyId=", user.companyId)
   const company = await db.company.findUnique({ where: { id: user.companyId } })
+  console.log("[CompanySettings] step 3: db query ok, company=", company ? company.id : "null", "logoUrlLen=", company?.logoUrl?.length ?? 0)
   if (!company) return null
+  console.log("[CompanySettings] step 4: returning JSX")
 
   return (
     <div className="max-w-2xl space-y-6">
