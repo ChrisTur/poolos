@@ -355,7 +355,6 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             <CustomerMessages
               customerId={id}
               messages={messages}
-              hasEmail={!!customer.email}
             />
           </Card>
 

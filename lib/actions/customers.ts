@@ -113,7 +113,6 @@ export async function sendMessage(_: unknown, formData: FormData) {
 
   const customerId = formData.get("customerId") as string
   const body = (formData.get("body") as string | null)?.trim()
-  const shouldEmail = formData.get("sendEmail") === "true"
 
   if (!body) return { error: "Message cannot be empty." }
 
@@ -131,7 +130,7 @@ export async function sendMessage(_: unknown, formData: FormData) {
   if (!customer || !company) return { error: "Not found." }
 
   let emailSent = false
-  if (shouldEmail && customer.email) {
+  if (customer.email) {
     const portalUrl = customer.portalToken
       ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${customer.portalToken}`
       : null

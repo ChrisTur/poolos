@@ -103,7 +103,6 @@ export async function logVisit(formData: FormData) {
 
   const customerId  = formData.get("customerId") as string
   const status      = (formData.get("status") as string) || "completed"
-  const sendEmail   = formData.get("sendEmail") === "true"
   const chlorine    = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
   const ph          = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
   const alkalinity  = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
@@ -148,7 +147,7 @@ export async function logVisit(formData: FormData) {
         ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${customer.portalToken}`
         : null
 
-      if (sendEmail && customer.email) {
+      if (customer.email) {
         const html = buildVisitCompletionHtml({
           companyName: company.name,
           companyLogoUrl: company.logoUrl,
