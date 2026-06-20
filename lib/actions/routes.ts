@@ -71,6 +71,9 @@ export async function addStopToRoute(routeId: string, formData: FormData) {
 }
 
 export async function removeStopFromRoute(stopId: string, routeId: string) {
+  const { companyId } = await requireSession()
+  const route = await db.route.findFirst({ where: { id: routeId, companyId } })
+  if (!route) return
   await db.routeStop.delete({ where: { id: stopId } })
   const remaining = await db.routeStop.findMany({
     where: { routeId },
@@ -83,6 +86,9 @@ export async function removeStopFromRoute(stopId: string, routeId: string) {
 }
 
 export async function reorderStops(routeId: string, orderedStopIds: string[]) {
+  const { companyId } = await requireSession()
+  const route = await db.route.findFirst({ where: { id: routeId, companyId } })
+  if (!route) return
   for (let i = 0; i < orderedStopIds.length; i++) {
     await db.routeStop.update({
       where: { id: orderedStopIds[i] },

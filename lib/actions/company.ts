@@ -4,7 +4,9 @@ import { db } from "@/lib/db"
 import { requireSession, requireOwner } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
+import crypto from "crypto"
 
 export async function completeOnboarding(formData: FormData) {
   const user = await requireSession()
@@ -59,7 +61,7 @@ export async function inviteUser(formData: FormData) {
   const existing = await db.user.findUnique({ where: { email } })
   if (existing) redirect("/settings/users?inviteError=exists")
 
-  const tempPassword = Math.random().toString(36).slice(-10)
+  const tempPassword = crypto.randomBytes(10).toString("hex")
   const hashed = await bcrypt.hash(tempPassword, 12)
 
   await db.user.create({
@@ -70,10 +72,19 @@ export async function inviteUser(formData: FormData) {
       password: hashed,
       role: (formData.get("role") as string) || "technician",
       companyId: owner.companyId,
+      mustChangePassword: true,
     },
   })
 
-  redirect(`/settings/users?invited=${encodeURIComponent(tempPassword)}&for=${encodeURIComponent(email)}`)
+  const cookieStore = await cookies()
+  cookieStore.set("_flash_cred", JSON.stringify({ password: tempPassword, email, type: "invited" }), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 120,
+    path: "/settings/users",
+  })
+  redirect("/settings/users")
 }
 
 export async function deactivateUser(userId: string) {
@@ -105,10 +116,24 @@ export async function uploadLogo(formData: FormData) {
   const user = await requireOwner()
   const file = formData.get("logo") as File
   if (!file || file.size === 0) return
+  if (file.size > 2 * 1024 * 1024) return // 2MB limit
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+  if (!allowed.includes(file.type)) return
 
   const bytes = await file.arrayBuffer()
+  const header = new Uint8Array(bytes.slice(0, 12))
+
+  // Verify magic bytes — never trust client-supplied MIME type
+  const isJpeg = header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff
+  const isPng  = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47
+  const isWebp = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
+                 header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50
+  const isGif  = header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x38
+  if (!isJpeg && !isPng && !isWebp && !isGif) return
+
+  const detectedType = isJpeg ? "image/jpeg" : isPng ? "image/png" : isWebp ? "image/webp" : "image/gif"
   const base64 = Buffer.from(bytes).toString("base64")
-  const dataUrl = `data:${file.type};base64,${base64}`
+  const dataUrl = `data:${detectedType};base64,${base64}`
 
   await db.company.update({ where: { id: user.companyId }, data: { logoUrl: dataUrl } })
   revalidatePath("/settings/company")
@@ -119,8 +144,16 @@ export async function resetUserPassword(userId: string) {
   const target = await db.user.findUnique({ where: { id: userId } })
   if (!target || target.companyId !== owner.companyId) return
 
-  const tempPassword = Math.random().toString(36).slice(-10)
+  const tempPassword = crypto.randomBytes(10).toString("hex")
   const hashed = await bcrypt.hash(tempPassword, 12)
-  await db.user.update({ where: { id: userId }, data: { password: hashed, isActive: true } })
-  redirect(`/settings/users?reset=${encodeURIComponent(tempPassword)}&for=${encodeURIComponent(target.email)}`)
+  await db.user.update({ where: { id: userId }, data: { password: hashed, isActive: true, mustChangePassword: true } })
+  const cookieStore = await cookies()
+  cookieStore.set("_flash_cred", JSON.stringify({ password: tempPassword, email: target.email, type: "reset" }), {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 120,
+    path: "/settings/users",
+  })
+  redirect("/settings/users")
 }

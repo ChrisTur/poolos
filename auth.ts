@@ -44,6 +44,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           companyId: user.companyId,
           companyName: user.company.name,
           role: user.role,
+          mustChangePassword: user.mustChangePassword,
         }
       },
     }),

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { requireOwner } from "@/lib/session"
 import { inviteUser, deactivateUser, resetUserPassword } from "@/lib/actions/company"
+import { cookies } from "next/headers"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -10,8 +11,13 @@ import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
-export default async function UsersPage({ searchParams }: { searchParams: Promise<{ reset?: string; invited?: string; for?: string; inviteError?: string }> }) {
+export default async function UsersPage({ searchParams }: { searchParams: Promise<{ inviteError?: string }> }) {
   const { companyId } = await requireOwner()
+  const cookieStore = await cookies()
+  const flashRaw = cookieStore.get("_flash_cred")?.value
+  let flash: { password: string; email: string; type: string } | null = null
+  try { flash = flashRaw ? JSON.parse(flashRaw) : null } catch { flash = null }
+
   const [users, sp] = await Promise.all([
     db.user.findMany({
       where: { companyId },
@@ -27,17 +33,17 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
         <p className="text-sm text-gray-500 mt-1">{users.length} users on your account.</p>
       </div>
 
-      {sp.reset && (
+      {flash?.type === "reset" && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-          <strong>Password reset for {sp.for}.</strong> Temporary password:{" "}
-          <code className="font-mono font-bold">{sp.reset}</code>. Share it securely — it won&apos;t be shown again.
+          <strong>Password reset for {flash.email}.</strong> Temporary password:{" "}
+          <code className="font-mono font-bold">{flash.password}</code>. Share it securely — it won&apos;t be shown again.
         </div>
       )}
 
-      {sp.invited && (
+      {flash?.type === "invited" && (
         <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
-          <strong>User {sp.for} invited.</strong> Temporary password:{" "}
-          <code className="font-mono font-bold">{sp.invited}</code>. Share it securely — it won&apos;t be shown again.
+          <strong>User {flash.email} invited.</strong> Temporary password:{" "}
+          <code className="font-mono font-bold">{flash.password}</code>. Share it securely — it won&apos;t be shown again.
         </div>
       )}
 

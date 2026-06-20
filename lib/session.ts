@@ -23,6 +23,9 @@ export async function requireSession() {
     redirect("/admin")
   }
 
+  // Force password change if flagged (e.g. after admin invite or reset)
+  if ((user as any).mustChangePassword) redirect("/change-password")
+
   return user
 }
 

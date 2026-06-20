@@ -89,6 +89,11 @@ export async function addCustomerNote(customerId: string, formData: FormData) {
 }
 
 export async function deleteCustomerNote(id: string, customerId: string) {
+  const { companyId } = await requireSession()
+  const note = await db.customerNote.findFirst({
+    where: { id, customer: { id: customerId, companyId } },
+  })
+  if (!note) return
   await db.customerNote.delete({ where: { id } })
   revalidatePath(`/customers/${customerId}`)
 }
