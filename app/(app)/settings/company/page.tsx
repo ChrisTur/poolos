@@ -9,26 +9,9 @@ import { Upload } from "lucide-react"
 export const dynamic = "force-dynamic"
 
 export default async function CompanySettingsPage() {
-  try {
-    return await renderPage()
-  } catch (e: any) {
-    if (e?.digest) throw e // re-throw Next.js redirects / not-found
-    return (
-      <pre className="p-8 text-red-700 text-sm whitespace-pre-wrap">
-        [CompanySettings] {e?.name}: {e?.message}{"\n"}{e?.stack}
-      </pre>
-    )
-  }
-}
-
-async function renderPage() {
-  console.log("[CompanySettings] step 1: calling requireOwner")
-  const user = await requireOwner()
-  console.log("[CompanySettings] step 2: requireOwner ok, companyId=", user.companyId)
-  const company = await db.company.findUnique({ where: { id: user.companyId } })
-  console.log("[CompanySettings] step 3: db query ok, company=", company ? company.id : "null", "logoUrlLen=", company?.logoUrl?.length ?? 0)
+  const { companyId } = await requireOwner()
+  const company = await db.company.findUnique({ where: { id: companyId } })
   if (!company) return null
-  console.log("[CompanySettings] step 4: returning JSX")
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -152,7 +135,6 @@ async function renderPage() {
                   name="lateFeeEnabled"
                   value="true"
                   defaultChecked={company.lateFeeEnabled}
-                  onChange={() => {}}
                   className="sr-only peer"
                 />
                 <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
@@ -211,7 +193,6 @@ async function renderPage() {
                   name="cardFeeEnabled"
                   value="true"
                   defaultChecked={company.cardFeeEnabled}
-                  onChange={() => {}}
                   className="sr-only peer"
                 />
                 <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />

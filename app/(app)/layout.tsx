@@ -6,19 +6,14 @@ import AppShell from "@/components/layout/AppShell"
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let viewAsCompany: string | undefined
 
-  try {
-    const session = await auth()
-    if (session?.user?.email === process.env.SUPER_ADMIN_EMAIL) {
-      const cookieStore = await cookies()
-      const viewAs = cookieStore.get("poolos_view_as")?.value
-      if (viewAs) {
-        const company = await db.company.findUnique({ where: { id: viewAs }, select: { name: true } })
-        viewAsCompany = company?.name
-      }
+  const session = await auth()
+  if (session?.user?.email === process.env.SUPER_ADMIN_EMAIL) {
+    const cookieStore = await cookies()
+    const viewAs = cookieStore.get("poolos_view_as")?.value
+    if (viewAs) {
+      const company = await db.company.findUnique({ where: { id: viewAs }, select: { name: true } })
+      viewAsCompany = company?.name
     }
-  } catch (e: any) {
-    console.error("[AppLayout] error:", e?.name, e?.message, e?.stack)
-    throw e
   }
 
   return <AppShell viewAsCompany={viewAsCompany}>{children}</AppShell>
