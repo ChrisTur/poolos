@@ -8,9 +8,11 @@ import type { Customer, Route } from "@/app/generated/prisma/client"
 export default function LogVisitForm({
   customers,
   routes,
+  alerts = [],
 }: {
   customers: Customer[]
   routes: Route[]
+  alerts?: { id: string; body: string }[]
 }) {
   const [, action, pending] = useActionState(async (_: unknown, formData: FormData) => {
     await logVisit(formData)
@@ -18,6 +20,15 @@ export default function LogVisitForm({
   }, null)
 
   return (
+    <div className="space-y-4">
+    {alerts.length > 0 && (
+      <div className="rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 space-y-1">
+        <p className="text-xs font-semibold text-yellow-800 uppercase tracking-wide">Customer Alerts</p>
+        {alerts.map((a) => (
+          <p key={a.id} className="text-sm text-yellow-800">⚑ {a.body}</p>
+        ))}
+      </div>
+    )}
     <form action={action} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
@@ -100,5 +111,6 @@ export default function LogVisitForm({
         {pending ? "Logging…" : "Log Visit"}
       </Button>
     </form>
+    </div>
   )
 }

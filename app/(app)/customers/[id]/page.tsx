@@ -13,19 +13,30 @@ import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
 import CustomerMessages from "@/components/customers/CustomerMessages"
+import CustomerAlerts from "@/components/customers/CustomerAlerts"
+import CustomerTags from "@/components/customers/CustomerTags"
+import ChemicalChart from "@/components/customers/ChemicalChart"
 
 export const dynamic = "force-dynamic"
+
+const FREQUENCY_LABELS: Record<string, string> = {
+  weekly:    "Weekly",
+  biweekly:  "Bi-weekly",
+  monthly:   "Monthly",
+  quarterly: "Quarterly",
+  as_needed: "As needed",
+}
 
 export default async function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [customer, emailLogs, messages] = await Promise.all([
+  const [customer, emailLogs, messages, companyTags] = await Promise.all([
     db.customer.findFirst({
       where: { id, companyId },
       include: {
         notes: { orderBy: { createdAt: "desc" } },
-        serviceVisits: { orderBy: { visitedAt: "desc" }, take: 10 },
+        serviceVisits: { orderBy: { visitedAt: "desc" }, take: 20 },
         invoices: {
           orderBy: { createdAt: "desc" },
           take: 10,
@@ -33,6 +44,8 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         },
         equipment: { orderBy: { createdAt: "asc" } },
         routeStops: { include: { route: true } },
+        alerts: { orderBy: { createdAt: "desc" } },
+        tags: { include: { tag: true } },
       },
     }),
     db.emailLog.findMany({
@@ -45,6 +58,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       where: { customerId: id, companyId },
       orderBy: { createdAt: "asc" },
     }),
+    db.tag.findMany({ where: { companyId }, orderBy: { name: "asc" } }),
   ])
 
   if (!customer) notFound()
@@ -56,11 +70,35 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     customer.portalToken = portalToken
   }
 
+  // Outstanding balance calculation
+  const openInvoices = customer.invoices.filter((inv) =>
+    inv.status === "pending" || inv.status === "overdue"
+  )
+  const outstandingTotal = openInvoices.reduce((sum, inv) => {
+    const total = invoiceTotal(inv.items)
+    const paid  = inv.payments.reduce((s, p) => s + p.amount, 0)
+    return sum + Math.max(0, total - paid)
+  }, 0)
+
+  // Portal access info
+  const portalLastAccessed = customer.portalLastAccessedAt
+  const portalAccessLabel = portalLastAccessed
+    ? (() => {
+        const days = Math.floor((Date.now() - new Date(portalLastAccessed).getTime()) / (1000 * 60 * 60 * 24))
+        return days === 0 ? "Last accessed today" : `Last accessed ${days} day${days === 1 ? "" : "s"} ago`
+      })()
+    : "Never accessed"
+
   const deleteAction         = deleteCustomer.bind(null, id)
   const addNoteAction        = addCustomerNote.bind(null, id)
   const disableAutoPayAction = disableAutoPay.bind(null, id)
   const appUrl               = process.env.NEXT_PUBLIC_APP_URL ?? ""
   const portalUrl            = `${appUrl}/portal/${customer.portalToken}`
+
+  // Chemical chart data: visits with at least one reading
+  const visitsWithChemicals = customer.serviceVisits.filter(
+    (v) => v.chlorine != null || v.ph != null || v.alkalinity != null || v.calcium != null
+  )
 
   return (
     <div className="space-y-6">
@@ -108,6 +146,29 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         </div>
       </div>
 
+      {/* Outstanding balance widget */}
+      {outstandingTotal > 0 && (
+        <div className="flex items-center gap-3 rounded-xl bg-amber-50 border border-amber-200 px-5 py-3">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">Outstanding Balance</p>
+            <p className="text-xs text-amber-600 mt-0.5">{openInvoices.length} open invoice{openInvoices.length !== 1 ? "s" : ""}</p>
+          </div>
+          <p className="text-xl font-bold text-amber-900">{formatCurrency(outstandingTotal)}</p>
+        </div>
+      )}
+
+      {/* Tags */}
+      <Card>
+        <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Tags</h2></CardHeader>
+        <CardBody>
+          <CustomerTags
+            customerId={id}
+            tags={customer.tags}
+            companyTags={companyTags}
+          />
+        </CardBody>
+      </Card>
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Left column */}
         <div className="space-y-5">
@@ -140,8 +201,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             <CardBody className="space-y-2 text-sm text-gray-600">
               {customer.poolType && <p><span className="text-gray-400">Type:</span> {customer.poolType}</p>}
               {customer.poolSize && <p><span className="text-gray-400">Size:</span> {customer.poolSize} gal</p>}
+              {customer.serviceFrequency && (
+                <p><span className="text-gray-400">Frequency:</span> {FREQUENCY_LABELS[customer.serviceFrequency] ?? customer.serviceFrequency}</p>
+              )}
               {customer.poolNotes && <p className="text-gray-500">{customer.poolNotes}</p>}
-              {!customer.poolType && !customer.poolSize && !customer.poolNotes && (
+              {!customer.poolType && !customer.poolSize && !customer.poolNotes && !customer.serviceFrequency && (
                 <p className="text-gray-400">No pool details added.</p>
               )}
             </CardBody>
@@ -247,10 +311,29 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               )}
             </CardBody>
           </Card>
+
+          {/* Portal access */}
+          <Card>
+            <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Customer Portal</h2></CardHeader>
+            <CardBody className="space-y-2 text-sm text-gray-600">
+              <p className="text-xs text-gray-400 break-all">{portalUrl}</p>
+              <p className={`text-xs ${portalLastAccessed ? "text-green-600" : "text-gray-400"}`}>
+                Portal: {portalAccessLabel}
+              </p>
+            </CardBody>
+          </Card>
         </div>
 
         {/* Right column */}
         <div className="lg:col-span-2 space-y-5">
+          {/* Alerts / Flags */}
+          <Card>
+            <CardHeader><h2 className="font-semibold text-gray-900 text-sm">⚑ Alerts &amp; Flags</h2></CardHeader>
+            <CardBody>
+              <CustomerAlerts customerId={id} alerts={customer.alerts} />
+            </CardBody>
+          </Card>
+
           {/* Notes */}
           <Card>
             <CardHeader>
@@ -344,6 +427,26 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               </div>
             )}
           </Card>
+
+          {/* Chemical trending chart */}
+          {visitsWithChemicals.length > 0 && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-gray-900 text-sm">Chemical Trends</h2>
+              </CardHeader>
+              <CardBody>
+                <ChemicalChart
+                  visits={customer.serviceVisits.map((v) => ({
+                    visitedAt: v.visitedAt,
+                    chlorine: v.chlorine,
+                    ph: v.ph,
+                    alkalinity: v.alkalinity,
+                    calcium: v.calcium,
+                  }))}
+                />
+              </CardBody>
+            </Card>
+          )}
 
           {/* Messages */}
           <Card>

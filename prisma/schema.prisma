@@ -50,6 +50,7 @@ model Company {
   vendors           Vendor[]
   emailLogs         EmailLog[]
   messages          CustomerMessage[]
+  tags              Tag[]
 }
 
 model User {
@@ -97,7 +98,10 @@ model Customer {
   stripeCustomerId  String?  // Stripe Customer ID on the company's connected account
   autoPayEnabled    Boolean  @default(false)
   autoPayMethodId   String?  // saved Stripe PaymentMethod ID for auto-pay
-  portalToken       String?  @unique
+  portalToken          String?  @unique
+  portalLastAccessedAt DateTime?
+
+  serviceFrequency  String?  // weekly | biweekly | monthly | quarterly | as_needed
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -110,6 +114,8 @@ model Customer {
   notes         CustomerNote[]
   emailLogs     EmailLog[]
   messages      CustomerMessage[]
+  alerts        CustomerAlert[]
+  tags          CustomerTag[]
 }
 
 model CustomerNote {
@@ -331,6 +337,38 @@ model Equipment {
 
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model CustomerAlert {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  body       String
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  name      String
+  color     String   @default("#6b7280")
+
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  customers CustomerTag[]
+
+  @@unique([name, companyId])
+}
+
+model CustomerTag {
+  customerId String
+  tagId      String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, tagId])
 }
 
 model EmailLog {

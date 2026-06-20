@@ -54,6 +54,7 @@ export async function updateCustomer(id: string, formData: FormData) {
       monthlyRate: formData.get("monthlyRate") ? parseFloat(formData.get("monthlyRate") as string) : null,
       dueDays: formData.get("dueDays") ? parseInt(formData.get("dueDays") as string) : null,
       status: formData.get("status") as string,
+      serviceFrequency: (formData.get("serviceFrequency") as string) || null,
     },
   })
   revalidatePath(`/customers/${id}`)
