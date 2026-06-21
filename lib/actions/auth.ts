@@ -184,7 +184,7 @@ export async function changePassword(formData: FormData) {
     data: { password: hashed, mustChangePassword: false },
   })
 
-  // Sign out so the old JWT (with mustChangePassword: true) is discarded.
-  // User logs back in fresh — new JWT will have mustChangePassword: false.
-  await signOut({ redirectTo: "/login?changed=1" })
+  // requireSession() now checks mustChangePassword from the DB directly,
+  // so no sign-out is needed — just redirect to the app.
+  redirect("/dashboard")
 }

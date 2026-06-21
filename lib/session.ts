@@ -23,8 +23,17 @@ export async function requireSession() {
     redirect("/admin")
   }
 
-  // Force password change if flagged (e.g. after admin invite or reset)
-  if ((user as any).mustChangePassword) redirect("/change-password")
+  // Check mustChangePassword from the DB — the JWT value can be stale after
+  // a password change, so the DB is the authoritative source.
+  if (user.id) {
+    const dbUser = await db.user.findUnique({
+      where: { id: user.id },
+      select: { mustChangePassword: true },
+    })
+    if (dbUser?.mustChangePassword) redirect("/change-password")
+  } else if ((user as any).mustChangePassword) {
+    redirect("/change-password")
+  }
 
   return user
 }
