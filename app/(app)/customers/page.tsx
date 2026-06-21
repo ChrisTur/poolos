@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, Search, Pencil, Trash2, Download } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Download, ChevronRight } from "lucide-react"
 import Card from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatPhone } from "@/lib/utils"
@@ -148,10 +148,10 @@ export default async function CustomersPage({
             {customers.map((c) => {
               const deleteAction = deleteCustomer.bind(null, c.id)
               return (
-                <Card key={c.id} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <Link href={`/customers/${c.id}`} className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-900 truncate">{c.firstName} {c.lastName}</p>
+                <Card key={c.id} className="p-0 overflow-hidden">
+                  <Link href={`/customers/${c.id}`} className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 truncate">{c.firstName} {c.lastName}</p>
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
                         {c.phone ? formatPhone(c.phone) : c.email || c.city}
                       </p>
@@ -162,26 +162,23 @@ export default async function CustomersPage({
                           <span className="text-xs text-gray-400">{formatCurrency(c.monthlyRate)}/mo</span>
                         )}
                         {c.tags.map(({ tag }) => (
-                          <span
-                            key={tag.id}
-                            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-white"
-                            style={{ backgroundColor: tag.color }}
-                          >
+                          <span key={tag.id} className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
                             {tag.name}
                           </span>
                         ))}
                       </div>
-                    </Link>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Link href={`/customers/${c.id}/edit`}>
-                        <button className="p-2 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors">
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                      </Link>
-                      <ConfirmButton action={deleteAction} confirm={`Delete ${c.firstName} ${c.lastName}?`} variant="danger" size="sm" className="p-2">
-                        <Trash2 className="w-4 h-4" />
-                      </ConfirmButton>
                     </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                  </Link>
+                  <div className="flex items-center gap-1 border-t border-gray-100 px-3 py-1.5">
+                    <Link href={`/customers/${c.id}/edit`}>
+                      <button className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </Link>
+                    <ConfirmButton action={deleteAction} confirm={`Delete ${c.firstName} ${c.lastName}?`} variant="danger" size="sm" className="p-1.5">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </ConfirmButton>
                   </div>
                 </Card>
               )
@@ -207,9 +204,9 @@ export default async function CustomersPage({
                   {customers.map((c) => {
                     const deleteAction = deleteCustomer.bind(null, c.id)
                     return (
-                      <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={c.id} className="hover:bg-sky-50 transition-colors group">
                         <td className="px-5 py-3">
-                          <Link href={`/customers/${c.id}`} className="font-medium text-gray-900 hover:text-sky-600">
+                          <Link href={`/customers/${c.id}`} className="font-semibold text-sky-700 hover:text-sky-900 hover:underline">
                             {c.firstName} {c.lastName}
                           </Link>
                           <p className="text-xs text-gray-400 mt-0.5">
@@ -230,11 +227,7 @@ export default async function CustomersPage({
                         <td className="px-5 py-3 hidden lg:table-cell">
                           <div className="flex flex-wrap gap-1">
                             {c.tags.map(({ tag }) => (
-                              <span
-                                key={tag.id}
-                                className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium text-white"
-                                style={{ backgroundColor: tag.color }}
-                              >
+                              <span key={tag.id} className="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
                                 {tag.name}
                               </span>
                             ))}
@@ -242,6 +235,11 @@ export default async function CustomersPage({
                         </td>
                         <td className="px-5 py-3">
                           <div className="flex items-center justify-end gap-1">
+                            <Link href={`/customers/${c.id}`}>
+                              <button className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="View profile">
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </Link>
                             <Link href={`/customers/${c.id}/edit`}>
                               <button className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors" title="Edit">
                                 <Pencil className="w-4 h-4" />

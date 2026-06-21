@@ -1,18 +1,7 @@
 "use client"
 
 import { addTagToCustomer, removeTagFromCustomer } from "@/lib/actions/tags"
-import { useState } from "react"
 import type { Tag } from "@/app/generated/prisma/client"
-
-const PRESET_COLORS = [
-  { color: "#6b7280", label: "Gray" },
-  { color: "#3b82f6", label: "Blue" },
-  { color: "#22c55e", label: "Green" },
-  { color: "#ef4444", label: "Red" },
-  { color: "#eab308", label: "Yellow" },
-  { color: "#a855f7", label: "Purple" },
-  { color: "#ec4899", label: "Pink" },
-]
 
 interface CustomerTagsProps {
   customerId: string
@@ -21,7 +10,6 @@ interface CustomerTagsProps {
 }
 
 export default function CustomerTags({ customerId, tags, companyTags }: CustomerTagsProps) {
-  const [selectedColor, setSelectedColor] = useState("#6b7280")
   const addAction = addTagToCustomer.bind(null, customerId)
 
   return (
@@ -33,14 +21,13 @@ export default function CustomerTags({ customerId, tags, companyTags }: Customer
             return (
               <span
                 key={tag.id}
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
-                style={{ backgroundColor: tag.color }}
+                className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200"
               >
                 {tag.name}
                 <form action={removeAction} className="inline">
                   <button
                     type="submit"
-                    className="opacity-70 hover:opacity-100 transition-opacity leading-none"
+                    className="opacity-50 hover:opacity-100 transition-opacity leading-none"
                     title="Remove tag"
                   >
                     ×
@@ -52,29 +39,14 @@ export default function CustomerTags({ customerId, tags, companyTags }: Customer
         </div>
       )}
 
-      <form action={addAction} className="flex items-center gap-2 flex-wrap">
-        <input type="hidden" name="color" value={selectedColor} />
-        <div className="flex gap-1">
-          {PRESET_COLORS.map((p) => (
-            <button
-              key={p.color}
-              type="button"
-              title={p.label}
-              onClick={() => setSelectedColor(p.color)}
-              className="w-4 h-4 rounded-full border-2 transition-transform hover:scale-110"
-              style={{
-                backgroundColor: p.color,
-                borderColor: selectedColor === p.color ? "#000" : "transparent",
-              }}
-            />
-          ))}
-        </div>
+      <form action={addAction} className="flex items-center gap-2">
+        <input type="hidden" name="color" value="#6b7280" />
         <input
           name="tagName"
           list="company-tags"
-          placeholder="Add tag…"
+          placeholder="e.g. VIP, Seasonal…"
           required
-          className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 w-32"
+          className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 w-36"
         />
         <datalist id="company-tags">
           {companyTags.map((t) => (

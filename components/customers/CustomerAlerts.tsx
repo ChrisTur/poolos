@@ -41,7 +41,7 @@ export default function CustomerAlerts({ customerId, alerts }: CustomerAlertsPro
       <form action={addAction} className="flex gap-2">
         <input
           name="body"
-          placeholder="Add a flag or alert…"
+          placeholder="e.g. Gate code 4821, aggressive dog…"
           required
           className="flex-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm text-gray-900 placeholder-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
