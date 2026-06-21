@@ -101,8 +101,9 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 export async function logVisit(formData: FormData) {
   const { companyId, name: technicianName } = await requireSession()
 
-  const customerId  = formData.get("customerId") as string
-  const status      = (formData.get("status") as string) || "completed"
+  const customerId       = formData.get("customerId") as string
+  const status           = (formData.get("status") as string) || "completed"
+  const attachmentKeys   = formData.getAll("attachmentKey") as string[]
   const chlorine    = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
   const ph          = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
   const alkalinity  = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
@@ -208,6 +209,20 @@ export async function logVisit(formData: FormData) {
         },
       })
     }
+  }
+
+  // Save any photos uploaded during visit logging
+  if (attachmentKeys.length > 0) {
+    await db.attachment.createMany({
+      data: attachmentKeys.map((key) => ({
+        key,
+        filename: key.split("/").pop() ?? key,
+        mimeType: "image/jpeg",
+        customerId,
+        serviceVisitId: visit.id,
+        companyId,
+      })),
+    })
   }
 
   revalidatePath("/dashboard")

@@ -48,17 +48,9 @@ export default async function SchedulePage() {
       orderBy: [{ lastName: "asc" }],
     }),
     db.customer.findMany({
-      where: {
-        companyId,
-        status: "active",
-        serviceFrequency: { not: null },
-      },
+      where: { companyId, status: "active", serviceFrequency: { not: null } },
       include: {
-        alerts: { orderBy: { createdAt: "desc" } },
-        serviceVisits: {
-          orderBy: { visitedAt: "desc" },
-          take: 1,
-        },
+        serviceVisits: { orderBy: { visitedAt: "desc" }, take: 1 },
       },
       orderBy: [{ lastName: "asc" }],
     }),
@@ -95,31 +87,6 @@ export default async function SchedulePage() {
       if (b.daysSince == null) return 1
       return b.daysSince - a.daysSince
     })
-
-  // All customer alerts for the log visit form (keyed by customerId)
-  const alertsByCustomer: Record<string, { id: string; body: string }[]> = {}
-  for (const c of scheduledCustomers) {
-    if (c.alerts.length > 0) {
-      alertsByCustomer[c.id] = c.alerts.map((a) => ({ id: a.id, body: a.body }))
-    }
-  }
-  // Also include alerts from non-scheduled active customers
-  const allActiveWithAlerts = await db.customerAlert.findMany({
-    where: { customer: { companyId, status: "active" } },
-    include: { customer: { select: { id: true } } },
-  })
-  for (const alert of allActiveWithAlerts) {
-    if (!alertsByCustomer[alert.customer.id]) {
-      alertsByCustomer[alert.customer.id] = []
-    }
-    if (!alertsByCustomer[alert.customer.id].find((a) => a.id === alert.id)) {
-      alertsByCustomer[alert.customer.id].push({ id: alert.id, body: alert.body })
-    }
-  }
-
-  // Flatten all active customer alerts for the LogVisitForm (we pass all alerts and the form will show them based on selection — but since LogVisitForm is not reactive to customer selection, we pass an empty array here and rely on per-customer detail pages)
-  // Actually, for the schedule page, we show a combined list of all alerts. Pass a stable prop.
-  const allAlerts = Object.values(alertsByCustomer).flat()
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -168,7 +135,7 @@ export default async function SchedulePage() {
         <Card>
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
           <CardBody>
-            <LogVisitForm customers={customers} routes={routes} alerts={allAlerts} />
+            <LogVisitForm customers={customers} routes={routes}  />
           </CardBody>
         </Card>
       </div>
@@ -281,7 +248,7 @@ export default async function SchedulePage() {
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>
-              <LogVisitForm customers={customers} routes={routes} alerts={allAlerts} />
+              <LogVisitForm customers={customers} routes={routes}  />
             </CardBody>
           </Card>
         </div>
