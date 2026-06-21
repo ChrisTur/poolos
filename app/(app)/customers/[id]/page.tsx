@@ -161,7 +161,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
       {/* Tags */}
       <Card>
-        <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Tags</h2></CardHeader>
+        <CardHeader>
+          <h2 className="font-semibold text-gray-900 text-sm" title="Labels for organizing and filtering your customer list — e.g. VIP, Commercial, Seasonal">
+            Tags
+          </h2>
+          <p className="text-xs text-gray-400">Organize &amp; filter customers</p>
+        </CardHeader>
         <CardBody>
           <CustomerTags
             customerId={id}
@@ -330,7 +335,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         <div className="lg:col-span-2 space-y-5">
           {/* Alerts / Flags */}
           <Card>
-            <CardHeader><h2 className="font-semibold text-gray-900 text-sm">⚑ Alerts &amp; Flags</h2></CardHeader>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm" title="Warnings shown to techs before logging a visit — e.g. gate codes, aggressive pets, recurring issues">
+                ⚑ Alerts &amp; Flags
+              </h2>
+              <p className="text-xs text-gray-400">Shown to techs when logging a visit</p>
+            </CardHeader>
             <CardBody>
               <CustomerAlerts customerId={id} alerts={customer.alerts} />
             </CardBody>
