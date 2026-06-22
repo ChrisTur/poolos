@@ -19,10 +19,92 @@ import {
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
 
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"
+
 export const metadata: Metadata = {
   title: "PoolOS — Pool Service Management Software",
   description:
-    "Routes, invoicing, chemical tracking, and a client portal — everything your pool company needs, all in one place.",
+    "Pool service management software for scheduling, invoicing, chemical tracking, and customer communication. Start free for 14 days — no credit card required.",
+  alternates: {
+    canonical: BASE,
+  },
+  openGraph: {
+    title: "PoolOS — Pool Service Management Software",
+    description:
+      "Routes, invoicing, chemical tracking, and a customer portal — everything your pool company needs, all in one place.",
+    url: BASE,
+    type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PoolOS — Pool Service Management Software" }],
+  },
+  twitter: {
+    title: "PoolOS — Pool Service Management Software",
+    description:
+      "Routes, invoicing, chemical tracking, and a customer portal — everything your pool company needs, all in one place.",
+    images: ["/opengraph-image"],
+  },
+}
+
+const FAQ_ITEMS = [
+  {
+    q: "What is PoolOS?",
+    a: "PoolOS is cloud-based pool service management software built for pool cleaning and maintenance companies. It combines route scheduling, invoicing, chemical tracking, team management, and a customer portal in one place — so you can run your business from your phone.",
+  },
+  {
+    q: "How much does PoolOS cost?",
+    a: "PoolOS starts at $49/month for the Starter plan (up to 50 customers). The Pro plan is $99/month for up to 200 customers with unlimited staff, and the Unlimited plan is $199/month with no limits. All plans include a 14-day free trial — no credit card required.",
+  },
+  {
+    q: "Is there a free trial?",
+    a: "Yes. Every plan includes a 14-day free trial with full access to all features. No credit card is required to start.",
+  },
+  {
+    q: "Can my technicians log visits from their phones?",
+    a: "Yes. Technicians can log pool visits — including chemical readings, photos, and service notes — directly from any smartphone. Customers receive an automatic email summary when service is complete.",
+  },
+  {
+    q: "Do customers need to create an account to use the portal?",
+    a: "No. Each customer receives a unique private link to their portal. They can view visit history, chemical readings, pay invoices, and message your team without creating an account or downloading an app.",
+  },
+  {
+    q: "What payment methods does PoolOS support?",
+    a: "PoolOS supports online credit and debit card payments via Stripe, as well as Venmo, PayPal, Cash App, and Zelle. You can also enable auto-pay for recurring monthly customers so payments happen automatically.",
+  },
+]
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "PoolOS",
+      url: BASE,
+      description:
+        "Pool service management software for scheduling, invoicing, chemical tracking, and customer communication.",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web, iOS, Android",
+      offers: {
+        "@type": "AggregateOffer",
+        priceCurrency: "USD",
+        lowPrice: "49",
+        highPrice: "199",
+        offerCount: "3",
+      },
+    },
+    {
+      "@type": "Organization",
+      name: "PoolOS",
+      url: BASE,
+      logo: `${BASE}/opengraph-image`,
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: FAQ_ITEMS.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
+    },
+  ],
 }
 
 export default async function HomePage() {
@@ -31,7 +113,12 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <MarketingNav />
+      <main>
 
       {/* ── Hero ───────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50 pt-12 pb-16 sm:pt-20 sm:pb-24 lg:pt-24 lg:pb-32">
@@ -500,6 +587,32 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── FAQ ────────────────────────────────────────────────── */}
+      <section className="py-16 sm:py-24 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10 sm:mb-12">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3">Frequently asked questions</h2>
+            <p className="text-base sm:text-lg text-gray-400">Everything you need to know before you start.</p>
+          </div>
+
+          <dl className="space-y-4">
+            {FAQ_ITEMS.map((item) => (
+              <div key={item.q} className="rounded-2xl border border-gray-100 bg-gray-50 p-5 sm:p-6">
+                <dt className="text-sm sm:text-base font-semibold text-gray-900 mb-2">{item.q}</dt>
+                <dd className="text-sm text-gray-500 leading-relaxed">{item.a}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <p className="text-center text-sm text-gray-400 mt-8">
+            Still have questions?{" "}
+            <a href="mailto:hello@poolos.app" className="text-sky-600 hover:underline">
+              Reach out — we are happy to help.
+            </a>
+          </p>
+        </div>
+      </section>
+
       {/* ── Final CTA ──────────────────────────────────────────── */}
       <section className="py-16 sm:py-24 bg-sky-600">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -530,6 +643,8 @@ export default async function HomePage() {
           <p className="text-sky-200 text-sm mt-5">14 days free · No credit card · Cancel anytime</p>
         </div>
       </section>
+
+      </main>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
       <footer className="bg-gray-900 text-gray-400 py-10 sm:py-12">
