@@ -4,11 +4,21 @@ import { NextResponse } from "next/server"
 
 const { auth } = NextAuth(authConfig)
 
-const publicPaths = ["/login", "/register", "/api/auth"]
+const publicPrefixes = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/api/auth",
+  "/pay/",         // public invoice payment pages
+  "/portal/",      // customer portal (token-based)
+]
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
-  const isPublic = publicPaths.some((p) => pathname.startsWith(p))
+  const isPublic =
+    pathname === "/" ||
+    publicPrefixes.some((p) => pathname.startsWith(p))
 
   if (!req.auth && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url))
