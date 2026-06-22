@@ -1,5 +1,569 @@
+import type { Metadata } from "next"
+import { auth } from "@/auth"
 import { redirect } from "next/navigation"
+import Link from "next/link"
+import {
+  CalendarDays,
+  FileText,
+  Beaker,
+  LayoutDashboard,
+  Camera,
+  BarChart3,
+  CheckCircle2,
+  ChevronRight,
+  Waves,
+  Star,
+  MessageSquare,
+  Zap,
+  CreditCard,
+} from "lucide-react"
 
-export default function Home() {
-  redirect("/dashboard")
+export const metadata: Metadata = {
+  title: "PoolOS — Pool Service Management Software",
+  description:
+    "Routes, invoicing, chemical tracking, and a client portal — everything your pool company needs, all in one place.",
+}
+
+export default async function HomePage() {
+  const session = await auth()
+  if (session?.user) redirect("/dashboard")
+
+  return (
+    <div className="min-h-screen bg-white text-gray-900 antialiased">
+      {/* ── Navigation ─────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center">
+              <Waves className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">PoolOS</span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <nav className="hidden md:flex items-center gap-7">
+            <a href="#features" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Features</a>
+            <a href="#how-it-works" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">How it works</a>
+            <a href="#pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
+          </nav>
+
+          {/* CTAs */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:inline"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Start free trial
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Hero ───────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50 pt-16 pb-24 sm:pt-24 sm:pb-32">
+        {/* Background blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-sky-100/60 blur-3xl" />
+          <div className="absolute top-1/2 -left-20 w-64 h-64 rounded-full bg-sky-100/40 blur-2xl" />
+        </div>
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            {/* Copy */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+                <Zap className="w-3.5 h-3.5" />
+                Now in early access
+              </div>
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight tracking-tight mb-5">
+                The smarter way to run your{" "}
+                <span className="text-sky-600">pool service business</span>
+              </h1>
+              <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-lg">
+                Routes, invoicing, chemical tracking, and a client portal — everything your team needs to deliver great service and get paid faster.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold px-6 py-3.5 rounded-xl transition-colors text-sm"
+                >
+                  Start free — 14 days, no card needed
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center justify-center gap-2 border border-gray-200 hover:border-gray-300 text-gray-700 font-semibold px-6 py-3.5 rounded-xl transition-colors text-sm"
+                >
+                  Sign in to your account
+                </Link>
+              </div>
+
+              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+                {["No credit card required", "14-day free trial", "Cancel anytime"].map((t) => (
+                  <span key={t} className="flex items-center gap-1.5 text-xs text-gray-400">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500" />
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Dashboard mockup */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-sky-200/30 rounded-3xl blur-2xl scale-95 translate-y-4" />
+              <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+                {/* Browser chrome */}
+                <div className="flex items-center gap-1.5 px-4 py-3 border-b border-gray-100 bg-gray-50">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                  <div className="flex-1 mx-3 h-5 rounded bg-white border border-gray-200 flex items-center px-2.5">
+                    <span className="text-[10px] text-gray-400">poolos.app/dashboard</span>
+                  </div>
+                </div>
+
+                <div className="p-4 space-y-4">
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "Active Customers", value: "47" },
+                      { label: "Revenue (MTD)", value: "$8,240" },
+                      { label: "Visits Today", value: "12" },
+                    ].map((s) => (
+                      <div key={s.label} className="bg-sky-50 rounded-xl p-3">
+                        <p className="text-[9px] text-sky-600 font-medium mb-0.5">{s.label}</p>
+                        <p className="text-base font-bold text-gray-900">{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Route stops */}
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">{"Today's Route"}</p>
+                    <div className="space-y-2">
+                      {[
+                        { name: "Johnson Family",  chem: "Cl 2.1 · pH 7.4", status: "done" },
+                        { name: "Martinez Pool",   chem: "Cl 1.8 · pH 7.6", status: "done" },
+                        { name: "Williams Estate", chem: "",                  status: "next" },
+                        { name: "Chen Residence",  chem: "",                  status: "up"   },
+                      ].map((v) => (
+                        <div key={v.name} className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium text-gray-900 truncate">{v.name}</p>
+                            {v.chem && <p className="text-[9px] text-gray-400">{v.chem}</p>}
+                          </div>
+                          <span
+                            className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              v.status === "done"
+                                ? "bg-green-100 text-green-700"
+                                : v.status === "next"
+                                ? "bg-sky-100 text-sky-700"
+                                : "bg-gray-100 text-gray-500"
+                            }`}
+                          >
+                            {v.status === "done" ? "Done" : v.status === "next" ? "Up next" : "Later"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Chemical readings */}
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { label: "Cl",  value: "2.1", color: "bg-blue-100 text-blue-700"   },
+                      { label: "pH",  value: "7.4", color: "bg-green-100 text-green-700" },
+                      { label: "Alk", value: "95",  color: "bg-orange-100 text-orange-700" },
+                      { label: "Ca",  value: "280", color: "bg-purple-100 text-purple-700" },
+                    ].map((r) => (
+                      <div key={r.label} className={`rounded-lg p-2 ${r.color}`}>
+                        <p className="text-[9px] font-medium opacity-80">{r.label}</p>
+                        <p className="text-xs font-bold">{r.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Features ───────────────────────────────────────────── */}
+      <section id="features" className="py-20 sm:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Everything in one place</h2>
+            <p className="text-lg text-gray-400 max-w-xl mx-auto">
+              Stop juggling spreadsheets, paper routes, and separate tools. PoolOS brings your whole operation together.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: CalendarDays,
+                color: "bg-sky-100 text-sky-600",
+                title: "Smart Scheduling",
+                body: "Build routes by day of the week, track overdue customers, and let your techs see exactly where they're going — all from their phone.",
+              },
+              {
+                icon: FileText,
+                color: "bg-green-100 text-green-600",
+                title: "Invoicing & Payments",
+                body: "Create and send invoices in seconds. Customers pay online via card, Venmo, or Zelle. Set up auto-pay so you never chase a payment again.",
+              },
+              {
+                icon: Beaker,
+                color: "bg-purple-100 text-purple-600",
+                title: "Chemical Tracking",
+                body: "Log chlorine, pH, alkalinity, and calcium with every visit. Trend charts make it easy to spot problem pools before they escalate.",
+              },
+              {
+                icon: LayoutDashboard,
+                color: "bg-amber-100 text-amber-600",
+                title: "Customer Portal",
+                body: "Give every customer a private portal where they can see visit history, chemical readings, invoices, and message your team directly.",
+              },
+              {
+                icon: Camera,
+                color: "bg-rose-100 text-rose-600",
+                title: "Field Reports",
+                body: "Techs log visits with photos, chemical readings, and notes right from their phone. Customers get notified automatically when service is done.",
+              },
+              {
+                icon: BarChart3,
+                color: "bg-indigo-100 text-indigo-600",
+                title: "Reports & Analytics",
+                body: "Revenue reports, aging invoices, chemical trends, and route analytics — the numbers you need to grow your business confidently.",
+              },
+            ].map((f) => (
+              <div
+                key={f.title}
+                className="p-6 rounded-2xl border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all bg-white"
+              >
+                <div className={`inline-flex p-2.5 rounded-xl ${f.color} mb-4`}>
+                  <f.icon className="w-5 h-5" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{f.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How it works ───────────────────────────────────────── */}
+      <section id="how-it-works" className="py-20 sm:py-28 bg-sky-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Up and running in minutes</h2>
+            <p className="text-lg text-gray-400">No lengthy onboarding, no consultant required.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-10 relative">
+            <div className="hidden sm:block absolute top-7 left-[calc(16.666%+2rem)] right-[calc(16.666%+2rem)] h-0.5 bg-sky-200" />
+            {[
+              {
+                step: "1",
+                title: "Add your customers & routes",
+                body: "Import your customer list or add them one by one. Build routes by day of week and set service frequencies per customer.",
+              },
+              {
+                step: "2",
+                title: "Techs log visits from the field",
+                body: "Your team logs chemical readings, photos, and notes right from their phone. Customers get an automatic email when service is complete.",
+              },
+              {
+                step: "3",
+                title: "Invoice and get paid",
+                body: "Send invoices with one click. Customers pay online, or set up auto-pay so you never have to chase a payment again.",
+              },
+            ].map((s) => (
+              <div key={s.step} className="flex flex-col items-center text-center relative">
+                <div className="w-14 h-14 rounded-full bg-sky-600 text-white text-xl font-bold flex items-center justify-center mb-5 shrink-0 relative z-10 shadow-lg shadow-sky-200">
+                  {s.step}
+                </div>
+                <h3 className="text-base font-semibold text-gray-900 mb-2">{s.title}</h3>
+                <p className="text-sm text-gray-400 leading-relaxed">{s.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Customer portal spotlight ───────────────────────────── */}
+      <section className="py-20 sm:py-28 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Portal preview */}
+            <div className="relative order-2 lg:order-1">
+              <div className="absolute inset-0 bg-sky-100/50 rounded-3xl blur-2xl scale-95" />
+              <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+                <div className="bg-sky-600 px-5 py-4 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                    <Waves className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-sky-200 font-medium">Sparkling Blue Pool Service</p>
+                    <p className="text-sm text-white font-semibold">Johnson Family Portal</p>
+                  </div>
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="flex gap-3">
+                    {[
+                      { label: "Last Visit", value: "Jun 18" },
+                      { label: "Balance", value: "$0.00" },
+                      { label: "Visits YTD", value: "24" },
+                    ].map((s) => (
+                      <div key={s.label} className="flex-1 bg-gray-50 rounded-xl p-3">
+                        <p className="text-[9px] text-gray-400 font-medium">{s.label}</p>
+                        <p className="text-sm font-bold text-gray-900">{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3.5">
+                    <div className="flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs font-semibold text-green-800">Service completed · Jun 18</p>
+                        <p className="text-[11px] text-green-700 mt-0.5">
+                          All chemical readings within normal range. Pool is clean and looking great.
+                        </p>
+                        <p className="text-[10px] text-green-600 mt-1">Cl 2.1 · pH 7.4 · Alk 95 · Ca 280</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5 p-3.5 border border-gray-100 rounded-xl">
+                    <MessageSquare className="w-4 h-4 text-sky-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700">Message your service team</p>
+                      <p className="text-[11px] text-gray-400 mt-0.5">Send a question, request a repair, or just say hi.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Copy */}
+            <div className="order-1 lg:order-2">
+              <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+                <Star className="w-3.5 h-3.5" />
+                Customer portal included on every plan
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-5">
+                Give customers a portal they will actually use
+              </h2>
+              <p className="text-gray-400 leading-relaxed mb-6">
+                Every customer gets a private, branded portal where they can see every service visit, chemical readings, invoices, and message your team — no app download or account creation required.
+              </p>
+              <ul className="space-y-3">
+                {[
+                  "Full visit history and chemical trend charts",
+                  "Pay outstanding invoices online in seconds",
+                  "Two-way messaging with your team",
+                  "Automatically sent after every completed visit",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-gray-600">
+                    <CheckCircle2 className="w-4 h-4 text-sky-500 mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ────────────────────────────────────────────── */}
+      <section id="pricing" className="py-20 sm:py-28 bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Simple, transparent pricing</h2>
+            <p className="text-lg text-gray-400">Start free for 14 days. No credit card required.</p>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-6 items-start">
+            {[
+              {
+                name: "Starter",
+                price: "$49",
+                description: "Perfect for solo operators just getting started.",
+                highlight: false,
+                features: [
+                  "Up to 50 customers",
+                  "2 staff accounts",
+                  "Invoicing & payments",
+                  "Route scheduling",
+                  "Customer portal",
+                  "Email notifications",
+                ],
+              },
+              {
+                name: "Pro",
+                price: "$99",
+                description: "For growing companies with multiple techs.",
+                highlight: true,
+                features: [
+                  "Up to 200 customers",
+                  "Unlimited staff",
+                  "Everything in Starter",
+                  "Chemical trend reports",
+                  "Bulk invoicing",
+                  "Priority support",
+                ],
+              },
+              {
+                name: "Unlimited",
+                price: "$199",
+                description: "Enterprise-scale operations with no limits.",
+                highlight: false,
+                features: [
+                  "Unlimited customers",
+                  "Unlimited staff",
+                  "Everything in Pro",
+                  "Advanced analytics",
+                  "Custom branding",
+                  "Dedicated support",
+                ],
+              },
+            ].map((plan) => (
+              <div
+                key={plan.name}
+                className={`rounded-2xl p-7 border flex flex-col ${
+                  plan.highlight
+                    ? "bg-sky-600 text-white border-sky-600 shadow-lg shadow-sky-200 sm:-mt-3 sm:-mb-3"
+                    : "bg-white text-gray-900 border-gray-200"
+                }`}
+              >
+                <div className="mb-5">
+                  {plan.highlight && (
+                    <span className="text-xs font-semibold bg-white/20 text-white px-2.5 py-1 rounded-full mb-3 inline-block">
+                      Most popular
+                    </span>
+                  )}
+                  <p className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-sky-100" : "text-gray-500"}`}>
+                    {plan.name}
+                  </p>
+                  <div className="flex items-end gap-1">
+                    <span className="text-4xl font-extrabold">{plan.price}</span>
+                    <span className={`text-sm mb-1 ${plan.highlight ? "text-sky-200" : "text-gray-400"}`}>/mo</span>
+                  </div>
+                  <p className={`text-sm mt-2 ${plan.highlight ? "text-sky-100" : "text-gray-400"}`}>
+                    {plan.description}
+                  </p>
+                </div>
+
+                <ul className="space-y-2.5 flex-1 mb-6">
+                  {plan.features.map((f) => (
+                    <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-white" : "text-gray-600"}`}>
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-sky-200" : "text-sky-500"}`} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href="/register"
+                  className={`block text-center py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    plan.highlight
+                      ? "bg-white text-sky-600 hover:bg-sky-50"
+                      : "bg-sky-600 text-white hover:bg-sky-700"
+                  }`}
+                >
+                  Start free trial
+                </Link>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-8">
+            All plans include a 14-day free trial. No credit card required to start.
+          </p>
+        </div>
+      </section>
+
+      {/* ── Final CTA ──────────────────────────────────────────── */}
+      <section className="py-20 sm:py-28 bg-sky-600">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-6">
+            <CreditCard className="w-7 h-7 text-white" />
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-5">
+            Ready to grow your pool business?
+          </h2>
+          <p className="text-sky-100 text-lg mb-8">
+            Join pool professionals already using PoolOS to schedule smarter, invoice faster, and keep customers happy.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/register"
+              className="inline-flex items-center justify-center gap-2 bg-white text-sky-600 font-semibold px-7 py-3.5 rounded-xl hover:bg-sky-50 transition-colors"
+            >
+              Start your free trial
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center gap-2 border border-sky-400 text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-sky-700 transition-colors"
+            >
+              Sign in
+            </Link>
+          </div>
+          <p className="text-sky-200 text-sm mt-5">14 days free · No credit card · Cancel anytime</p>
+        </div>
+      </section>
+
+      {/* ── Footer ─────────────────────────────────────────────── */}
+      <footer className="bg-gray-900 text-gray-400 py-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
+            <div>
+              <Link href="/" className="flex items-center gap-2 mb-3">
+                <div className="w-7 h-7 rounded-md bg-sky-600 flex items-center justify-center">
+                  <Waves className="w-4 h-4 text-white" />
+                </div>
+                <span className="text-base font-bold text-white">PoolOS</span>
+              </Link>
+              <p className="text-sm text-gray-500 max-w-xs leading-relaxed">
+                Pool service management software built for the way pool professionals actually work.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-4 text-sm">
+              <div className="space-y-2.5">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</p>
+                <a href="#features" className="block hover:text-white transition-colors">Features</a>
+                <a href="#pricing" className="block hover:text-white transition-colors">Pricing</a>
+                <a href="#how-it-works" className="block hover:text-white transition-colors">How it works</a>
+              </div>
+              <div className="space-y-2.5">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Account</p>
+                <Link href="/register" className="block hover:text-white transition-colors">Sign up</Link>
+                <Link href="/login" className="block hover:text-white transition-colors">Sign in</Link>
+              </div>
+              <div className="space-y-2.5 col-span-2 sm:col-span-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Legal</p>
+                <span className="block text-gray-600 cursor-not-allowed">Privacy Policy</span>
+                <span className="block text-gray-600 cursor-not-allowed">Terms of Service</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-gray-800 mt-10 pt-8 text-xs text-gray-600">
+            © {new Date().getFullYear()} PoolOS. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
 }
