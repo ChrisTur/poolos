@@ -30,5 +30,3 @@
 - [ ] Chemical trend alerts — flag customers whose readings are consistently out of range across multiple visits
 - [ ] QuickBooks / Xero export — formatted CSV or direct integration for accounting sync
 - [ ] Bulk operations — select multiple customers to send a message, generate invoices, or apply a tag
-- [ ] GCS CORS setup — run `gcloud storage buckets update gs://poolos-uploads --cors-file=cors.json` in Cloud Shell so photo uploads work in production
-- [ ] Add Netlify env vars for GCS — `GCS_SERVICE_ACCOUNT_KEY`, `GCS_BUCKET`, `GCS_PUBLIC_URL`, `NEXT_PUBLIC_GCS_PUBLIC_URL`
