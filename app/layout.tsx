@@ -13,8 +13,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PoolOS",
-  description: "Pool service route management",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"),
+  title: {
+    default: "PoolOS — Pool Service Management Software",
+    template: "%s | PoolOS",
+  },
+  description:
+    "Pool service management software for scheduling, invoicing, chemical tracking, and customer communication. Start free for 14 days.",
+  openGraph: {
+    siteName: "PoolOS",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({
@@ -25,7 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
       <body className="h-full">{children}</body>
     </html>
