@@ -17,6 +17,7 @@ import {
   Zap,
   CreditCard,
 } from "lucide-react"
+import MarketingNav from "@/components/marketing/MarketingNav"
 
 export const metadata: Metadata = {
   title: "PoolOS — Pool Service Management Software",
@@ -29,65 +30,29 @@ export default async function HomePage() {
   if (session?.user) redirect("/dashboard")
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 antialiased">
-      {/* ── Navigation ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center">
-              <Waves className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-gray-900">PoolOS</span>
-          </Link>
-
-          {/* Desktop nav links */}
-          <nav className="hidden md:flex items-center gap-7">
-            <a href="#features" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Features</a>
-            <a href="#how-it-works" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">How it works</a>
-            <a href="#pricing" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Pricing</a>
-          </nav>
-
-          {/* CTAs */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors hidden sm:inline"
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              Start free trial
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-white text-gray-900">
+      <MarketingNav />
 
       {/* ── Hero ───────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50 pt-16 pb-24 sm:pt-24 sm:pb-32">
-        {/* Background blobs */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-white to-sky-50 pt-12 pb-16 sm:pt-20 sm:pb-24 lg:pt-24 lg:pb-32">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-sky-100/60 blur-3xl" />
           <div className="absolute top-1/2 -left-20 w-64 h-64 rounded-full bg-sky-100/40 blur-2xl" />
         </div>
 
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             {/* Copy */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+              <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
                 <Zap className="w-3.5 h-3.5" />
                 Now in early access
               </div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-tight tracking-tight mb-5">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 leading-tight tracking-tight mb-4 sm:mb-5">
                 The smarter way to run your{" "}
                 <span className="text-sky-600">pool service business</span>
               </h1>
-              <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-lg">
+              <p className="text-base sm:text-lg text-gray-500 leading-relaxed mb-6 sm:mb-8 max-w-lg">
                 Routes, invoicing, chemical tracking, and a client portal — everything your team needs to deliver great service and get paid faster.
               </p>
 
@@ -107,18 +72,18 @@ export default async function HomePage() {
                 </Link>
               </div>
 
-              <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
+              <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
                 {["No credit card required", "14-day free trial", "Cancel anytime"].map((t) => (
                   <span key={t} className="flex items-center gap-1.5 text-xs text-gray-400">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 shrink-0" />
                     {t}
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Dashboard mockup */}
-            <div className="relative">
+            {/* Dashboard mockup — desktop only (lg+) */}
+            <div className="hidden lg:block relative">
               <div className="absolute inset-0 bg-sky-200/30 rounded-3xl blur-2xl scale-95 translate-y-4" />
               <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
                 {/* Browser chrome */}
@@ -130,14 +95,13 @@ export default async function HomePage() {
                     <span className="text-[10px] text-gray-400">poolos.app/dashboard</span>
                   </div>
                 </div>
-
                 <div className="p-4 space-y-4">
                   {/* Stats */}
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { label: "Active Customers", value: "47" },
-                      { label: "Revenue (MTD)", value: "$8,240" },
-                      { label: "Visits Today", value: "12" },
+                      { label: "Revenue (MTD)",    value: "$8,240" },
+                      { label: "Visits Today",     value: "12" },
                     ].map((s) => (
                       <div key={s.label} className="bg-sky-50 rounded-xl p-3">
                         <p className="text-[9px] text-sky-600 font-medium mb-0.5">{s.label}</p>
@@ -145,8 +109,7 @@ export default async function HomePage() {
                       </div>
                     ))}
                   </div>
-
-                  {/* Route stops */}
+                  {/* Route */}
                   <div className="bg-gray-50 rounded-xl p-3">
                     <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">{"Today's Route"}</p>
                     <div className="space-y-2">
@@ -161,27 +124,22 @@ export default async function HomePage() {
                             <p className="text-xs font-medium text-gray-900 truncate">{v.name}</p>
                             {v.chem && <p className="text-[9px] text-gray-400">{v.chem}</p>}
                           </div>
-                          <span
-                            className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
-                              v.status === "done"
-                                ? "bg-green-100 text-green-700"
-                                : v.status === "next"
-                                ? "bg-sky-100 text-sky-700"
-                                : "bg-gray-100 text-gray-500"
-                            }`}
-                          >
+                          <span className={`shrink-0 text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            v.status === "done" ? "bg-green-100 text-green-700"
+                            : v.status === "next" ? "bg-sky-100 text-sky-700"
+                            : "bg-gray-100 text-gray-500"
+                          }`}>
                             {v.status === "done" ? "Done" : v.status === "next" ? "Up next" : "Later"}
                           </span>
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  {/* Chemical readings */}
+                  {/* Readings */}
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { label: "Cl",  value: "2.1", color: "bg-blue-100 text-blue-700"   },
-                      { label: "pH",  value: "7.4", color: "bg-green-100 text-green-700" },
+                      { label: "Cl",  value: "2.1", color: "bg-blue-100 text-blue-700"     },
+                      { label: "pH",  value: "7.4", color: "bg-green-100 text-green-700"   },
                       { label: "Alk", value: "95",  color: "bg-orange-100 text-orange-700" },
                       { label: "Ca",  value: "280", color: "bg-purple-100 text-purple-700" },
                     ].map((r) => (
@@ -194,21 +152,36 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
+
+            {/* Mobile feature pills — visible only below lg, replaces the mockup */}
+            <div className="lg:hidden grid grid-cols-2 gap-3">
+              {[
+                { icon: CalendarDays, label: "Smart scheduling",     color: "bg-sky-50 text-sky-600 border-sky-100"    },
+                { icon: FileText,     label: "Invoicing & payments", color: "bg-green-50 text-green-600 border-green-100" },
+                { icon: Beaker,       label: "Chemical tracking",    color: "bg-purple-50 text-purple-600 border-purple-100" },
+                { icon: MessageSquare, label: "Customer portal",     color: "bg-amber-50 text-amber-600 border-amber-100"   },
+              ].map((f) => (
+                <div key={f.label} className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl border ${f.color}`}>
+                  <f.icon className="w-4 h-4 shrink-0" />
+                  <span className="text-xs font-medium leading-tight">{f.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
 
       {/* ── Features ───────────────────────────────────────────── */}
-      <section id="features" className="py-20 sm:py-28 bg-white">
+      <section id="features" className="py-16 sm:py-24 bg-white scroll-mt-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Everything in one place</h2>
-            <p className="text-lg text-gray-400 max-w-xl mx-auto">
-              Stop juggling spreadsheets, paper routes, and separate tools. PoolOS brings your whole operation together.
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Everything in one place</h2>
+            <p className="text-base sm:text-lg text-gray-400 max-w-xl mx-auto">
+              Stop juggling spreadsheets, paper routes, and separate tools.
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[
               {
                 icon: CalendarDays,
@@ -249,12 +222,12 @@ export default async function HomePage() {
             ].map((f) => (
               <div
                 key={f.title}
-                className="p-6 rounded-2xl border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all bg-white"
+                className="p-5 sm:p-6 rounded-2xl border border-gray-100 hover:border-sky-200 hover:shadow-md transition-all bg-white"
               >
-                <div className={`inline-flex p-2.5 rounded-xl ${f.color} mb-4`}>
+                <div className={`inline-flex p-2.5 rounded-xl ${f.color} mb-3 sm:mb-4`}>
                   <f.icon className="w-5 h-5" />
                 </div>
-                <h3 className="text-base font-semibold text-gray-900 mb-2">{f.title}</h3>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1.5 sm:mb-2">{f.title}</h3>
                 <p className="text-sm text-gray-400 leading-relaxed">{f.body}</p>
               </div>
             ))}
@@ -263,15 +236,15 @@ export default async function HomePage() {
       </section>
 
       {/* ── How it works ───────────────────────────────────────── */}
-      <section id="how-it-works" className="py-20 sm:py-28 bg-sky-50">
+      <section id="how-it-works" className="py-16 sm:py-24 bg-sky-50 scroll-mt-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Up and running in minutes</h2>
-            <p className="text-lg text-gray-400">No lengthy onboarding, no consultant required.</p>
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Up and running in minutes</h2>
+            <p className="text-base sm:text-lg text-gray-400">No lengthy onboarding, no consultant required.</p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-10 relative">
-            <div className="hidden sm:block absolute top-7 left-[calc(16.666%+2rem)] right-[calc(16.666%+2rem)] h-0.5 bg-sky-200" />
+          {/* Mobile: vertical steps */}
+          <div className="sm:hidden space-y-6">
             {[
               {
                 step: "1",
@@ -286,7 +259,42 @@ export default async function HomePage() {
               {
                 step: "3",
                 title: "Invoice and get paid",
-                body: "Send invoices with one click. Customers pay online, or set up auto-pay so you never have to chase a payment again.",
+                body: "Send invoices with one click. Customers pay online, or set up auto-pay so you never chase a payment again.",
+              },
+            ].map((s) => (
+              <div key={s.step} className="flex gap-4">
+                <div className="flex flex-col items-center">
+                  <div className="w-10 h-10 rounded-full bg-sky-600 text-white text-base font-bold flex items-center justify-center shrink-0 shadow-md shadow-sky-200">
+                    {s.step}
+                  </div>
+                  {s.step !== "3" && <div className="w-0.5 flex-1 bg-sky-200 mt-2 mb-0 min-h-[2rem]" />}
+                </div>
+                <div className="pb-6">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">{s.title}</h3>
+                  <p className="text-sm text-gray-400 leading-relaxed">{s.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: horizontal steps */}
+          <div className="hidden sm:grid sm:grid-cols-3 gap-10 relative">
+            <div className="absolute top-7 left-[calc(16.666%+2rem)] right-[calc(16.666%+2rem)] h-0.5 bg-sky-200" />
+            {[
+              {
+                step: "1",
+                title: "Add your customers & routes",
+                body: "Import your customer list or add them one by one. Build routes by day of week and set service frequencies per customer.",
+              },
+              {
+                step: "2",
+                title: "Techs log visits from the field",
+                body: "Your team logs chemical readings, photos, and notes right from their phone. Customers get an automatic email when service is complete.",
+              },
+              {
+                step: "3",
+                title: "Invoice and get paid",
+                body: "Send invoices with one click. Customers pay online, or set up auto-pay so you never chase a payment again.",
               },
             ].map((s) => (
               <div key={s.step} className="flex flex-col items-center text-center relative">
@@ -302,30 +310,30 @@ export default async function HomePage() {
       </section>
 
       {/* ── Customer portal spotlight ───────────────────────────── */}
-      <section className="py-20 sm:py-28 bg-white">
+      <section className="py-16 sm:py-24 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-12 items-center">
             {/* Portal preview */}
             <div className="relative order-2 lg:order-1">
               <div className="absolute inset-0 bg-sky-100/50 rounded-3xl blur-2xl scale-95" />
-              <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+              <div className="relative bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden max-w-sm mx-auto lg:max-w-none">
                 <div className="bg-sky-600 px-5 py-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
                     <Waves className="w-5 h-5 text-white" />
                   </div>
-                  <div>
-                    <p className="text-xs text-sky-200 font-medium">Sparkling Blue Pool Service</p>
+                  <div className="min-w-0">
+                    <p className="text-xs text-sky-200 font-medium truncate">Sparkling Blue Pool Service</p>
                     <p className="text-sm text-white font-semibold">Johnson Family Portal</p>
                   </div>
                 </div>
                 <div className="p-4 space-y-3">
-                  <div className="flex gap-3">
+                  <div className="flex gap-2 sm:gap-3">
                     {[
                       { label: "Last Visit", value: "Jun 18" },
-                      { label: "Balance", value: "$0.00" },
-                      { label: "Visits YTD", value: "24" },
+                      { label: "Balance",    value: "$0.00"  },
+                      { label: "Visits YTD", value: "24"     },
                     ].map((s) => (
-                      <div key={s.label} className="flex-1 bg-gray-50 rounded-xl p-3">
+                      <div key={s.label} className="flex-1 bg-gray-50 rounded-xl p-2.5 sm:p-3">
                         <p className="text-[9px] text-gray-400 font-medium">{s.label}</p>
                         <p className="text-sm font-bold text-gray-900">{s.value}</p>
                       </div>
@@ -356,17 +364,17 @@ export default async function HomePage() {
 
             {/* Copy */}
             <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
+              <div className="inline-flex items-center gap-2 bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-4 sm:mb-5">
                 <Star className="w-3.5 h-3.5" />
                 Customer portal included on every plan
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-5">
+              <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 leading-tight mb-4 sm:mb-5">
                 Give customers a portal they will actually use
               </h2>
-              <p className="text-gray-400 leading-relaxed mb-6">
+              <p className="text-gray-400 leading-relaxed mb-5 sm:mb-6 text-sm sm:text-base">
                 Every customer gets a private, branded portal where they can see every service visit, chemical readings, invoices, and message your team — no app download or account creation required.
               </p>
-              <ul className="space-y-3">
+              <ul className="space-y-2.5 sm:space-y-3">
                 {[
                   "Full visit history and chemical trend charts",
                   "Pay outstanding invoices online in seconds",
@@ -385,14 +393,14 @@ export default async function HomePage() {
       </section>
 
       {/* ── Pricing ────────────────────────────────────────────── */}
-      <section id="pricing" className="py-20 sm:py-28 bg-gray-50">
+      <section id="pricing" className="py-16 sm:py-24 bg-gray-50 scroll-mt-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">Simple, transparent pricing</h2>
-            <p className="text-lg text-gray-400">Start free for 14 days. No credit card required.</p>
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold text-gray-900 mb-3 sm:mb-4">Simple, transparent pricing</h2>
+            <p className="text-base sm:text-lg text-gray-400">Start free for 14 days. No credit card required.</p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-6 items-start">
+          <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 items-start">
             {[
               {
                 name: "Starter",
@@ -439,9 +447,9 @@ export default async function HomePage() {
             ].map((plan) => (
               <div
                 key={plan.name}
-                className={`rounded-2xl p-7 border flex flex-col ${
+                className={`rounded-2xl p-6 sm:p-7 border flex flex-col ${
                   plan.highlight
-                    ? "bg-sky-600 text-white border-sky-600 shadow-lg shadow-sky-200 sm:-mt-3 sm:-mb-3"
+                    ? "bg-sky-600 text-white border-sky-600 shadow-xl shadow-sky-200 sm:-mt-3 sm:-mb-3"
                     : "bg-white text-gray-900 border-gray-200"
                 }`}
               >
@@ -493,15 +501,15 @@ export default async function HomePage() {
       </section>
 
       {/* ── Final CTA ──────────────────────────────────────────── */}
-      <section className="py-20 sm:py-28 bg-sky-600">
+      <section className="py-16 sm:py-24 bg-sky-600">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-6">
-            <CreditCard className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-5 sm:mb-6">
+            <CreditCard className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-5">
+          <h2 className="text-2xl sm:text-4xl font-bold text-white mb-4 sm:mb-5">
             Ready to grow your pool business?
           </h2>
-          <p className="text-sky-100 text-lg mb-8">
+          <p className="text-sky-100 text-base sm:text-lg mb-7 sm:mb-8">
             Join pool professionals already using PoolOS to schedule smarter, invoice faster, and keep customers happy.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -524,7 +532,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Footer ─────────────────────────────────────────────── */}
-      <footer className="bg-gray-900 text-gray-400 py-12">
+      <footer className="bg-gray-900 text-gray-400 py-10 sm:py-12">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-8">
             <div>
@@ -539,17 +547,17 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-4 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-6 text-sm w-full sm:w-auto">
               <div className="space-y-2.5">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</p>
-                <a href="#features" className="block hover:text-white transition-colors">Features</a>
-                <a href="#pricing" className="block hover:text-white transition-colors">Pricing</a>
+                <a href="#features"     className="block hover:text-white transition-colors">Features</a>
+                <a href="#pricing"      className="block hover:text-white transition-colors">Pricing</a>
                 <a href="#how-it-works" className="block hover:text-white transition-colors">How it works</a>
               </div>
               <div className="space-y-2.5">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Account</p>
                 <Link href="/register" className="block hover:text-white transition-colors">Sign up</Link>
-                <Link href="/login" className="block hover:text-white transition-colors">Sign in</Link>
+                <Link href="/login"    className="block hover:text-white transition-colors">Sign in</Link>
               </div>
               <div className="space-y-2.5 col-span-2 sm:col-span-1">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Legal</p>
