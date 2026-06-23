@@ -13,6 +13,7 @@ const publicPrefixes = [
   "/pricing",
   "/privacy",
   "/terms",
+  "/contact",
   "/api/auth",
   "/pay/",         // public invoice payment pages
   "/portal/",      // customer portal (token-based)
