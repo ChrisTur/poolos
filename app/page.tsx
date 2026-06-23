@@ -20,7 +20,7 @@ import {
 import MarketingNav from "@/components/marketing/MarketingNav"
 import PricingSection from "@/components/marketing/PricingSection"
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export const metadata: Metadata = {
   title: "PoolOS — Pool Service Management Software",
@@ -180,7 +180,7 @@ export default async function HomePage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   <div className="flex-1 mx-3 h-5 rounded bg-white border border-gray-200 flex items-center px-2.5">
-                    <span className="text-[10px] text-gray-400">poolos.app/dashboard</span>
+                    <span className="text-[10px] text-gray-400">poolos.biz/dashboard</span>
                   </div>
                 </div>
                 <div className="p-4 space-y-4">
@@ -515,7 +515,7 @@ export default async function HomePage() {
 
           <p className="text-center text-sm text-gray-400 mt-8">
             Still have questions?{" "}
-            <a href="mailto:hello@poolos.app" className="text-sky-600 hover:underline">
+            <a href="mailto:hello@poolos.biz" className="text-sky-600 hover:underline">
               Reach out — we are happy to help.
             </a>
           </p>

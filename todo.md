@@ -10,9 +10,9 @@
 - [ ] Referral program — "Refer a company, get a free month"; pool owners know pool owners
 - [ ] Start a blog — content like "How to price pool service routes" and "Pool chemical dosing guide" drives organic traffic
 - [ ] Connect Google Search Console — track impressions, clicks, and crawl errors after launch
-- [ ] Register a custom domain — `poolos.netlify.app` subdomains rank worse than a root domain (e.g. `poolos.app`)
+- [ ] Register a custom domain — `poolos.biz` subdomains rank worse than a root domain (e.g. `poolos.biz`)
 - [ ] Add Privacy Policy and Terms of Service pages — currently placeholders in the footer
-- [ ] Add a contact/support email (`hello@poolos.app` referenced in FAQ but not set up)
+- [ ] Add a contact/support email (`hello@poolos.biz` referenced in FAQ but not set up)
 - [ ] Water chemistry calculator page — free tool (dosing by pool size + current readings) that drives SEO and is genuinely useful to pool techs
 
 ## Billing / Monetization

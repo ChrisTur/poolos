@@ -29,8 +29,8 @@ export default async function AdminOverviewPage() {
     {
       label: "Email FROM address",
       ok: !!process.env.EMAIL_FROM,
-      okNote: process.env.EMAIL_FROM ?? "Using default noreply@poolos.app",
-      failNote: "Set EMAIL_FROM=PoolOS <noreply@poolos.app> in environment variables",
+      okNote: process.env.EMAIL_FROM ?? "Using default noreply@poolos.biz",
+      failNote: "Set EMAIL_FROM=PoolOS <noreply@poolos.biz> in environment variables",
     },
     {
       label: "App URL",
@@ -42,7 +42,7 @@ export default async function AdminOverviewPage() {
       label: "DNS / SPF · DKIM · DMARC",
       ok: false,
       okNote: "Verified in Resend dashboard",
-      failNote: "Verify poolos.app domain in Resend → Domains and add the provided DNS records",
+      failNote: "Verify poolos.biz domain in Resend → Domains and add the provided DNS records",
     },
   ]
 

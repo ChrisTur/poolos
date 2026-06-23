@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"),
   title: {
     default: "PoolOS — Pool Service Management Software",
     template: "%s | PoolOS",
