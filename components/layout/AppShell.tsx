@@ -8,14 +8,15 @@ import { stopViewAs } from "@/lib/actions/admin"
 interface Props {
   children: React.ReactNode
   viewAsCompany?: string
+  planData?: { plan: string; trialEndsAt: string | null }
 }
 
-export default function AppShell({ children, viewAsCompany }: Props) {
+export default function AppShell({ children, viewAsCompany, planData }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} planData={planData} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
         {/* View-as banner */}

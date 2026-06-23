@@ -8,6 +8,7 @@ import { statusBadge } from "@/components/ui/Badge"
 import { visitNeedsAttention, chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 import { cookies } from "next/headers"
 import SetupChecklist, { type SetupStep } from "@/components/dashboard/SetupChecklist"
+import { Zap } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -55,7 +56,7 @@ export default async function DashboardPage() {
         include: { customer: { select: { id: true, firstName: true, lastName: true } } },
         take: 100,
       }),
-      db.company.findUnique({ where: { id: companyId }, select: { phone: true, stripeAccountId: true } }),
+      db.company.findUnique({ where: { id: companyId }, select: { phone: true, stripeAccountId: true, plan: true, trialEndsAt: true } }),
       db.invoice.count({ where: { companyId } }),
     ])
 
@@ -121,6 +122,35 @@ export default async function DashboardPage() {
       </div>
 
       {!onboardingDismissed && <SetupChecklist steps={setupSteps} />}
+
+      {/* Trial upgrade card */}
+      {company?.plan === "trial" && (
+        <div className="rounded-2xl bg-gradient-to-r from-sky-600 to-sky-500 p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <Zap className="w-4 h-4 text-amber-300 shrink-0" />
+              <p className="text-sm font-semibold text-white">You&rsquo;re on a free trial</p>
+            </div>
+            <p className="text-sm text-sky-100">
+              {company.trialEndsAt
+                ? (() => {
+                    const days = Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    return days > 0
+                      ? `${days} day${days === 1 ? "" : "s"} remaining. Upgrade to keep your routes, invoices, and customer history.`
+                      : "Your trial has ended. Upgrade now to restore full access."
+                  })()
+                : "Upgrade to unlock unlimited customers, reports, and more."}
+            </p>
+          </div>
+          <Link
+            href="/settings/billing"
+            className="shrink-0 inline-flex items-center gap-2 bg-white text-sky-700 font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-sky-50 transition-colors"
+          >
+            <Zap className="w-4 h-4" />
+            View plans
+          </Link>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
