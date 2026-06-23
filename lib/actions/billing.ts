@@ -24,6 +24,11 @@ const PRICE_IDS: Record<string, Record<string, string | undefined>> = {
   },
 }
 
+// Grace: only offer the Stripe-level trial to companies that are still within
+// their app-level trial window. Prevents double-dipping if a user upgrades,
+// cancels, and tries to re-subscribe.
+const TRIAL_DAYS = 14
+
 export async function createCheckoutSession(formData: FormData) {
   const { companyId } = await requireOwner()
   const planId = formData.get("planId") as string
@@ -34,9 +39,20 @@ export async function createCheckoutSession(formData: FormData) {
 
   const company = await db.company.findUnique({
     where: { id: companyId },
-    select: { stripePlatformCustId: true },
+    select: { stripePlatformCustId: true, plan: true, trialEndsAt: true },
   })
   if (!company) throw new Error("Company not found")
+
+  // Only honour the Stripe trial if the company is still on an app-level trial
+  // with time remaining — avoids charging users who upgrade mid-trial.
+  const isStillInTrial =
+    company.plan === "trial" &&
+    company.trialEndsAt != null &&
+    company.trialEndsAt > new Date()
+
+  const trialDaysRemaining = isStillInTrial
+    ? Math.max(1, Math.ceil((company.trialEndsAt!.getTime() - Date.now()) / 86_400_000))
+    : undefined
 
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
@@ -46,6 +62,9 @@ export async function createCheckoutSession(formData: FormData) {
     metadata: { companyId, planId },
     ...(company.stripePlatformCustId
       ? { customer: company.stripePlatformCustId }
+      : {}),
+    ...(trialDaysRemaining != null
+      ? { subscription_data: { trial_period_days: trialDaysRemaining } }
       : {}),
     success_url: `${BASE}/settings/billing?upgraded=1`,
     cancel_url:  `${BASE}/settings/billing`,

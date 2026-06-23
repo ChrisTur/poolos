@@ -64,6 +64,11 @@
 
 - [ ] Error monitoring — add Sentry so you know when production breaks before customers tell you
 - [x] Email deliverability — SPF, DKIM, DMARC configured in Netlify DNS; domain verified in Resend
+- [x] Custom 404 and 500 pages — branded not-found.tsx, error.tsx, global-error.tsx
+- [x] sitemap.xml — app/sitemap.ts covers /, /pricing, /register, /login, /privacy, /terms
+- [x] robots.txt — app/robots.ts blocks /admin, /api/, /pay/, /portal/ and app routes
+- [x] Stripe trial sync — checkout passes trial_period_days = remaining days when company is still in app-level trial
+- [ ] Resend "Enable Sending" — must click Enable Sending in Resend dashboard after domain verification
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
 - [x] Rate limiting on API routes — sliding-window per-IP in middleware; covers /api/auth, /register, /forgot-password, /pay/, /portal/

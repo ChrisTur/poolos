@@ -4,8 +4,11 @@ const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
-    { url: BASE,              lastModified: new Date(), changeFrequency: "monthly", priority: 1.0 },
-    { url: `${BASE}/register`, lastModified: new Date(), changeFrequency: "yearly",  priority: 0.9 },
-    { url: `${BASE}/login`,    lastModified: new Date(), changeFrequency: "yearly",  priority: 0.5 },
+    { url: `${BASE}/`,         changeFrequency: "weekly",  priority: 1.0 },
+    { url: `${BASE}/pricing`,  changeFrequency: "weekly",  priority: 0.9 },
+    { url: `${BASE}/register`, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${BASE}/login`,    changeFrequency: "monthly", priority: 0.5 },
+    { url: `${BASE}/privacy`,  changeFrequency: "yearly",  priority: 0.3 },
+    { url: `${BASE}/terms`,    changeFrequency: "yearly",  priority: 0.3 },
   ]
 }
