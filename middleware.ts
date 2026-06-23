@@ -68,7 +68,8 @@ export default auth((req) => {
   // Auth guard.
   const isPublic =
     pathname === "/" ||
-    publicPrefixes.some((p) => pathname.startsWith(p))
+    publicPrefixes.some((p) => pathname.startsWith(p)) ||
+    WEBHOOK_PATHS.some((p) => pathname.startsWith(p))
 
   if (!req.auth && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url))
