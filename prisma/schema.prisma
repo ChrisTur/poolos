@@ -37,6 +37,10 @@ model Company {
   planNote      String?   // internal admin notes about this company's plan
   planUpdatedAt DateTime?
 
+  stripePlatformCustId  String?   // Stripe Customer ID (platform billing — not Connect)
+  stripeSubId           String?   // Active Stripe subscription ID
+  stripeSubStatus       String?   // active | trialing | past_due | canceled | unpaid
+
   lateFeeEnabled  Boolean @default(false)
   lateFeePercent  Float   @default(1.5)
   lateFeeGraceDays Int    @default(0)
