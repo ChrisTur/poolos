@@ -1,6 +1,8 @@
 import { stripe } from "@/lib/stripe"
 import { db } from "@/lib/db"
 import { NextRequest, NextResponse } from "next/server"
+import { resend, FROM, buildDunningHtml, dunningSubject } from "@/lib/email"
+import { getPlan } from "@/lib/plans"
 
 export async function POST(req: NextRequest) {
   const body = await req.text()
@@ -81,10 +83,33 @@ export async function POST(req: NextRequest) {
       const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer as any)?.id
       if (!customerId) break
 
-      await db.company.updateMany({
+      const company = await db.company.findFirst({
         where: { stripePlatformCustId: customerId },
+        select: { id: true, plan: true },
+      })
+      if (!company) break
+
+      await db.company.update({
+        where: { id: company.id },
         data: { stripeSubStatus: "past_due" },
       })
+
+      // Send dunning email to the account owner
+      const owner = await db.user.findFirst({
+        where: { companyId: company.id, role: "owner" },
+        select: { email: true, firstName: true },
+      })
+      if (owner?.email) {
+        const attemptCount = (inv as any).attempt_count ?? 1
+        const planLabel    = getPlan(company.plan).label
+        const billingUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"}/settings/billing`
+        await resend.emails.send({
+          from:    FROM,
+          to:      owner.email,
+          subject: dunningSubject(attemptCount),
+          html:    buildDunningHtml({ firstName: owner.firstName ?? "there", planLabel, billingUrl, attemptCount }),
+        })
+      }
       break
     }
 

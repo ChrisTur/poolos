@@ -42,6 +42,7 @@ export async function createCheckoutSession(formData: FormData) {
     mode: "subscription",
     payment_method_types: ["card"],
     line_items: [{ price: priceId, quantity: 1 }],
+    allow_promotion_codes: true,
     metadata: { companyId, planId },
     ...(company.stripePlatformCustId
       ? { customer: company.stripePlatformCustId }

@@ -675,6 +675,78 @@ export function buildPortalReplyNotificationHtml(data: {
 </html>`
 }
 
+export function buildDunningHtml(data: {
+  firstName: string
+  planLabel: string
+  billingUrl: string
+  attemptCount?: number
+}) {
+  const isRetry = (data.attemptCount ?? 1) > 1
+  const subject = isRetry
+    ? `Action required — your PoolOS payment still hasn't gone through`
+    : `Payment failed — update your PoolOS payment method`
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:520px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+
+    <div style="background:#dc2626;padding:20px 24px">
+      <span style="font-size:18px;font-weight:700;color:#ffffff">PoolOS</span>
+      <div style="font-size:13px;color:#fecaca;margin-top:4px">Billing Notice</div>
+    </div>
+
+    <div style="padding:28px 24px">
+      <p style="font-size:15px;color:#111827;margin:0 0 16px">Hi ${data.firstName},</p>
+
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-bottom:20px">
+        <p style="font-size:14px;font-weight:600;color:#991b1b;margin:0 0 4px">
+          ${isRetry ? "We still couldn't process your payment." : "We weren't able to process your payment."}
+        </p>
+        <p style="font-size:13px;color:#b91c1c;margin:0">
+          Your <strong>${data.planLabel}</strong> subscription may be paused if this isn't resolved soon.
+        </p>
+      </div>
+
+      <p style="font-size:14px;color:#374151;margin:0 0 8px">This is usually caused by:</p>
+      <ul style="font-size:14px;color:#374151;margin:0 0 20px;padding-left:20px;line-height:1.8">
+        <li>An expired card</li>
+        <li>Insufficient funds</li>
+        <li>Your bank declining the charge</li>
+      </ul>
+
+      <p style="font-size:14px;color:#374151;margin:0 0 20px">
+        Update your payment method to keep your routes, invoices, and customer history uninterrupted.
+      </p>
+
+      <div style="text-align:center;margin:0 0 20px">
+        <a href="${data.billingUrl}"
+           style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:13px 32px;border-radius:8px;letter-spacing:.01em">
+          Update payment method →
+        </a>
+      </div>
+
+      <p style="font-size:13px;color:#9ca3af;margin:0">
+        Need help? Reply to this email or contact us at
+        <a href="mailto:billing@poolos.biz" style="color:#0ea5e9;text-decoration:none">billing@poolos.biz</a>.
+      </p>
+    </div>
+
+    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+      PoolOS · Billing Support · <a href="mailto:billing@poolos.biz" style="color:#9ca3af">billing@poolos.biz</a>
+    </div>
+  </div>
+</body>
+</html>`
+}
+// subject helper exported for callers
+export function dunningSubject(attemptCount = 1) {
+  return attemptCount > 1
+    ? "Action required — your PoolOS payment still hasn't gone through"
+    : "Payment failed — update your PoolOS payment method"
+}
+
 export function buildPasswordResetHtml(firstName: string, resetUrl: string) {
   return `<!DOCTYPE html>
 <html>
