@@ -4,7 +4,7 @@
 
 - [ ] Create dedicated `/features` page — more pages = more keyword targets; right now everything is one long scroll
 - [ ] Create dedicated `/pricing` page — separate page for pricing-intent searches ("pool service software pricing")
-- [ ] Add Google Analytics (or Plausible) to the marketing site — can't improve what you can't measure
+- [x] Add Google Analytics (or Plausible) to the marketing site — can't improve what you can't measure
 - [ ] Add email capture / waitlist form — someone not ready to sign up today needs a way to stay connected
 - [ ] Add a demo / walkthrough video to the hero — the single highest-converting element a SaaS landing page can have
 - [ ] Referral program — "Refer a company, get a free month"; pool owners know pool owners
