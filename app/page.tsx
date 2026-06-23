@@ -596,7 +596,7 @@ export default async function HomePage() {
               <div className="space-y-2.5 col-span-2 sm:col-span-1">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Legal</p>
                 <Link href="/privacy" className="block hover:text-white transition-colors">Privacy Policy</Link>
-                <span className="block text-gray-600 cursor-not-allowed">Terms of Service</span>
+                <Link href="/terms"   className="block hover:text-white transition-colors">Terms of Service</Link>
               </div>
             </div>
           </div>

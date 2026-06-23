@@ -255,9 +255,10 @@ export default function PrivacyPage() {
       <footer className="border-t border-gray-100 py-8 text-center text-xs text-gray-400">
         <p>© {new Date().getFullYear()} PoolOS. All rights reserved.</p>
         <div className="flex justify-center gap-4 mt-2">
-          <Link href="/"       className="hover:text-gray-600">Home</Link>
+          <Link href="/"        className="hover:text-gray-600">Home</Link>
           <Link href="/pricing" className="hover:text-gray-600">Pricing</Link>
-          <Link href="/login"  className="hover:text-gray-600">Sign in</Link>
+          <Link href="/terms"   className="hover:text-gray-600">Terms of Service</Link>
+          <Link href="/login"   className="hover:text-gray-600">Sign in</Link>
         </div>
       </footer>
     </div>

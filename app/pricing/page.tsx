@@ -214,6 +214,7 @@ export default async function PricingPage() {
           <Link href="/register" className="hover:text-gray-600">Sign up</Link>
           <Link href="/login"   className="hover:text-gray-600">Sign in</Link>
           <Link href="/privacy" className="hover:text-gray-600">Privacy</Link>
+          <Link href="/terms"   className="hover:text-gray-600">Terms</Link>
         </div>
       </footer>
     </div>
