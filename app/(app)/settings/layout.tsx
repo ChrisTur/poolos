@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Settings, CreditCard, UserCog } from "lucide-react"
+import { Settings, CreditCard, UserCog, Receipt } from "lucide-react"
 
 const tabs = [
   { href: "/settings/company",  label: "Company",       icon: Settings },
   { href: "/settings/payments", label: "Payment Links", icon: CreditCard },
   { href: "/settings/users",    label: "Team",          icon: UserCog },
+  { href: "/settings/billing",  label: "Billing",       icon: Receipt },
 ]
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {

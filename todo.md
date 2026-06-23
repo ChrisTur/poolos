@@ -17,16 +17,16 @@
 
 ## Billing / Monetization
 
-- [ ] Add remaining Stripe billing fields to Company schema — `stripePlatformCustId`, `stripeSubId`, `stripeSubStatus`
+- [x] Add remaining Stripe billing fields to Company schema — `stripePlatformCustId`, `stripeSubId`, `stripeSubStatus`
 - [ ] Create Stripe Billing products and prices for Starter / Pro / Unlimited tiers
-- [ ] Build billing page in company Settings — shows current plan, upgrade/downgrade, invoice history
-- [ ] Add Stripe webhook handler for `customer.subscription.*` events to sync `stripeSubStatus`
-- [ ] Add plan enforcement middleware — gate features or block access when trial expires or subscription is past_due
-- [ ] Add trial expiry banner inside the app — "Your trial ends in X days — upgrade to keep access"
+- [x] Build billing page in company Settings — shows current plan, upgrade/downgrade, invoice history
+- [x] Add Stripe webhook handler for `customer.subscription.*` events to sync `stripeSubStatus`
+- [x] Add plan enforcement middleware — gate features or block access when trial expires or subscription is past_due
+- [x] Add trial expiry banner inside the app — "Your trial ends in X days — upgrade to keep access"
 - [x] Annual billing option — offer 2 months free (≈17% discount) for annual payment; increases LTV and reduces churn
 - [ ] Coupon / promo codes via Stripe — needed for partnerships, support credits, and early-adopter deals
 - [ ] Dunning / failed payment recovery — automated emails when a charge fails; silently kills MRR without this
-- [ ] Admin panel: show plan + MRR per company
+- [x] Admin panel: show plan + MRR per company
 
 ## Product
 

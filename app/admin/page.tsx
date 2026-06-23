@@ -7,7 +7,7 @@ import { formatDate } from "@/lib/utils"
 export const dynamic = "force-dynamic"
 
 export default async function AdminOverviewPage() {
-  const [companyCount, userCount, customerCount, invoiceCount, recentCompanies] = await Promise.all([
+  const [companyCount, userCount, customerCount, invoiceCount, recentCompanies, activeSubscriptions] = await Promise.all([
     db.company.count(),
     db.user.count(),
     db.customer.count(),
@@ -17,7 +17,15 @@ export default async function AdminOverviewPage() {
       take: 10,
       include: { _count: { select: { users: true, customers: true } } },
     }),
+    db.company.findMany({
+      where: { stripeSubStatus: "active" },
+      select: { plan: true },
+    }),
   ])
+
+  // MRR from active subscriptions
+  const MRR_BY_PLAN: Record<string, number> = { starter: 49, pro: 99, unlimited: 199 }
+  const mrr = activeSubscriptions.reduce((sum, c) => sum + (MRR_BY_PLAN[c.plan] ?? 0), 0)
 
   const healthChecks = [
     {
@@ -50,7 +58,7 @@ export default async function AdminOverviewPage() {
     { label: "Companies", value: companyCount, icon: Building2, color: "text-sky-600", bg: "bg-sky-50" },
     { label: "Users", value: userCount, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
     { label: "Customers", value: customerCount, icon: Activity, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Invoices", value: invoiceCount, icon: FileText, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "MRR", value: `$${mrr}`, icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
   ]
 
   return (
