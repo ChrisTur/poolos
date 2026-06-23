@@ -69,6 +69,7 @@
 - [x] robots.txt — app/robots.ts blocks /admin, /api/, /pay/, /portal/ and app routes
 - [x] Stripe trial sync — checkout passes trial_period_days = remaining days when company is still in app-level trial
 - [x] Resend "Enable Sending" — confirmed active in Resend dashboard
+- [x] Stripe Customer Portal configured — payment update, invoice history, cancel at period end; return URL set to /settings/billing
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
 - [x] Cookie consent — banner on first visit, GA only loads after acceptance, choice persisted in localStorage
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
