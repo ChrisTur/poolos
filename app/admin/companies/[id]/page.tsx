@@ -2,12 +2,13 @@ import { db } from "@/lib/db"
 import { notFound, redirect } from "next/navigation"
 import { auth } from "@/auth"
 import Link from "next/link"
-import { ChevronLeft, Upload, Eye, KeyRound } from "lucide-react"
+import { ChevronLeft, Upload, Eye, KeyRound, CheckCircle2, X, CreditCard } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import StateSelect from "@/components/ui/StateSelect"
 import { formatDate } from "@/lib/utils"
-import { adminUpdateCompany, adminUploadLogo, startViewAs, adminResetPassword } from "@/lib/actions/admin"
+import { adminUpdateCompany, adminUploadLogo, startViewAs, adminResetPassword, adminUpdatePlan } from "@/lib/actions/admin"
+import { getPlan, PLANS, PLAN_IDS, FEATURE_LABELS, type PlanFeatures } from "@/lib/plans"
 
 export const dynamic = "force-dynamic"
 
@@ -36,9 +37,15 @@ export default async function AdminCompanyDetailPage({
 
   if (!company) notFound()
 
-  const updateAction = adminUpdateCompany.bind(null, id)
-  const logoAction = adminUploadLogo.bind(null, id)
-  const viewAsAction = startViewAs.bind(null, id)
+  const updateAction  = adminUpdateCompany.bind(null, id)
+  const logoAction    = adminUploadLogo.bind(null, id)
+  const viewAsAction  = startViewAs.bind(null, id)
+  const planAction    = adminUpdatePlan.bind(null, id)
+
+  const currentPlan   = getPlan(company.plan)
+  const trialEndsAt   = company.trialEndsAt
+    ? new Date(company.trialEndsAt).toISOString().split("T")[0]
+    : ""
 
   return (
     <div className="space-y-5 sm:space-y-6 max-w-3xl">
@@ -135,6 +142,142 @@ export default async function AdminCompanyDetailPage({
             </div>
             <Button type="submit">Save Changes</Button>
           </form>
+        </CardBody>
+      </Card>
+
+      {/* Subscription Plan */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-gray-400" />
+              Subscription Plan
+            </h2>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${currentPlan.badge}`}>
+              {currentPlan.label}
+              {currentPlan.priceMonthly != null ? ` · $${currentPlan.priceMonthly}/mo` : " · Free"}
+            </span>
+          </div>
+        </CardHeader>
+        <CardBody className="space-y-5">
+
+          {/* Plan picker form */}
+          <form action={planAction} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+              <select
+                name="plan"
+                defaultValue={company.plan ?? "trial"}
+                className={inputCls}
+              >
+                {PLAN_IDS.map((pid) => {
+                  const p = PLANS[pid]
+                  return (
+                    <option key={pid} value={pid}>
+                      {p.label}{p.priceMonthly != null ? ` — $${p.priceMonthly}/mo` : " — Free trial"}
+                      {" · "}{p.description}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trial ends</label>
+              <input
+                name="trialEndsAt"
+                type="date"
+                defaultValue={trialEndsAt}
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 mt-1">Only relevant while on the Trial plan. Leave blank to remove the expiry.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Admin notes</label>
+              <textarea
+                name="planNote"
+                rows={2}
+                defaultValue={company.planNote ?? ""}
+                placeholder="e.g. Migrated from Pro on 2026-06-01, comped first month…"
+                className={`${inputCls} resize-none`}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Button type="submit">Save Plan</Button>
+              {company.planUpdatedAt && (
+                <p className="text-xs text-gray-400">Last updated {formatDate(company.planUpdatedAt)}</p>
+              )}
+            </div>
+          </form>
+
+          {/* Usage vs limits */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Usage</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                {
+                  label: "Customers",
+                  used: company._count.customers,
+                  limit: currentPlan.limits.customers,
+                },
+                {
+                  label: "Staff accounts",
+                  used: company.users.length,
+                  limit: currentPlan.limits.staff,
+                },
+              ].map(({ label, used, limit }) => {
+                const pct = limit === Infinity ? 0 : Math.min(100, Math.round((used / limit) * 100))
+                const over = limit !== Infinity && used > limit
+                return (
+                  <div key={label} className="bg-gray-50 rounded-xl p-3">
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <p className="text-xs font-medium text-gray-600">{label}</p>
+                      <p className={`text-xs font-semibold ${over ? "text-red-600" : "text-gray-900"}`}>
+                        {used} / {limit === Infinity ? "∞" : limit}
+                      </p>
+                    </div>
+                    {limit !== Infinity && (
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${over ? "bg-red-500" : pct > 80 ? "bg-amber-500" : "bg-sky-500"}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Feature flags grid */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Features on {currentPlan.label}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              {(Object.entries(FEATURE_LABELS) as [keyof PlanFeatures, string][]).map(([key, label]) => {
+                const enabled = currentPlan.features[key]
+                return (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium ${
+                      enabled ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-400"
+                    }`}
+                  >
+                    {enabled
+                      ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                      : <X className="w-3.5 h-3.5 shrink-0" />
+                    }
+                    {label}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
         </CardBody>
       </Card>
 

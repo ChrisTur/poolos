@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button"
 import { Building2, Plus, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import ConfirmButton from "@/components/ui/ConfirmButton"
+import { getPlan } from "@/lib/plans"
 
 export const dynamic = "force-dynamic"
 
@@ -103,6 +104,9 @@ export default async function AdminCompaniesPage({
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                   c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
                 }`}>{c.isActive ? "Active" : "Inactive"}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${getPlan(c.plan).badge}`}>
+                  {getPlan(c.plan).label}
+                </span>
                 <div className="ml-auto flex gap-2">
                   <form action={toggleAction}>
                     <Button type="submit" size="sm" variant={c.isActive ? "secondary" : "secondary"}>
@@ -134,6 +138,7 @@ export default async function AdminCompaniesPage({
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Contact</th>
                 <th className="px-5 py-3 text-center font-medium">Users</th>
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Joined</th>
+                <th className="px-5 py-3 text-left font-medium">Plan</th>
                 <th className="px-5 py-3 text-left font-medium">Status</th>
                 <th className="px-5 py-3" />
               </tr>
@@ -154,6 +159,11 @@ export default async function AdminCompaniesPage({
                     </td>
                     <td className="px-5 py-3 text-center text-gray-600">{c._count.users}</td>
                     <td className="px-5 py-3 text-gray-500 hidden md:table-cell">{formatDate(c.createdAt)}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPlan(c.plan).badge}`}>
+                        {getPlan(c.plan).label}
+                      </span>
+                    </td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
                         c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
