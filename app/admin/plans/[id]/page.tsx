@@ -2,8 +2,7 @@ import { notFound } from "next/navigation"
 import { getPlansFromDb } from "@/lib/plans-db"
 import { updatePlan } from "@/lib/actions/admin-plans"
 import { FEATURE_LABELS, PLAN_IDS } from "@/lib/plans"
-import { ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { CheckCircle2 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -26,8 +25,15 @@ const FEATURE_GROUPS: { label: string; keys: (keyof typeof FEATURE_LABELS)[] }[]
   },
 ]
 
-export default async function EditPlanPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditPlanPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ saved?: string }>
+}) {
   const { id } = await params
+  const sp = await searchParams
   if (!PLAN_IDS.includes(id as any)) notFound()
 
   const plans = await getPlansFromDb()
@@ -36,14 +42,17 @@ export default async function EditPlanPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/admin/plans" className="text-gray-400 hover:text-gray-600 transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit plan — {plan.label}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Changes apply to the marketing page and billing immediately.</p>
+      {sp.saved && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-green-600" />
+          Changes saved — live on the site now.
         </div>
+      )}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${plan.badge}`}>{plan.label}</span>
+        </div>
+        <p className="text-xs text-gray-400">Changes apply to the marketing page and billing immediately.</p>
       </div>
 
       <form action={updatePlan} className="space-y-6">
@@ -146,20 +155,12 @@ export default async function EditPlanPage({ params }: { params: Promise<{ id: s
           ))}
         </section>
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            className="bg-sky-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-sky-700 transition-colors"
-          >
-            Save changes
-          </button>
-          <Link
-            href="/admin/plans"
-            className="bg-gray-100 text-gray-700 text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-gray-200 transition-colors"
-          >
-            Cancel
-          </Link>
-        </div>
+        <button
+          type="submit"
+          className="bg-sky-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-sky-700 transition-colors"
+        >
+          Save changes
+        </button>
       </form>
     </div>
   )

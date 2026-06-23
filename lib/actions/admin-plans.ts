@@ -59,9 +59,10 @@ export async function updatePlan(formData: FormData) {
   })
 
   revalidatePath("/admin/plans")
+  revalidatePath("/admin/plans/" + id)
   revalidatePath("/")
   revalidatePath("/settings/billing")
-  redirect("/admin/plans")
+  redirect("/admin/plans/" + id + "?saved=1")
 }
 
 export async function seedDefaultPlans() {
