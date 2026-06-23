@@ -2,12 +2,10 @@
 
 import { useState } from "react"
 import { CheckCircle2 } from "lucide-react"
-import { PLANS } from "@/lib/plans"
+import type { Plan } from "@/lib/plans"
 import { createCheckoutSession } from "@/lib/actions/billing"
 
-const plans = [PLANS.starter, PLANS.pro, PLANS.unlimited]
-
-export default function BillingUpgrade() {
+export default function BillingUpgrade({ plans }: { plans: Plan[] }) {
   const [annual, setAnnual] = useState(false)
 
   return (

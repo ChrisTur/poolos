@@ -3,6 +3,7 @@ import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import AppShell from "@/components/layout/AppShell"
 import PlanGate from "@/components/app/PlanGate"
+import { getActiveBanner, type BannerData } from "@/lib/banners"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let viewAsCompany: string | undefined
@@ -22,6 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Fetch plan status for the current company (skip for super admin without view-as)
   let planData = { plan: "trial", trialEndsAt: null as string | null, stripeSubStatus: null as string | null }
+  let appBanner: BannerData | null = null
 
   const companyId = session?.user?.companyId
   if (companyId) {
@@ -35,11 +37,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         trialEndsAt:     company.trialEndsAt?.toISOString() ?? null,
         stripeSubStatus: company.stripeSubStatus ?? null,
       }
+      // Only show in-app banner to trial users
+      if (planData.plan === "trial") {
+        const raw = await getActiveBanner("app")
+        if (raw) appBanner = { id: raw.id, message: raw.message, code: raw.code, bgColor: raw.bgColor, dismissible: raw.dismissible }
+      }
     }
   }
 
   return (
-    <AppShell viewAsCompany={viewAsCompany} planData={planData}>
+    <AppShell viewAsCompany={viewAsCompany} planData={planData} appBanner={appBanner}>
       <PlanGate planData={planData}>
         {children}
       </PlanGate>

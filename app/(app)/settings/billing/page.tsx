@@ -3,6 +3,7 @@ import { requireOwner } from "@/lib/session"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { getPlan } from "@/lib/plans"
+import { getPlansFromDb } from "@/lib/plans-db"
 import { formatDate } from "@/lib/utils"
 import { CheckCircle2, AlertTriangle, CreditCard, ExternalLink } from "lucide-react"
 import BillingUpgrade from "@/components/settings/BillingUpgrade"
@@ -26,17 +27,22 @@ export default async function BillingPage({
   const { companyId } = await requireOwner()
   const sp = await searchParams
 
-  const company = await db.company.findUnique({
-    where: { id: companyId },
-    select: {
-      plan:                 true,
-      trialEndsAt:          true,
-      stripeSubId:          true,
-      stripeSubStatus:      true,
-      stripePlatformCustId: true,
-    },
-  })
+  const [allPlans, company] = await Promise.all([
+    getPlansFromDb(),
+    db.company.findUnique({
+      where: { id: companyId },
+      select: {
+        plan:                 true,
+        trialEndsAt:          true,
+        stripeSubId:          true,
+        stripeSubStatus:      true,
+        stripePlatformCustId: true,
+      },
+    }),
+  ])
   if (!company) return null
+
+  const paidPlans = allPlans.filter((p) => p.id !== "trial")
 
   const currentPlan    = getPlan(company.plan)
   const isTrial        = company.plan === "trial"
@@ -142,7 +148,7 @@ export default async function BillingPage({
             </h2>
           </CardHeader>
           <CardBody>
-            <BillingUpgrade />
+            <BillingUpgrade plans={paidPlans} />
           </CardBody>
         </Card>
       )}
