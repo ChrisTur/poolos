@@ -66,4 +66,4 @@
 - [x] Email deliverability — SPF, DKIM, DMARC configured in Netlify DNS; domain verified in Resend
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
-- [ ] Rate limiting on API routes — protect `/api/auth`, `/pay/`, `/portal/`
+- [x] Rate limiting on API routes — sliding-window per-IP in middleware; covers /api/auth, /register, /forgot-password, /pay/, /portal/
