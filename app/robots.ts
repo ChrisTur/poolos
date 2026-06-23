@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next"
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export default function robots(): MetadataRoute.Robots {
   return {

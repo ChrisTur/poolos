@@ -6,6 +6,8 @@ import Link from "next/link"
 import { Users, MapPin, DollarSign, AlertCircle, CheckCircle, Droplets } from "lucide-react"
 import { statusBadge } from "@/components/ui/Badge"
 import { visitNeedsAttention, chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
+import { cookies } from "next/headers"
+import SetupChecklist, { type SetupStep } from "@/components/dashboard/SetupChecklist"
 
 export const dynamic = "force-dynamic"
 
@@ -13,7 +15,10 @@ export default async function DashboardPage() {
   const { companyId, companyName } = await requireSession()
   const today = new Date().getDay()
 
-  const [customerCount, routeCount, recentVisits, overdueInvoices, unpaidInvoices, todayRoutes, recentChemVisits] =
+  const cookieStore = await cookies()
+  const onboardingDismissed = cookieStore.get("poolos_onboarding_dismissed")?.value === "1"
+
+  const [customerCount, routeCount, recentVisits, overdueInvoices, unpaidInvoices, todayRoutes, recentChemVisits, company, invoiceCount] =
     await Promise.all([
       db.customer.count({ where: { companyId, status: "active" } }),
       db.route.count({ where: { companyId, isActive: true } }),
@@ -50,6 +55,8 @@ export default async function DashboardPage() {
         include: { customer: { select: { id: true, firstName: true, lastName: true } } },
         take: 100,
       }),
+      db.company.findUnique({ where: { id: companyId }, select: { phone: true, stripeAccountId: true } }),
+      db.invoice.count({ where: { companyId } }),
     ])
 
   const unpaidTotal = unpaidInvoices.reduce(
@@ -66,6 +73,39 @@ export default async function DashboardPage() {
     visitNeedsAttention({ chlorine: v.chlorine, ph: v.ph, alkalinity: v.alkalinity, calcium: v.calcium })
   )
 
+  const setupSteps: SetupStep[] = [
+    {
+      label: "Add your first customer",
+      description: "Create a customer profile to start tracking their pool and sending invoices.",
+      href: "/customers/new",
+      done: customerCount > 0,
+    },
+    {
+      label: "Create a service route",
+      description: "Group customers into a route to organize your weekly schedule.",
+      href: "/routes",
+      done: routeCount > 0,
+    },
+    {
+      label: "Complete your company profile",
+      description: "Add your phone number so it appears on invoices and customer emails.",
+      href: "/settings/company",
+      done: company?.phone != null,
+    },
+    {
+      label: "Set up online payments",
+      description: "Connect Stripe so customers can pay invoices with a credit card.",
+      href: "/settings/payments",
+      done: company?.stripeAccountId != null,
+    },
+    {
+      label: "Send your first invoice",
+      description: "Generate and send an invoice to collect payment from a customer.",
+      href: "/invoices/new",
+      done: invoiceCount > 0,
+    },
+  ]
+
   const stats = [
     { label: "Active Customers", value: customerCount, icon: Users, color: "text-sky-600", bg: "bg-sky-50" },
     { label: "Active Routes", value: routeCount, icon: MapPin, color: "text-indigo-600", bg: "bg-indigo-50" },
@@ -79,6 +119,8 @@ export default async function DashboardPage() {
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">{companyName} · {DAY_NAMES[today]}</p>
       </div>
+
+      {!onboardingDismissed && <SetupChecklist steps={setupSteps} />}
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

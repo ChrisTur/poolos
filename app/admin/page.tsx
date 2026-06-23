@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
-import Card from "@/components/ui/Card"
-import { Building2, Users, FileText, Activity, ChevronRight } from "lucide-react"
+import Card, { CardHeader, CardBody } from "@/components/ui/Card"
+import { Building2, Users, FileText, Activity, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 
@@ -18,6 +18,33 @@ export default async function AdminOverviewPage() {
       include: { _count: { select: { users: true, customers: true } } },
     }),
   ])
+
+  const healthChecks = [
+    {
+      label: "Resend API key",
+      ok: !!process.env.RESEND_API_KEY,
+      okNote: "Configured",
+      failNote: "Set RESEND_API_KEY in environment variables",
+    },
+    {
+      label: "Email FROM address",
+      ok: !!process.env.EMAIL_FROM,
+      okNote: process.env.EMAIL_FROM ?? "Using default billing@poolos.biz",
+      failNote: "Set EMAIL_FROM=PoolOS <billing@poolos.biz> in environment variables",
+    },
+    {
+      label: "App URL",
+      ok: !!process.env.NEXT_PUBLIC_APP_URL,
+      okNote: process.env.NEXT_PUBLIC_APP_URL ?? "",
+      failNote: "Set NEXT_PUBLIC_APP_URL in environment variables",
+    },
+    {
+      label: "DNS / SPF · DKIM · DMARC",
+      ok: false,
+      okNote: "Verified in Resend dashboard",
+      failNote: "Verify poolos.biz domain in Resend → Domains and add the provided DNS records",
+    },
+  ]
 
   const stats = [
     { label: "Companies", value: companyCount, icon: Building2, color: "text-sky-600", bg: "bg-sky-50" },
@@ -45,6 +72,28 @@ export default async function AdminOverviewPage() {
           </Card>
         ))}
       </div>
+
+      {/* Platform health */}
+      <Card>
+        <CardHeader>
+          <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Platform Health</h2>
+        </CardHeader>
+        <CardBody className="divide-y divide-gray-50 !p-0">
+          {healthChecks.map((check) => (
+            <div key={check.label} className="flex items-center gap-3 px-4 sm:px-5 py-3">
+              {check.ok
+                ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                : <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">{check.label}</p>
+                <p className={`text-xs mt-0.5 truncate ${check.ok ? "text-gray-400" : "text-amber-600"}`}>
+                  {check.ok ? check.okNote : check.failNote}
+                </p>
+              </div>
+            </div>
+          ))}
+        </CardBody>
+      </Card>
 
       <Card>
         <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">

@@ -32,6 +32,11 @@ model Company {
   stripeAccountId String?   // Stripe Connect connected account ID
   isActive        Boolean @default(true)
 
+  plan          String    @default("trial")  // trial | starter | pro | unlimited
+  trialEndsAt   DateTime?
+  planNote      String?   // internal admin notes about this company's plan
+  planUpdatedAt DateTime?
+
   lateFeeEnabled  Boolean @default(false)
   lateFeePercent  Float   @default(1.5)
   lateFeeGraceDays Int    @default(0)

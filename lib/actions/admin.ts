@@ -93,6 +93,25 @@ export async function adminResetPassword(companyId: string, userId: string, form
   redirect(`/admin/companies/${companyId}?reset=${userId}`)
 }
 
+export async function adminUpdatePlan(id: string, formData: FormData) {
+  await requireSuperAdmin()
+  const plan         = (formData.get("plan") as string) || "trial"
+  const trialEndsAt  = formData.get("trialEndsAt") as string
+  const planNote     = (formData.get("planNote") as string) || null
+
+  await db.company.update({
+    where: { id },
+    data: {
+      plan,
+      trialEndsAt:   trialEndsAt ? new Date(trialEndsAt) : null,
+      planNote,
+      planUpdatedAt: new Date(),
+    },
+  })
+  revalidatePath(`/admin/companies/${id}`)
+  revalidatePath("/admin/companies")
+}
+
 export async function adminCreateCompany(formData: FormData) {
   await requireSuperAdmin()
 
@@ -108,10 +127,15 @@ export async function adminCreateCompany(formData: FormData) {
   const hashed = await bcrypt.hash(password, 12)
   const slug = await uniqueSlug(slugify(companyName))
 
+  const trialEndsAt = new Date()
+  trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+
   await db.company.create({
     data: {
       name: companyName,
       slug,
+      plan: "trial",
+      trialEndsAt,
       users: {
         create: { firstName, lastName, email, password: hashed, role: "owner" },
       },

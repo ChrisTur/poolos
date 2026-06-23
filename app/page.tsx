@@ -18,8 +18,9 @@ import {
   CreditCard,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
+import PricingSection from "@/components/marketing/PricingSection"
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export const metadata: Metadata = {
   title: "PoolOS — Pool Service Management Software",
@@ -179,7 +180,7 @@ export default async function HomePage() {
                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
                   <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   <div className="flex-1 mx-3 h-5 rounded bg-white border border-gray-200 flex items-center px-2.5">
-                    <span className="text-[10px] text-gray-400">poolos.app/dashboard</span>
+                    <span className="text-[10px] text-gray-400">poolos.biz/dashboard</span>
                   </div>
                 </div>
                 <div className="p-4 space-y-4">
@@ -487,99 +488,7 @@ export default async function HomePage() {
             <p className="text-base sm:text-lg text-gray-400">Start free for 14 days. No credit card required.</p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 items-start">
-            {[
-              {
-                name: "Starter",
-                price: "$49",
-                description: "Perfect for solo operators just getting started.",
-                highlight: false,
-                features: [
-                  "Up to 50 customers",
-                  "2 staff accounts",
-                  "Invoicing & payments",
-                  "Route scheduling",
-                  "Customer portal",
-                  "Email notifications",
-                ],
-              },
-              {
-                name: "Pro",
-                price: "$99",
-                description: "For growing companies with multiple techs.",
-                highlight: true,
-                features: [
-                  "Up to 200 customers",
-                  "Unlimited staff",
-                  "Everything in Starter",
-                  "Chemical trend reports",
-                  "Bulk invoicing",
-                  "Priority support",
-                ],
-              },
-              {
-                name: "Unlimited",
-                price: "$199",
-                description: "Enterprise-scale operations with no limits.",
-                highlight: false,
-                features: [
-                  "Unlimited customers",
-                  "Unlimited staff",
-                  "Everything in Pro",
-                  "Advanced analytics",
-                  "Custom branding",
-                  "Dedicated support",
-                ],
-              },
-            ].map((plan) => (
-              <div
-                key={plan.name}
-                className={`rounded-2xl p-6 sm:p-7 border flex flex-col ${
-                  plan.highlight
-                    ? "bg-sky-600 text-white border-sky-600 shadow-xl shadow-sky-200 sm:-mt-3 sm:-mb-3"
-                    : "bg-white text-gray-900 border-gray-200"
-                }`}
-              >
-                <div className="mb-5">
-                  {plan.highlight && (
-                    <span className="text-xs font-semibold bg-white/20 text-white px-2.5 py-1 rounded-full mb-3 inline-block">
-                      Most popular
-                    </span>
-                  )}
-                  <p className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-sky-100" : "text-gray-500"}`}>
-                    {plan.name}
-                  </p>
-                  <div className="flex items-end gap-1">
-                    <span className="text-4xl font-extrabold">{plan.price}</span>
-                    <span className={`text-sm mb-1 ${plan.highlight ? "text-sky-200" : "text-gray-400"}`}>/mo</span>
-                  </div>
-                  <p className={`text-sm mt-2 ${plan.highlight ? "text-sky-100" : "text-gray-400"}`}>
-                    {plan.description}
-                  </p>
-                </div>
-
-                <ul className="space-y-2.5 flex-1 mb-6">
-                  {plan.features.map((f) => (
-                    <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-white" : "text-gray-600"}`}>
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-sky-200" : "text-sky-500"}`} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/register"
-                  className={`block text-center py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    plan.highlight
-                      ? "bg-white text-sky-600 hover:bg-sky-50"
-                      : "bg-sky-600 text-white hover:bg-sky-700"
-                  }`}
-                >
-                  Start free trial
-                </Link>
-              </div>
-            ))}
-          </div>
+          <PricingSection />
 
           <p className="text-center text-sm text-gray-400 mt-8">
             All plans include a 14-day free trial. No credit card required to start.
@@ -606,7 +515,7 @@ export default async function HomePage() {
 
           <p className="text-center text-sm text-gray-400 mt-8">
             Still have questions?{" "}
-            <a href="mailto:hello@poolos.app" className="text-sky-600 hover:underline">
+            <a href="mailto:hello@poolos.biz" className="text-sky-600 hover:underline">
               Reach out — we are happy to help.
             </a>
           </p>
