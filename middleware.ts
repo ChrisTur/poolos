@@ -10,6 +10,9 @@ const publicPrefixes = [
   "/register",
   "/forgot-password",
   "/reset-password",
+  "/pricing",
+  "/privacy",
+  "/terms",
   "/api/auth",
   "/pay/",         // public invoice payment pages
   "/portal/",      // customer portal (token-based)
