@@ -18,6 +18,7 @@ import {
   CreditCard,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
+import { PLANS } from "@/lib/plans"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"
 
@@ -488,81 +489,42 @@ export default async function HomePage() {
           </div>
 
           <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 items-start">
-            {[
-              {
-                name: "Starter",
-                price: "$49",
-                description: "Perfect for solo operators just getting started.",
-                highlight: false,
-                features: [
-                  "Up to 50 customers",
-                  "2 staff accounts",
-                  "Invoicing & payments",
-                  "Route scheduling",
-                  "Customer portal",
-                  "Email notifications",
-                ],
-              },
-              {
-                name: "Pro",
-                price: "$99",
-                description: "For growing companies with multiple techs.",
-                highlight: true,
-                features: [
-                  "Up to 200 customers",
-                  "Unlimited staff",
-                  "Everything in Starter",
-                  "Chemical trend reports",
-                  "Bulk invoicing",
-                  "Priority support",
-                ],
-              },
-              {
-                name: "Unlimited",
-                price: "$199",
-                description: "Enterprise-scale operations with no limits.",
-                highlight: false,
-                features: [
-                  "Unlimited customers",
-                  "Unlimited staff",
-                  "Everything in Pro",
-                  "Advanced analytics",
-                  "Custom branding",
-                  "Dedicated support",
-                ],
-              },
-            ].map((plan) => (
+            {([PLANS.starter, PLANS.pro, PLANS.unlimited]).map((plan) => (
               <div
-                key={plan.name}
+                key={plan.id}
                 className={`rounded-2xl p-6 sm:p-7 border flex flex-col ${
-                  plan.highlight
+                  plan.mostPopular
                     ? "bg-sky-600 text-white border-sky-600 shadow-xl shadow-sky-200 sm:-mt-3 sm:-mb-3"
                     : "bg-white text-gray-900 border-gray-200"
                 }`}
               >
                 <div className="mb-5">
-                  {plan.highlight && (
+                  {plan.mostPopular && (
                     <span className="text-xs font-semibold bg-white/20 text-white px-2.5 py-1 rounded-full mb-3 inline-block">
                       Most popular
                     </span>
                   )}
-                  <p className={`text-sm font-semibold mb-1 ${plan.highlight ? "text-sky-100" : "text-gray-500"}`}>
-                    {plan.name}
+                  <p className={`text-sm font-semibold mb-1 ${plan.mostPopular ? "text-sky-100" : "text-gray-500"}`}>
+                    {plan.label}
                   </p>
                   <div className="flex items-end gap-1">
-                    <span className="text-4xl font-extrabold">{plan.price}</span>
-                    <span className={`text-sm mb-1 ${plan.highlight ? "text-sky-200" : "text-gray-400"}`}>/mo</span>
+                    <span className="text-4xl font-extrabold">
+                      {plan.priceMonthly != null ? `$${plan.priceMonthly}` : "Free"}
+                    </span>
+                    {plan.priceMonthly != null && (
+                      <span className={`text-sm mb-1 ${plan.mostPopular ? "text-sky-200" : "text-gray-400"}`}>/mo</span>
+                    )}
                   </div>
-                  <p className={`text-sm mt-2 ${plan.highlight ? "text-sky-100" : "text-gray-400"}`}>
+                  <p className={`text-sm mt-2 ${plan.mostPopular ? "text-sky-100" : "text-gray-400"}`}>
                     {plan.description}
                   </p>
                 </div>
 
                 <ul className="space-y-2.5 flex-1 mb-6">
-                  {plan.features.map((f) => (
-                    <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-white" : "text-gray-600"}`}>
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-sky-200" : "text-sky-500"}`} />
-                      {f}
+                  {plan.highlights.map((h) => (
+                    <li key={h} className={`flex items-center gap-2 text-sm ${plan.mostPopular ? "text-white" : "text-gray-600"}`}>
+                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.mostPopular ? "text-sky-200" : "text-sky-500"}`} />
+                      {h}
                     </li>
                   ))}
                 </ul>
@@ -570,7 +532,7 @@ export default async function HomePage() {
                 <Link
                   href="/register"
                   className={`block text-center py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    plan.highlight
+                    plan.mostPopular
                       ? "bg-white text-sky-600 hover:bg-sky-50"
                       : "bg-sky-600 text-white hover:bg-sky-700"
                   }`}

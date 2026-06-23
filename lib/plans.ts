@@ -44,6 +44,9 @@ export interface Plan {
   description:  string
   priceMonthly: number | null  // null = free trial
   badge:        string         // Tailwind classes for the colored badge
+  mostPopular?: boolean        // Highlighted on the marketing pricing page
+  /** Marketing-facing bullet points shown on the pricing page. */
+  highlights:   string[]
   limits: {
     customers: number  // use Infinity for unlimited
     staff:     number
@@ -78,6 +81,7 @@ export const PLANS: Record<PlanId, Plan> = {
     description: "14-day free trial with full access",
     priceMonthly: null,
     badge: "bg-blue-100 text-blue-700",
+    highlights: [],
     limits: { customers: 10, staff: 2 },
     features: {
       invoicing:          true,
@@ -101,9 +105,17 @@ export const PLANS: Record<PlanId, Plan> = {
   starter: {
     id: "starter",
     label: "Starter",
-    description: "Up to 50 customers · 2 staff accounts",
+    description: "Perfect for solo operators just getting started.",
     priceMonthly: 49,
     badge: "bg-gray-100 text-gray-700",
+    highlights: [
+      "Up to 50 customers",
+      "2 staff accounts",
+      "Invoicing & payments",
+      "Route scheduling",
+      "Customer portal",
+      "Email notifications",
+    ],
     limits: { customers: 50, staff: 2 },
     features: {
       invoicing:          true,
@@ -127,9 +139,18 @@ export const PLANS: Record<PlanId, Plan> = {
   pro: {
     id: "pro",
     label: "Pro",
-    description: "Up to 200 customers · Unlimited staff",
+    description: "For growing companies with multiple techs.",
     priceMonthly: 99,
     badge: "bg-sky-100 text-sky-700",
+    mostPopular: true,
+    highlights: [
+      "Up to 200 customers",
+      "Unlimited staff",
+      "Everything in Starter",
+      "Reports & analytics",
+      "Bulk invoicing",
+      "Priority support",
+    ],
     limits: { customers: 200, staff: Infinity },
     features: {
       invoicing:          true,
@@ -153,9 +174,17 @@ export const PLANS: Record<PlanId, Plan> = {
   unlimited: {
     id: "unlimited",
     label: "Unlimited",
-    description: "Unlimited customers · Unlimited staff",
+    description: "Enterprise-scale operations with no limits.",
     priceMonthly: 199,
     badge: "bg-purple-100 text-purple-700",
+    highlights: [
+      "Unlimited customers",
+      "Unlimited staff",
+      "Everything in Pro",
+      "Custom branding",
+      "Advanced analytics",
+      "Dedicated support",
+    ],
     limits: { customers: Infinity, staff: Infinity },
     features: {
       invoicing:          true,
