@@ -70,5 +70,6 @@
 - [x] Stripe trial sync — checkout passes trial_period_days = remaining days when company is still in app-level trial
 - [x] Resend "Enable Sending" — confirmed active in Resend dashboard
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
+- [x] Cookie consent — banner on first visit, GA only loads after acceptance, choice persisted in localStorage
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
 - [x] Rate limiting on API routes — sliding-window per-IP in middleware; covers /api/auth, /register, /forgot-password, /pay/, /portal/
