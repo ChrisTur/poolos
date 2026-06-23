@@ -3,11 +3,9 @@
 import { useState } from "react"
 import Link from "next/link"
 import { CheckCircle2 } from "lucide-react"
-import { PLANS } from "@/lib/plans"
+import type { Plan } from "@/lib/plans"
 
-const plans = [PLANS.starter, PLANS.pro, PLANS.unlimited]
-
-export default function PricingSection() {
+export default function PricingSection({ plans }: { plans: Plan[] }) {
   const [annual, setAnnual] = useState(false)
 
   return (

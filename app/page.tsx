@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
 import PricingSection from "@/components/marketing/PricingSection"
+import { getPlansFromDb } from "@/lib/plans-db"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
@@ -111,6 +112,9 @@ const jsonLd = {
 export default async function HomePage() {
   const session = await auth()
   if (session?.user) redirect("/dashboard")
+
+  const allPlans = await getPlansFromDb()
+  const paidPlans = allPlans.filter((p) => p.id !== "trial")
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -488,7 +492,7 @@ export default async function HomePage() {
             <p className="text-base sm:text-lg text-gray-400">Start free for 14 days. No credit card required.</p>
           </div>
 
-          <PricingSection />
+          <PricingSection plans={paidPlans} />
 
           <p className="text-center text-sm text-gray-400 mt-8">
             All plans include a 14-day free trial. No credit card required to start.

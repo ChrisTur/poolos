@@ -1,0 +1,31 @@
+-- CreateTable
+CREATE TABLE "PlanConfig" (
+    "id" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "description" TEXT NOT NULL DEFAULT '',
+    "priceMonthly" INTEGER,
+    "priceAnnual" INTEGER,
+    "badge" TEXT NOT NULL DEFAULT 'bg-gray-100 text-gray-700',
+    "mostPopular" BOOLEAN NOT NULL DEFAULT false,
+    "highlights" TEXT[],
+    "limitCustomers" INTEGER NOT NULL DEFAULT 50,
+    "limitStaff" INTEGER NOT NULL DEFAULT 2,
+    "invoicing" BOOLEAN NOT NULL DEFAULT false,
+    "routes" BOOLEAN NOT NULL DEFAULT false,
+    "customerPortal" BOOLEAN NOT NULL DEFAULT false,
+    "chemicalTracking" BOOLEAN NOT NULL DEFAULT false,
+    "emailNotifications" BOOLEAN NOT NULL DEFAULT false,
+    "reports" BOOLEAN NOT NULL DEFAULT false,
+    "csvExport" BOOLEAN NOT NULL DEFAULT false,
+    "bulkInvoicing" BOOLEAN NOT NULL DEFAULT false,
+    "fileAttachments" BOOLEAN NOT NULL DEFAULT false,
+    "customBranding" BOOLEAN NOT NULL DEFAULT false,
+    "smsNotifications" BOOLEAN NOT NULL DEFAULT false,
+    "calendarView" BOOLEAN NOT NULL DEFAULT false,
+    "techAssignment" BOOLEAN NOT NULL DEFAULT false,
+    "autoInvoicing" BOOLEAN NOT NULL DEFAULT false,
+    "quickbooksExport" BOOLEAN NOT NULL DEFAULT false,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "PlanConfig_pkey" PRIMARY KEY ("id")
+);

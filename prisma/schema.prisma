@@ -398,6 +398,38 @@ model Attachment {
   company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
+model PlanConfig {
+  id          String  @id  // "trial" | "starter" | "pro" | "unlimited"
+  label       String
+  description String  @default("")
+  priceMonthly  Int?
+  priceAnnual   Int?
+  badge         String  @default("bg-gray-100 text-gray-700")
+  mostPopular   Boolean @default(false)
+  highlights    String[]
+  limitCustomers Int    @default(50)
+  limitStaff     Int    @default(2)  // -1 = unlimited
+
+  // Feature flags
+  invoicing          Boolean @default(false)
+  routes             Boolean @default(false)
+  customerPortal     Boolean @default(false)
+  chemicalTracking   Boolean @default(false)
+  emailNotifications Boolean @default(false)
+  reports            Boolean @default(false)
+  csvExport          Boolean @default(false)
+  bulkInvoicing      Boolean @default(false)
+  fileAttachments    Boolean @default(false)
+  customBranding     Boolean @default(false)
+  smsNotifications   Boolean @default(false)
+  calendarView       Boolean @default(false)
+  techAssignment     Boolean @default(false)
+  autoInvoicing      Boolean @default(false)
+  quickbooksExport   Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+}
+
 model EmailLog {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
