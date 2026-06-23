@@ -290,7 +290,7 @@ export default function TermsPage() {
 
           <Section title="13. Governing Law and Disputes">
             <p>
-              These Terms are governed by and construed in accordance with the laws of the United States,
+              These Terms are governed by and construed in accordance with the laws of the State of Texas,
               without regard to conflict of law principles.
             </p>
             <p>
