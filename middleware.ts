@@ -27,11 +27,11 @@ const WEBHOOK_PATHS = [
 
 // [pathPrefix, requestsAllowed, windowSeconds]
 const RATE_RULES: [string, number, number][] = [
-  ["/api/auth",        10,  60],   // auth endpoints  — 10 req/min  (brute-force)
-  ["/register",         5, 600],   // sign-ups        — 5 per 10 min per IP
-  ["/forgot-password",  5, 600],   // password reset  — 5 per 10 min per IP
-  ["/pay/",            30,  60],   // public pay page — 30 req/min
-  ["/portal/",         30,  60],   // customer portal — 30 req/min
+  ["/api/auth",        30,  60],   // auth endpoints  — 30 req/min  (brute-force)
+  ["/register",        15, 600],   // sign-ups        — 15 per 10 min per IP
+  ["/forgot-password", 10, 600],   // password reset  — 10 per 10 min per IP
+  ["/pay/",            60,  60],   // public pay page — 60 req/min
+  ["/portal/",         60,  60],   // customer portal — 60 req/min
 ]
 
 function clientIp(req: Request): string {
@@ -68,7 +68,8 @@ export default auth((req) => {
   // Auth guard.
   const isPublic =
     pathname === "/" ||
-    publicPrefixes.some((p) => pathname.startsWith(p))
+    publicPrefixes.some((p) => pathname.startsWith(p)) ||
+    WEBHOOK_PATHS.some((p) => pathname.startsWith(p))
 
   if (!req.auth && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url))

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { RefreshCw } from "lucide-react"
+import * as Sentry from "@sentry/nextjs"
 import "./globals.css"
 
 export default function GlobalError({
@@ -12,7 +13,7 @@ export default function GlobalError({
   unstable_retry: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    Sentry.captureException(error)
   }, [error])
 
   return (

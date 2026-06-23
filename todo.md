@@ -62,13 +62,15 @@
 
 ## Infrastructure & Operations
 
-- [ ] Error monitoring — add Sentry so you know when production breaks before customers tell you
+- [x] Error monitoring — Sentry wired up (client + server + edge); NEXT_PUBLIC_SENTRY_DSN set in Netlify
 - [x] Email deliverability — SPF, DKIM, DMARC configured in Netlify DNS; domain verified in Resend
 - [x] Custom 404 and 500 pages — branded not-found.tsx, error.tsx, global-error.tsx
 - [x] sitemap.xml — app/sitemap.ts covers /, /pricing, /register, /login, /privacy, /terms
 - [x] robots.txt — app/robots.ts blocks /admin, /api/, /pay/, /portal/ and app routes
 - [x] Stripe trial sync — checkout passes trial_period_days = remaining days when company is still in app-level trial
-- [ ] Resend "Enable Sending" — must click Enable Sending in Resend dashboard after domain verification
+- [x] Resend "Enable Sending" — confirmed active in Resend dashboard
+- [x] Stripe Customer Portal configured — payment update, invoice history, cancel at period end; return URL set to /settings/billing
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
+- [x] Cookie consent — banner on first visit, GA only loads after acceptance, choice persisted in localStorage
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
 - [x] Rate limiting on API routes — sliding-window per-IP in middleware; covers /api/auth, /register, /forgot-password, /pay/, /portal/
