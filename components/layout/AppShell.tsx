@@ -4,14 +4,17 @@ import { useState } from "react"
 import { Menu, Waves, Eye, X } from "lucide-react"
 import Sidebar from "./Sidebar"
 import { stopViewAs } from "@/lib/actions/admin"
+import PromoBannerBar from "@/components/PromoBannerBar"
+import type { BannerData } from "@/lib/banners"
 
 interface Props {
   children: React.ReactNode
   viewAsCompany?: string
   planData?: { plan: string; trialEndsAt: string | null }
+  appBanner?: BannerData | null
 }
 
-export default function AppShell({ children, viewAsCompany, planData }: Props) {
+export default function AppShell({ children, viewAsCompany, planData, appBanner }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -19,6 +22,9 @@ export default function AppShell({ children, viewAsCompany, planData }: Props) {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} planData={planData} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+        {/* Promo banner for trial users */}
+        {appBanner && <PromoBannerBar banner={appBanner} />}
+
         {/* View-as banner */}
         {viewAsCompany && (
           <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-between gap-3 shrink-0 text-sm">

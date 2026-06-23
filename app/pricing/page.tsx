@@ -5,6 +5,8 @@ import MarketingNav from "@/components/marketing/MarketingNav"
 import PricingSection from "@/components/marketing/PricingSection"
 import { getPlansFromDb } from "@/lib/plans-db"
 import { FEATURE_LABELS } from "@/lib/plans"
+import { getActiveBanner } from "@/lib/banners"
+import PromoBannerBar from "@/components/PromoBannerBar"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
@@ -60,12 +62,16 @@ const FEATURE_GROUP_ORDER: (keyof typeof FEATURE_LABELS)[] = [
 ]
 
 export default async function PricingPage() {
-  const allPlans  = await getPlansFromDb()
+  const [allPlans, banner] = await Promise.all([
+    getPlansFromDb(),
+    getActiveBanner("marketing"),
+  ])
   const paidPlans = allPlans.filter((p) => p.id !== "trial")
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <MarketingNav />
+      {banner && <PromoBannerBar banner={banner} />}
 
       <main>
         {/* Hero */}

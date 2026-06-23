@@ -3,15 +3,16 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const nav = [
-  { href: "/admin",          label: "Overview",  icon: LayoutDashboard },
-  { href: "/admin/companies",label: "Companies", icon: Building2 },
-  { href: "/admin/users",    label: "Users",     icon: Users },
-  { href: "/admin/plans",    label: "Plans",     icon: CreditCard },
-  { href: "/admin/reports",  label: "Reports",   icon: BarChart2 },
+  { href: "/admin",           label: "Overview",  icon: LayoutDashboard },
+  { href: "/admin/companies", label: "Companies", icon: Building2 },
+  { href: "/admin/users",     label: "Users",     icon: Users },
+  { href: "/admin/plans",     label: "Plans",     icon: CreditCard },
+  { href: "/admin/banners",   label: "Banners",   icon: Megaphone },
+  { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
 ]
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {

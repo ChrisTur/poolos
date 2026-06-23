@@ -20,6 +20,8 @@ import {
 import MarketingNav from "@/components/marketing/MarketingNav"
 import PricingSection from "@/components/marketing/PricingSection"
 import { getPlansFromDb } from "@/lib/plans-db"
+import { getActiveBanner } from "@/lib/banners"
+import PromoBannerBar from "@/components/PromoBannerBar"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
@@ -113,7 +115,10 @@ export default async function HomePage() {
   const session = await auth()
   if (session?.user) redirect("/dashboard")
 
-  const allPlans = await getPlansFromDb()
+  const [allPlans, banner] = await Promise.all([
+    getPlansFromDb(),
+    getActiveBanner("marketing"),
+  ])
   const paidPlans = allPlans.filter((p) => p.id !== "trial")
 
   return (
@@ -123,6 +128,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <MarketingNav />
+      {banner && <PromoBannerBar banner={banner} />}
       <main>
 
       {/* ── Hero ───────────────────────────────────────────────── */}

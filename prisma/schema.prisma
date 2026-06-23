@@ -398,6 +398,21 @@ model Attachment {
   company        Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
+model PromoBanner {
+  id        String    @id @default(cuid())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  message         String
+  code            String?
+  active          Boolean   @default(true)
+  dismissible     Boolean   @default(true)
+  showOnMarketing Boolean   @default(true)
+  showInApp       Boolean   @default(true)
+  bgColor         String    @default("sky")   // sky | amber | green | purple
+  expiresAt       DateTime?
+}
+
 model PlanConfig {
   id          String  @id  // "trial" | "starter" | "pro" | "unlimited"
   label       String
