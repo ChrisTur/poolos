@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { Waves, RefreshCw } from "lucide-react"
+import * as Sentry from "@sentry/nextjs"
 
 export default function Error({
   error,
@@ -12,7 +13,7 @@ export default function Error({
   unstable_retry: () => void
 }) {
   useEffect(() => {
-    console.error(error)
+    Sentry.captureException(error)
   }, [error])
 
   return (
