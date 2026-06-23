@@ -62,7 +62,7 @@
 
 ## Infrastructure & Operations
 
-- [x] Error monitoring — Sentry wired up (client + server + edge); add NEXT_PUBLIC_SENTRY_DSN to env
+- [x] Error monitoring — Sentry wired up (client + server + edge); NEXT_PUBLIC_SENTRY_DSN set in Netlify
 - [x] Email deliverability — SPF, DKIM, DMARC configured in Netlify DNS; domain verified in Resend
 - [x] Custom 404 and 500 pages — branded not-found.tsx, error.tsx, global-error.tsx
 - [x] sitemap.xml — app/sitemap.ts covers /, /pricing, /register, /login, /privacy, /terms
