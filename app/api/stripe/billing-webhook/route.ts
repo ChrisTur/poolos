@@ -26,13 +26,18 @@ export async function POST(req: NextRequest) {
       const planId    = session.metadata?.planId
       if (!companyId || !planId) break
 
+      // Fetch the real subscription to get its actual status (may be "trialing"
+      // rather than "active" when the company still has trial days remaining).
+      const subId = typeof session.subscription === "string" ? session.subscription : null
+      const sub   = subId ? await stripe.subscriptions.retrieve(subId) : null
+
       await db.company.update({
         where: { id: companyId },
         data: {
           plan:                 planId,
           stripePlatformCustId: typeof session.customer === "string" ? session.customer : undefined,
-          stripeSubId:          typeof session.subscription === "string" ? session.subscription : undefined,
-          stripeSubStatus:      "active",
+          stripeSubId:          subId ?? undefined,
+          stripeSubStatus:      sub?.status ?? "active",
           trialEndsAt:          null,
           planUpdatedAt:        new Date(),
         },
@@ -40,6 +45,7 @@ export async function POST(req: NextRequest) {
       break
     }
 
+    case "customer.subscription.created":
     case "customer.subscription.updated": {
       const sub        = event.data.object
       const customerId = typeof sub.customer === "string" ? sub.customer : (sub.customer as any)?.id
