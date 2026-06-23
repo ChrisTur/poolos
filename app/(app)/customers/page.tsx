@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, Search, Pencil, Trash2, Download, ChevronRight } from "lucide-react"
+import { Plus, Search, Pencil, Trash2, Download, ChevronRight, Upload } from "lucide-react"
 import Card from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { formatCurrency, formatPhone } from "@/lib/utils"
@@ -61,6 +61,12 @@ export default async function CustomersPage({
               <span className="hidden sm:inline">Export</span>
             </Button>
           </a>
+          <Link href="/customers/import">
+            <Button size="sm" variant="secondary">
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Import</span>
+            </Button>
+          </Link>
           <Link href="/customers/new">
             <Button size="sm">
               <Plus className="w-4 h-4" />

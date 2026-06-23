@@ -34,7 +34,7 @@
 
 ### Activation & Retention
 - [x] Customer onboarding checklist — guides new companies through first customer, route, and invoice
-- [ ] CSV customer import — companies switching from spreadsheets need bulk import
+- [x] CSV customer import — /customers/import with drag-and-drop, template download, plan limit enforcement, per-row error reporting
 - [ ] Data export — let companies download all their data (GDPR requirement)
 - [ ] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts
 
@@ -72,5 +72,6 @@
 - [x] Stripe Customer Portal configured — payment update, invoice history, cancel at period end; return URL set to /settings/billing
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
 - [x] Cookie consent — banner on first visit, GA only loads after acceptance, choice persisted in localStorage
+- [x] End-to-end payment test — checkout → webhook 200 → plan active → billing page verified; also fixed 307 bug on webhook auth guard
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
 - [x] Rate limiting on API routes — sliding-window per-IP in middleware; covers /api/auth, /register, /forgot-password, /pay/, /portal/
