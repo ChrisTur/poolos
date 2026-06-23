@@ -34,7 +34,7 @@
 
 ### Activation & Retention
 - [x] Customer onboarding checklist — guides new companies through first customer, route, and invoice
-- [ ] CSV customer import — companies switching from spreadsheets need bulk import
+- [x] CSV customer import — /customers/import with drag-and-drop, template download, plan limit enforcement, per-row error reporting
 - [ ] Data export — let companies download all their data (GDPR requirement)
 - [ ] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts
 
