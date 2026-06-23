@@ -23,7 +23,7 @@
 - [ ] Add Stripe webhook handler for `customer.subscription.*` events to sync `stripeSubStatus`
 - [ ] Add plan enforcement middleware — gate features or block access when trial expires or subscription is past_due
 - [ ] Add trial expiry banner inside the app — "Your trial ends in X days — upgrade to keep access"
-- [ ] Annual billing option — offer 2 months free (≈17% discount) for annual payment; increases LTV and reduces churn
+- [x] Annual billing option — offer 2 months free (≈17% discount) for annual payment; increases LTV and reduces churn
 - [ ] Coupon / promo codes via Stripe — needed for partnerships, support credits, and early-adopter deals
 - [ ] Dunning / failed payment recovery — automated emails when a charge fails; silently kills MRR without this
 - [ ] Admin panel: show plan + MRR per company
@@ -31,7 +31,7 @@
 ## Product
 
 ### Activation & Retention
-- [ ] Customer onboarding checklist — guide new companies through first customer, first route, and first invoice; biggest driver of early churn reduction
+- [x] Customer onboarding checklist — guide new companies through first customer, first route, and first invoice; biggest driver of early churn reduction
 - [ ] CSV customer import — companies switching from spreadsheets need to bring their existing list in without manual entry
 - [ ] Data export — let companies download all their data; builds trust, prevents vendor lock-in fear, and is a GDPR requirement
 - [ ] In-app notification center — bell icon for overdue invoices, new portal replies, and chemical alerts; currently everything only goes to email

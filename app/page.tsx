@@ -18,7 +18,7 @@ import {
   CreditCard,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
-import { PLANS } from "@/lib/plans"
+import PricingSection from "@/components/marketing/PricingSection"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.netlify.app"
 
@@ -488,60 +488,7 @@ export default async function HomePage() {
             <p className="text-base sm:text-lg text-gray-400">Start free for 14 days. No credit card required.</p>
           </div>
 
-          <div className="grid sm:grid-cols-3 gap-4 sm:gap-6 items-start">
-            {([PLANS.starter, PLANS.pro, PLANS.unlimited]).map((plan) => (
-              <div
-                key={plan.id}
-                className={`rounded-2xl p-6 sm:p-7 border flex flex-col ${
-                  plan.mostPopular
-                    ? "bg-sky-600 text-white border-sky-600 shadow-xl shadow-sky-200 sm:-mt-3 sm:-mb-3"
-                    : "bg-white text-gray-900 border-gray-200"
-                }`}
-              >
-                <div className="mb-5">
-                  {plan.mostPopular && (
-                    <span className="text-xs font-semibold bg-white/20 text-white px-2.5 py-1 rounded-full mb-3 inline-block">
-                      Most popular
-                    </span>
-                  )}
-                  <p className={`text-sm font-semibold mb-1 ${plan.mostPopular ? "text-sky-100" : "text-gray-500"}`}>
-                    {plan.label}
-                  </p>
-                  <div className="flex items-end gap-1">
-                    <span className="text-4xl font-extrabold">
-                      {plan.priceMonthly != null ? `$${plan.priceMonthly}` : "Free"}
-                    </span>
-                    {plan.priceMonthly != null && (
-                      <span className={`text-sm mb-1 ${plan.mostPopular ? "text-sky-200" : "text-gray-400"}`}>/mo</span>
-                    )}
-                  </div>
-                  <p className={`text-sm mt-2 ${plan.mostPopular ? "text-sky-100" : "text-gray-400"}`}>
-                    {plan.description}
-                  </p>
-                </div>
-
-                <ul className="space-y-2.5 flex-1 mb-6">
-                  {plan.highlights.map((h) => (
-                    <li key={h} className={`flex items-center gap-2 text-sm ${plan.mostPopular ? "text-white" : "text-gray-600"}`}>
-                      <CheckCircle2 className={`w-4 h-4 shrink-0 ${plan.mostPopular ? "text-sky-200" : "text-sky-500"}`} />
-                      {h}
-                    </li>
-                  ))}
-                </ul>
-
-                <Link
-                  href="/register"
-                  className={`block text-center py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    plan.mostPopular
-                      ? "bg-white text-sky-600 hover:bg-sky-50"
-                      : "bg-sky-600 text-white hover:bg-sky-700"
-                  }`}
-                >
-                  Start free trial
-                </Link>
-              </div>
-            ))}
-          </div>
+          <PricingSection />
 
           <p className="text-center text-sm text-gray-400 mt-8">
             All plans include a 14-day free trial. No credit card required to start.

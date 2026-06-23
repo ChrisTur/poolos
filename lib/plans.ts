@@ -43,6 +43,7 @@ export interface Plan {
   label:        string
   description:  string
   priceMonthly: number | null  // null = free trial
+  priceAnnual?: number         // total annual cost (10 months = 2 months free)
   badge:        string         // Tailwind classes for the colored badge
   mostPopular?: boolean        // Highlighted on the marketing pricing page
   /** Marketing-facing bullet points shown on the pricing page. */
@@ -107,6 +108,7 @@ export const PLANS: Record<PlanId, Plan> = {
     label: "Starter",
     description: "Perfect for solo operators just getting started.",
     priceMonthly: 49,
+    priceAnnual: 490,
     badge: "bg-gray-100 text-gray-700",
     highlights: [
       "Up to 50 customers",
@@ -141,6 +143,7 @@ export const PLANS: Record<PlanId, Plan> = {
     label: "Pro",
     description: "For growing companies with multiple techs.",
     priceMonthly: 99,
+    priceAnnual: 990,
     badge: "bg-sky-100 text-sky-700",
     mostPopular: true,
     highlights: [
@@ -176,6 +179,7 @@ export const PLANS: Record<PlanId, Plan> = {
     label: "Unlimited",
     description: "Enterprise-scale operations with no limits.",
     priceMonthly: 199,
+    priceAnnual: 1990,
     badge: "bg-purple-100 text-purple-700",
     highlights: [
       "Unlimited customers",
