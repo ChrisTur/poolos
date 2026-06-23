@@ -25,7 +25,7 @@ export default function PricingSection() {
           }`}
         >
           <span
-            className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
+            className={`absolute left-0 top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ${
               annual ? "translate-x-6" : "translate-x-1"
             }`}
           />
