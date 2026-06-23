@@ -210,9 +210,10 @@ export default async function PricingPage() {
       <footer className="py-8 border-t border-gray-100 text-center text-xs text-gray-400">
         <p>© {new Date().getFullYear()} PoolOS. All rights reserved.</p>
         <div className="flex justify-center gap-4 mt-2">
-          <Link href="/" className="hover:text-gray-600">Home</Link>
+          <Link href="/"        className="hover:text-gray-600">Home</Link>
           <Link href="/register" className="hover:text-gray-600">Sign up</Link>
-          <Link href="/login" className="hover:text-gray-600">Sign in</Link>
+          <Link href="/login"   className="hover:text-gray-600">Sign in</Link>
+          <Link href="/privacy" className="hover:text-gray-600">Privacy</Link>
         </div>
       </footer>
     </div>
