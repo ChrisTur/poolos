@@ -39,7 +39,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <AppShell viewAsCompany={viewAsCompany}>
+    <AppShell viewAsCompany={viewAsCompany} planData={planData}>
       <PlanGate planData={planData}>
         {children}
       </PlanGate>

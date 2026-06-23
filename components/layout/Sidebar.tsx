@@ -17,6 +17,7 @@ import {
   CreditCard,
   LogOut,
   BarChart2,
+  Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { logout } from "@/lib/actions/auth"
@@ -33,18 +34,25 @@ const nav = [
 ]
 
 const settingsNav = [
-  { href: "/settings/company", label: "Company", icon: Settings },
+  { href: "/settings/company",  label: "Company",  icon: Settings },
   { href: "/settings/payments", label: "Payments", icon: CreditCard },
-  { href: "/settings/users", label: "Team", icon: UserCog },
+  { href: "/settings/users",    label: "Team",     icon: UserCog },
+  { href: "/settings/billing",  label: "Billing",  icon: Receipt },
 ]
 
 interface SidebarProps {
   open: boolean
   onClose: () => void
+  planData?: { plan: string; trialEndsAt: string | null }
 }
 
-export default function Sidebar({ open, onClose }: SidebarProps) {
+export default function Sidebar({ open, onClose, planData }: SidebarProps) {
   const pathname = usePathname()
+
+  const isTrial = planData?.plan === "trial"
+  const trialDaysLeft = planData?.trialEndsAt
+    ? Math.ceil((new Date(planData.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null
 
   return (
     <>
@@ -96,6 +104,30 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             )
           })}
         </nav>
+
+        {/* Trial upgrade CTA */}
+        {isTrial && (
+          <div className="mx-3 mb-3 p-3 rounded-xl bg-gradient-to-br from-sky-800 to-sky-700 border border-sky-600">
+            <div className="flex items-center gap-1.5 mb-1">
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <p className="text-xs font-semibold text-white">Free Trial</p>
+            </div>
+            <p className="text-xs text-sky-300 mb-2.5 leading-relaxed">
+              {trialDaysLeft !== null && trialDaysLeft > 0
+                ? `${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} remaining — upgrade to keep access.`
+                : trialDaysLeft !== null && trialDaysLeft <= 0
+                ? "Your trial has ended."
+                : "Upgrade to unlock all features."}
+            </p>
+            <Link
+              href="/settings/billing"
+              onClick={onClose}
+              className="block text-center bg-white text-sky-800 text-xs font-bold py-1.5 rounded-lg hover:bg-sky-50 transition-colors"
+            >
+              Upgrade now →
+            </Link>
+          </div>
+        )}
 
         {/* Settings nav */}
         <div className="px-3 pb-2 space-y-1 border-t border-sky-800 pt-3">
