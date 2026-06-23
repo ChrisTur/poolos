@@ -1,7 +1,7 @@
 import { Resend } from "resend"
 
 export const resend = new Resend(process.env.RESEND_API_KEY)
-export const FROM = process.env.EMAIL_FROM ?? "PoolOS <noreply@poolos.biz>"
+export const FROM = process.env.EMAIL_FROM ?? "PoolOS <billing@poolos.biz>"
 
 interface PaymentLinks {
   venmoHandle?: string | null

@@ -29,8 +29,8 @@ export default async function AdminOverviewPage() {
     {
       label: "Email FROM address",
       ok: !!process.env.EMAIL_FROM,
-      okNote: process.env.EMAIL_FROM ?? "Using default noreply@poolos.biz",
-      failNote: "Set EMAIL_FROM=PoolOS <noreply@poolos.biz> in environment variables",
+      okNote: process.env.EMAIL_FROM ?? "Using default billing@poolos.biz",
+      failNote: "Set EMAIL_FROM=PoolOS <billing@poolos.biz> in environment variables",
     },
     {
       label: "App URL",
