@@ -525,9 +525,9 @@ export default async function HomePage() {
 
           <p className="text-center text-sm text-gray-400 mt-8">
             Still have questions?{" "}
-            <a href="mailto:hello@poolos.biz" className="text-sky-600 hover:underline">
-              Reach out — we are happy to help.
-            </a>
+            <Link href="/contact" className="text-sky-600 hover:underline">
+              Send us a message — we are happy to help.
+            </Link>
           </p>
         </div>
       </section>
@@ -592,6 +592,7 @@ export default async function HomePage() {
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Account</p>
                 <Link href="/register" className="block hover:text-white transition-colors">Sign up</Link>
                 <Link href="/login"    className="block hover:text-white transition-colors">Sign in</Link>
+                <Link href="/contact"  className="block hover:text-white transition-colors">Contact</Link>
               </div>
               <div className="space-y-2.5 col-span-2 sm:col-span-1">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Legal</p>

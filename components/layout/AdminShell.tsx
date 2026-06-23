@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const nav = [
@@ -12,6 +12,7 @@ const nav = [
   { href: "/admin/users",     label: "Users",     icon: Users },
   { href: "/admin/plans",     label: "Plans",     icon: CreditCard },
   { href: "/admin/banners",   label: "Banners",   icon: Megaphone },
+  { href: "/admin/contact",   label: "Inbox",     icon: Inbox },
   { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
 ]
 

@@ -43,3 +43,10 @@ export async function requireOwner() {
   if (user.role !== "owner") redirect("/dashboard")
   return user
 }
+
+export async function requireSuperAdmin() {
+  const session = await auth()
+  if (!session?.user) redirect("/login")
+  if (session.user.email !== process.env.SUPER_ADMIN_EMAIL) redirect("/dashboard")
+  return session
+}

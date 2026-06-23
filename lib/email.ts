@@ -780,3 +780,35 @@ export function buildPasswordResetHtml(firstName: string, resetUrl: string) {
 </body>
 </html>`
 }
+
+export function buildContactReplyHtml(data: {
+  name: string
+  originalBody: string
+  replyBody: string
+}) {
+  const { name, originalBody, replyBody } = data
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:520px;margin:40px auto">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+      <div style="background:#0ea5e9;padding:24px;text-align:center">
+        <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff">PoolOS</p>
+      </div>
+      <div style="padding:32px 24px">
+        <p style="font-size:15px;color:#111827;margin:0 0 16px">Hi ${name},</p>
+        <p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 24px;white-space:pre-wrap">${replyBody}</p>
+        <div style="border-top:1px solid #f3f4f6;padding-top:20px;margin-top:4px">
+          <p style="font-size:11px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin:0 0 8px">Your original message</p>
+          <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0;white-space:pre-wrap">${originalBody}</p>
+        </div>
+      </div>
+      <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+        PoolOS · hello@poolos.biz
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+}

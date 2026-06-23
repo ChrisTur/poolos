@@ -445,6 +445,22 @@ model PlanConfig {
   updatedAt DateTime @updatedAt
 }
 
+model ContactMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  name      String
+  email     String
+  subject   String?
+  body      String
+
+  status    String   @default("new")  // new | read | replied
+
+  replyBody  String?
+  repliedAt  DateTime?
+  repliedBy  String?  // admin display name who sent the reply
+}
+
 model EmailLog {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
