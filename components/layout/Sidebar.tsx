@@ -18,6 +18,7 @@ import {
   LogOut,
   BarChart2,
   Zap,
+  ClipboardList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { logout } from "@/lib/actions/auth"
@@ -34,10 +35,11 @@ const nav = [
 ]
 
 const settingsNav = [
-  { href: "/settings/company",  label: "Company",  icon: Settings },
-  { href: "/settings/payments", label: "Payments", icon: CreditCard },
-  { href: "/settings/users",    label: "Team",     icon: UserCog },
-  { href: "/settings/billing",  label: "Billing",  icon: Receipt },
+  { href: "/settings/company",   label: "Company",   icon: Settings },
+  { href: "/settings/checklist", label: "Checklist", icon: ClipboardList },
+  { href: "/settings/payments",  label: "Payments",  icon: CreditCard },
+  { href: "/settings/users",     label: "Team",      icon: UserCog },
+  { href: "/settings/billing",   label: "Billing",   icon: Receipt },
 ]
 
 interface SidebarProps {

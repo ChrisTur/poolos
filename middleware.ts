@@ -69,6 +69,8 @@ export default auth((req) => {
   // Auth guard.
   const isPublic =
     pathname === "/" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/robots.txt" ||
     publicPrefixes.some((p) => pathname.startsWith(p)) ||
     WEBHOOK_PATHS.some((p) => pathname.startsWith(p))
 

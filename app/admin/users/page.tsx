@@ -96,6 +96,9 @@ export default async function AdminUsersPage({
                     }`}>{u.isActive ? "Active" : "Inactive"}</span>
                   </div>
                   <p className="text-xs text-sky-600 mt-1 truncate">{u.company.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Last login: {u.lastLoginAt ? formatDate(u.lastLoginAt) : "Never"}
+                  </p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 ml-3" />
               </Card>
@@ -121,6 +124,7 @@ export default async function AdminUsersPage({
                   <th className="px-5 py-3 text-left font-medium">Role</th>
                   <th className="px-5 py-3 text-left font-medium">Status</th>
                   <th className="px-5 py-3 text-left font-medium hidden lg:table-cell">Joined</th>
+                  <th className="px-5 py-3 text-left font-medium hidden xl:table-cell">Last login</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -148,6 +152,9 @@ export default async function AdminUsersPage({
                       </span>
                     </td>
                     <td className="px-5 py-3 text-gray-500 hidden lg:table-cell">{formatDate(u.createdAt)}</td>
+                    <td className="px-5 py-3 text-gray-500 hidden xl:table-cell">
+                      {u.lastLoginAt ? formatDate(u.lastLoginAt) : <span className="text-gray-300">Never</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>

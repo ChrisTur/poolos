@@ -40,9 +40,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Flag breached passwords for forced change on next page load
         const breached = await isPasswordBreached(password)
-        if (breached && !user.mustChangePassword) {
-          await db.user.update({ where: { id: user.id }, data: { mustChangePassword: true } })
-        }
+        await db.user.update({
+          where: { id: user.id },
+          data: {
+            lastLoginAt: new Date(),
+            ...(breached && !user.mustChangePassword ? { mustChangePassword: true } : {}),
+          },
+        })
 
         return {
           id: user.id,

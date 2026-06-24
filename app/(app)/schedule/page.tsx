@@ -26,7 +26,7 @@ const FREQUENCY_LABELS: Record<string, string> = {
 
 export default async function SchedulePage() {
   const { companyId } = await requireSession()
-  const [routes, recentVisits, customers, scheduledCustomers] = await Promise.all([
+  const [routes, recentVisits, customers, scheduledCustomers, checklistItems] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -53,6 +53,10 @@ export default async function SchedulePage() {
         serviceVisits: { orderBy: { visitedAt: "desc" }, take: 1 },
       },
       orderBy: [{ lastName: "asc" }],
+    }),
+    db.visitChecklistItem.findMany({
+      where: { companyId, isActive: true },
+      orderBy: { position: "asc" },
     }),
   ])
 
@@ -135,7 +139,7 @@ export default async function SchedulePage() {
         <Card>
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
           <CardBody>
-            <LogVisitForm customers={customers} routes={routes}  />
+            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} />
           </CardBody>
         </Card>
       </div>
@@ -248,7 +252,7 @@ export default async function SchedulePage() {
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>
-              <LogVisitForm customers={customers} routes={routes}  />
+              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} />
             </CardBody>
           </Card>
         </div>

@@ -33,12 +33,17 @@ export async function startViewAs(id: string) {
     maxAge: 60 * 60 * 8, // 8 hours
     path: "/",
   })
+  // Bust the router cache so the (app) layout re-fetches with the new cookie.
+  // Without this, Next.js may serve a stale layout that was rendered before
+  // view-as was started, and the "Viewing as …" banner won't appear.
+  revalidatePath("/", "layout")
   redirect("/dashboard")
 }
 
 export async function stopViewAs() {
   const cookieStore = await cookies()
   cookieStore.delete("poolos_view_as")
+  revalidatePath("/", "layout")
   redirect("/admin/companies")
 }
 

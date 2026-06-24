@@ -99,7 +99,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
 
   // Chemical chart data: visits with at least one reading
   const visitsWithChemicals = customer.serviceVisits.filter(
-    (v) => v.chlorine != null || v.ph != null || v.alkalinity != null || v.calcium != null
+    (v) => v.chlorine != null || v.ph != null || v.alkalinity != null || v.calcium != null || v.cya != null || v.salt != null
   )
 
   return (
@@ -399,10 +399,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               <div className="divide-y divide-gray-50">
                 {customer.serviceVisits.map((v) => {
                   const chemReadings = [
-                    { key: "chlorine" as const, label: "Cl", value: v.chlorine },
-                    { key: "ph" as const,       label: "pH", value: v.ph },
-                    { key: "alkalinity" as const, label: "Alk", value: v.alkalinity },
-                    { key: "calcium" as const,  label: "Ca", value: v.calcium },
+                    { key: "chlorine" as const,   label: "Cl",   value: v.chlorine },
+                    { key: "ph" as const,         label: "pH",   value: v.ph },
+                    { key: "alkalinity" as const, label: "Alk",  value: v.alkalinity },
+                    { key: "calcium" as const,    label: "Ca",   value: v.calcium },
+                    { key: null,                  label: "CYA",  value: v.cya },
+                    { key: null,                  label: "Salt", value: v.salt },
                   ].filter((r) => r.value != null)
                   return (
                     <div key={v.id} className="px-5 py-3">
@@ -416,12 +418,14 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                       {chemReadings.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           {chemReadings.map((r) => {
-                            const s = chemStatus(r.key, r.value)
-                            const range = CHEM_RANGES[r.key]
-                            const title = `${range.label}: ${r.value}${range.unit ? " " + range.unit : ""} (normal ${range.low}–${range.high}${range.unit ? " " + range.unit : ""})`
+                            const s = r.key ? chemStatus(r.key, r.value) : null
+                            const range = r.key ? CHEM_RANGES[r.key] : null
+                            const title = range
+                              ? `${range.label}: ${r.value}${range.unit ? " " + range.unit : ""} (normal ${range.low}–${range.high}${range.unit ? " " + range.unit : ""})`
+                              : `${r.label}: ${r.value}`
                             return (
                               <span
-                                key={r.key}
+                                key={r.label}
                                 title={title}
                                 className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium ${s ? STATUS_BG[s] : "bg-gray-50 text-gray-500 border-gray-200"}`}
                               >

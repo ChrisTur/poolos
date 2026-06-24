@@ -108,6 +108,9 @@ export async function logVisit(formData: FormData) {
   const ph          = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
   const alkalinity  = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
   const calcium     = formData.get("calcium")    ? parseFloat(formData.get("calcium")    as string) : null
+  const cya         = formData.get("cya")        ? parseFloat(formData.get("cya")        as string) : null
+  const salt        = formData.get("salt")       ? parseFloat(formData.get("salt")       as string) : null
+  const saltwater   = formData.get("saltwater") === "true"
   const notes       = (formData.get("notes") as string) || null
 
   const visit = await db.serviceVisit.create({
@@ -120,6 +123,9 @@ export async function logVisit(formData: FormData) {
       ph,
       alkalinity,
       calcium,
+      cya,
+      salt,
+      saltwater,
     },
   })
 
