@@ -19,6 +19,7 @@ import {
   BarChart2,
   Zap,
   ClipboardList,
+  Mail,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { logout } from "@/lib/actions/auth"
@@ -26,6 +27,7 @@ import { logout } from "@/lib/actions/auth"
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Customers", icon: Users },
+  { href: "/messages",  label: "Messages",  icon: Mail },
   { href: "/routes", label: "Routes", icon: MapPin },
   { href: "/schedule", label: "Schedule", icon: CalendarDays },
   { href: "/invoices", label: "Invoices", icon: FileText },
