@@ -1,5 +1,12 @@
+"use client"
+
+import { useActionState } from "react"
+import { useFormStatus } from "react-dom"
 import Link from "next/link"
+import { AlertCircle } from "lucide-react"
 import type { PromoBannerModel } from "@/app/generated/prisma/models/PromoBanner"
+import type { BannerFormState } from "@/lib/actions/admin-banners"
+
 type PromoBanner = PromoBannerModel
 
 const COLORS = [
@@ -11,14 +18,39 @@ const COLORS = [
 
 interface Props {
   banner?: PromoBanner
-  action: (formData: FormData) => Promise<void>
+  action: (_: BannerFormState, formData: FormData) => Promise<BannerFormState>
   submitLabel: string
 }
 
-export default function BannerForm({ banner, action, submitLabel }: Props) {
+const inputCls =
+  "w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+
+function SubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus()
   return (
-    <form action={action} className="space-y-6 max-w-2xl">
+    <button
+      type="submit"
+      disabled={pending}
+      className="bg-sky-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-sky-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {pending ? "Saving…" : label}
+    </button>
+  )
+}
+
+export default function BannerForm({ banner, action, submitLabel }: Props) {
+  const [state, formAction] = useActionState(action, null)
+
+  return (
+    <form action={formAction} className="space-y-6 max-w-2xl">
       {banner && <input type="hidden" name="id" value={banner.id} />}
+
+      {state?.error && (
+        <div className="flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">{state.error}</p>
+        </div>
+      )}
 
       <section className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Content</h2>
@@ -31,7 +63,7 @@ export default function BannerForm({ banner, action, submitLabel }: Props) {
             required
             defaultValue={banner?.message}
             placeholder="🎉 Use code POOLOS20 for 20% off your first 3 months!"
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className={inputCls}
           />
         </div>
 
@@ -42,7 +74,7 @@ export default function BannerForm({ banner, action, submitLabel }: Props) {
             name="code"
             defaultValue={banner?.code ?? ""}
             placeholder="POOLOS20"
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className={`${inputCls} font-mono`}
           />
         </div>
       </section>
@@ -74,10 +106,10 @@ export default function BannerForm({ banner, action, submitLabel }: Props) {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Visibility</h2>
 
         {[
-          { name: "active",          label: "Active",                   desc: "Banner is live and visible",                       default: banner?.active ?? true },
+          { name: "active",          label: "Active",                   desc: "Banner is live and visible",                        default: banner?.active          ?? true },
           { name: "showOnMarketing", label: "Show on marketing pages",  desc: "Homepage, /pricing, and other public pages",        default: banner?.showOnMarketing ?? true },
-          { name: "showInApp",       label: "Show inside the app",      desc: "Shown to companies on a free trial only",           default: banner?.showInApp ?? true },
-          { name: "dismissible",     label: "Dismissible",              desc: "Users can close the banner (remembered per device)", default: banner?.dismissible ?? true },
+          { name: "showInApp",       label: "Show inside the app",      desc: "Shown to companies on a free trial only",           default: banner?.showInApp       ?? true },
+          { name: "dismissible",     label: "Dismissible",              desc: "Users can close the banner (remembered per device)", default: banner?.dismissible     ?? true },
         ].map((field) => (
           <label key={field.name} className="flex items-start gap-3 cursor-pointer select-none">
             <input
@@ -107,17 +139,12 @@ export default function BannerForm({ banner, action, submitLabel }: Props) {
                   .slice(0, 16)
               : ""
           }
-          className="block w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+          className={`block ${inputCls}`}
         />
       </section>
 
       <div className="flex gap-3">
-        <button
-          type="submit"
-          className="bg-sky-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-sky-700 transition-colors"
-        >
-          {submitLabel}
-        </button>
+        <SubmitButton label={submitLabel} />
         <Link
           href="/admin/banners"
           className="bg-gray-100 text-gray-700 text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-gray-200 transition-colors"

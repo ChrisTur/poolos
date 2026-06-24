@@ -7,30 +7,51 @@ import Link from "next/link"
 const GA_ID       = "G-9DHZQXE2YH"
 const CONSENT_KEY = "cookie_consent"
 
+type ConsentValue = "accepted" | "declined"
+
+// Cookies persist longer and survive more browser configs than localStorage.
+// We write both; read cookie first, fall back to localStorage.
+function readConsent(): ConsentValue | null {
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)cookie_consent=([^;]+)/)
+    if (match) return match[1] as ConsentValue
+  } catch { /* blocked */ }
+  try {
+    const val = localStorage.getItem(CONSENT_KEY)
+    if (val === "accepted" || val === "declined") return val
+  } catch { /* blocked */ }
+  return null
+}
+
+function writeConsent(value: ConsentValue) {
+  try {
+    const expires = new Date()
+    expires.setFullYear(expires.getFullYear() + 1)
+    document.cookie = `${CONSENT_KEY}=${value}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`
+  } catch { /* blocked */ }
+  try {
+    localStorage.setItem(CONSENT_KEY, value)
+  } catch { /* blocked */ }
+}
+
 export default function CookieConsent() {
-  const [consent, setConsent] = useState<"accepted" | "declined" | null>(null)
+  const [consent, setConsent] = useState<ConsentValue | null>(null)
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem(CONSENT_KEY) as "accepted" | "declined" | null
+    const stored = readConsent()
     if (stored) {
       setConsent(stored)
-    } else {
-      // Small delay so the banner doesn't flash in before the page paints.
-      const t = setTimeout(() => setVisible(true), 600)
-      return () => clearTimeout(t)
+      return
     }
+    // Small delay so the banner doesn't flash in before the page paints.
+    const t = setTimeout(() => setVisible(true), 600)
+    return () => clearTimeout(t)
   }, [])
 
-  const accept = () => {
-    localStorage.setItem(CONSENT_KEY, "accepted")
-    setConsent("accepted")
-    setVisible(false)
-  }
-
-  const decline = () => {
-    localStorage.setItem(CONSENT_KEY, "declined")
-    setConsent("declined")
+  const choose = (value: ConsentValue) => {
+    writeConsent(value)
+    setConsent(value)
     setVisible(false)
   }
 
@@ -66,13 +87,13 @@ export default function CookieConsent() {
             </p>
             <div className="flex gap-2 shrink-0">
               <button
-                onClick={decline}
+                onClick={() => choose("declined")}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
               >
                 Decline
               </button>
               <button
-                onClick={accept}
+                onClick={() => choose("accepted")}
                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-sky-600 text-white hover:bg-sky-500 transition-colors"
               >
                 Accept cookies

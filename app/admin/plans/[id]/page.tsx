@@ -127,7 +127,7 @@ export default async function EditPlanPage({
             name="highlights"
             rows={plan.highlights.length + 2}
             defaultValue={plan.highlights.join("\n")}
-            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
+            className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono"
           />
         </section>
 
@@ -184,7 +184,7 @@ function Field({
         type={type}
         name={name}
         defaultValue={defaultValue}
-        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
       />
     </div>
   )
