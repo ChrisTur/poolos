@@ -1,12 +1,27 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useMemo, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { logVisit } from "@/lib/actions/routes"
 import { getUploadUrl } from "@/lib/actions/attachments"
+import { runDosing, type DoseResult } from "@/lib/chemistry"
 import Button from "@/components/ui/Button"
-import { Camera, X, Loader2, CheckCircle2 } from "lucide-react"
-import type { Customer, Route } from "@/app/generated/prisma/client"
+import {
+  Camera, X, Loader2, CheckCircle2, FlaskConical,
+  ChevronDown, ChevronUp, AlertTriangle, CheckSquare, Square,
+} from "lucide-react"
+import type { Customer, Route, VisitChecklistItem } from "@/app/generated/prisma/client"
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type ChemFields = {
+  chlorine: string; ph: string; alkalinity: string
+  calcium: string; cya: string; salt: string
+}
+
+const EMPTY_CHEM: ChemFields = { chlorine: "", ph: "", alkalinity: "", calcium: "", cya: "", salt: "" }
+
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const STATUSES = [
   { value: "completed", label: "Completed", color: "bg-green-100 text-green-700 border-green-300 ring-green-400" },
@@ -21,28 +36,150 @@ const TEMPLATES = [
   { label: "No access",        body: "Unable to access pool today. Please ensure gate is unlocked for the next scheduled visit." },
 ]
 
+const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+
+// ── Dosing summary (compact inline display) ───────────────────────────────────
+
+function DosingPanel({ results }: { results: DoseResult[] }) {
+  const [open, setOpen] = useState(true)
+  const outOfRange = results.filter((r) => r.status !== "ok")
+  const inRange    = results.filter((r) => r.status === "ok")
+
+  return (
+    <div className="rounded-xl border border-sky-200 bg-sky-50 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <FlaskConical className="w-4 h-4 text-sky-600" />
+          <span className="text-sm font-semibold text-sky-900">Dosing Recommendations</span>
+          {outOfRange.length === 0
+            ? <span className="text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">All in range</span>
+            : <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">{outOfRange.length} need attention</span>}
+        </div>
+        {open ? <ChevronUp className="w-4 h-4 text-sky-600" /> : <ChevronDown className="w-4 h-4 text-sky-600" />}
+      </button>
+
+      {open && (
+        <div className="px-4 pb-4 space-y-2 border-t border-sky-200">
+          {outOfRange.map((r) => (
+            <div key={r.key} className={`rounded-lg px-3 py-2.5 border ${r.status === "low" ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200"}`}>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span className="text-xs font-semibold text-gray-800">{r.label}</span>
+                <span className={`text-xs font-bold ${r.status === "low" ? "text-amber-700" : "text-red-700"}`}>
+                  {r.current}{r.unit ? ` ${r.unit}` : ""} {r.status === "low" ? "▼ Low" : "▲ High"}
+                </span>
+              </div>
+              {r.actions.slice(0, 1).map((a, i) => (
+                <p key={i} className="text-xs text-gray-700">
+                  <span className="font-medium">{a.chemical}</span>
+                  {a.amount && <span className="ml-1 font-bold text-sky-700">{a.amount}</span>}
+                  {a.note && <span className="ml-1 text-gray-500">— {a.note}</span>}
+                </p>
+              ))}
+              {r.actions.length > 1 && (
+                <p className="text-xs text-gray-400 mt-1">or {r.actions.slice(1).map(a => a.chemical).join(" / ")}</p>
+              )}
+            </div>
+          ))}
+          {inRange.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {inRange.map((r) => (
+                <span key={r.key} className="inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">
+                  <CheckCircle2 className="w-3 h-3" />{r.label}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-400 pt-1">
+            Based on {results[0] ? "entered readings" : "—"}. Always follow product directions and retest before swimming.
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Main form ─────────────────────────────────────────────────────────────────
+
 export default function LogVisitForm({
   customers,
   routes,
+  checklistItems = [],
 }: {
   customers: Customer[]
   routes: Route[]
+  checklistItems?: VisitChecklistItem[]
 }) {
-  const router = useRouter()
+  const router  = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [status, setStatus]       = useState("completed")
-  const [notes, setNotes]         = useState("")
-  const [photos, setPhotos]       = useState<File[]>([])
-  const [previews, setPreviews]   = useState<string[]>([])
+  const [customerId, setCustomerId] = useState("")
+  const [status, setStatus]         = useState("completed")
+  const [saltwater, setSaltwater]   = useState(false)
+  const [chem, setChem]             = useState<ChemFields>(EMPTY_CHEM)
+  const [notes, setNotes]           = useState("")
+  const [photos, setPhotos]         = useState<File[]>([])
+  const [previews, setPreviews]     = useState<string[]>([])
+  const [checked, setChecked]       = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
-  const [done, setDone]           = useState(false)
-  const [error, setError]         = useState<string | null>(null)
+  const [done, setDone]             = useState(false)
+  const [error, setError]           = useState<string | null>(null)
 
-  function applyTemplate(body: string) {
-    setNotes(body)
+  // Derive selected customer's pool info
+  const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
+  const poolVolume = selectedCustomer?.poolSize ? parseFloat(selectedCustomer.poolSize) : null
+  const inferredSaltwater = selectedCustomer?.poolType?.toLowerCase().includes("salt") ?? false
+
+  // Auto-set saltwater when customer changes
+  function handleCustomerChange(id: string) {
+    setCustomerId(id)
+    const c = customers.find((x) => x.id === id)
+    if (c?.poolType?.toLowerCase().includes("salt")) setSaltwater(true)
+    else setSaltwater(false)
   }
+
+  // Run dosing calculation whenever readings or pool info change
+  const dosingResults = useMemo<DoseResult[] | null>(() => {
+    const fc  = parseFloat(chem.chlorine)
+    const ph  = parseFloat(chem.ph)
+    const ta  = parseFloat(chem.alkalinity)
+    const ch  = parseFloat(chem.calcium)
+    const cya = parseFloat(chem.cya)
+    const sl  = parseFloat(chem.salt)
+
+    // Need at least 2 readings for a useful calculation
+    const entered = [fc, ph, ta, ch, cya].filter((v) => !isNaN(v) && v > 0)
+    if (entered.length < 2) return null
+
+    return runDosing({
+      volume:    poolVolume && !isNaN(poolVolume) ? poolVolume : 15000,
+      fc:        isNaN(fc)  ? 0 : fc,
+      ph:        isNaN(ph)  ? 0 : ph,
+      ta:        isNaN(ta)  ? 0 : ta,
+      ch:        isNaN(ch)  ? 0 : ch,
+      cya:       isNaN(cya) ? 0 : cya,
+      salt:      isNaN(sl)  ? 0 : sl,
+      saltwater,
+    })
+  }, [chem, saltwater, poolVolume])
+
+  // Checklist: only required on "completed" visits
+  const activeChecklist = status === "completed" ? checklistItems : []
+  const checklistComplete = activeChecklist.every((item) => checked.has(item.id))
+
+  function toggleCheck(id: string) {
+    setChecked((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function applyTemplate(body: string) { setNotes(body) }
 
   function addPhotos(files: FileList | null) {
     if (!files) return
@@ -60,20 +197,19 @@ export default function LogVisitForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!checklistComplete) return
     setSubmitting(true)
     setError(null)
 
     const formData = new FormData(e.currentTarget)
+    formData.set("saltwater", String(saltwater))
 
-    // Upload photos to GCS, collect keys to include in visit data
     for (const file of photos) {
       try {
         const { url, key } = await getUploadUrl(file.name, file.type)
         const res = await fetch(url, { method: "PUT", body: file, headers: { "Content-Type": file.type } })
         if (res.ok) formData.append("attachmentKey", key)
-      } catch {
-        // skip failed uploads — visit still saves
-      }
+      } catch { /* skip failed uploads */ }
     }
 
     try {
@@ -83,7 +219,11 @@ export default function LogVisitForm({
       setPhotos([])
       setPreviews([])
       setStatus("completed")
+      setChem(EMPTY_CHEM)
+      setChecked(new Set())
       formRef.current?.reset()
+      // Re-detect saltwater from customer after reset
+      if (customerId) handleCustomerChange(customerId)
       router.refresh()
       setTimeout(() => setDone(false), 3000)
     } catch {
@@ -102,23 +242,28 @@ export default function LogVisitForm({
         <select
           name="customerId"
           required
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          value={customerId}
+          onChange={(e) => handleCustomerChange(e.target.value)}
+          className={inputCls}
         >
           <option value="">Select customer…</option>
           {customers.map((c) => (
             <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
           ))}
         </select>
+        {selectedCustomer?.poolSize && (
+          <p className="text-xs text-gray-400 mt-1">
+            Pool: {parseFloat(selectedCustomer.poolSize).toLocaleString()} gal
+            {selectedCustomer.poolType && ` · ${selectedCustomer.poolType}`}
+          </p>
+        )}
       </div>
 
       {/* Route */}
       {routes.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Route</label>
-          <select
-            name="routeId"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-          >
+          <select name="routeId" className={inputCls}>
             <option value="">None</option>
             {routes.map((r) => (
               <option key={r.id} value={r.id}>{r.name}</option>
@@ -151,13 +296,35 @@ export default function LogVisitForm({
 
       {/* Chemical readings */}
       <fieldset>
-        <legend className="text-sm font-medium text-gray-700 mb-2">Chemical Readings</legend>
+        <div className="flex items-center justify-between mb-2">
+          <legend className="text-sm font-medium text-gray-700">Chemical Readings</legend>
+          {!poolVolume && (
+            <span className="text-xs text-gray-400">Add pool size on customer profile for accurate dosing</span>
+          )}
+        </div>
+
+        {/* Saltwater toggle */}
+        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={saltwater}
+            onChange={(e) => setSaltwater(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+          />
+          <span className="text-sm text-gray-700">Saltwater pool</span>
+          {inferredSaltwater && !saltwater && (
+            <span className="text-xs text-amber-600">(detected from pool type)</span>
+          )}
+        </label>
+
         <div className="grid grid-cols-2 gap-3">
           {[
-            { name: "chlorine",   label: "Chlorine",   step: "0.1", hint: "1.0–3.0 ppm" },
-            { name: "ph",         label: "pH",         step: "0.1", hint: "7.2–7.8"     },
-            { name: "alkalinity", label: "Alkalinity", step: "1",   hint: "80–120 ppm"  },
-            { name: "calcium",    label: "Calcium",    step: "1",   hint: "200–400 ppm" },
+            { name: "chlorine",   label: "Free Chlorine", step: "0.1", hint: "1–3 ppm"    },
+            { name: "ph",         label: "pH",            step: "0.1", hint: "7.2–7.6"    },
+            { name: "alkalinity", label: "Total Alk.",    step: "1",   hint: "80–120 ppm" },
+            { name: "calcium",    label: "Calcium Hard.", step: "1",   hint: "200–400 ppm"},
+            { name: "cya",        label: "CYA / Stabilizer", step: "1", hint: "30–50 ppm"},
+            ...(saltwater ? [{ name: "salt", label: "Salt Level", step: "10", hint: "2700–3400 ppm" }] : []),
           ].map((f) => (
             <div key={f.name}>
               <label className="block text-xs font-medium text-gray-600 mb-1">
@@ -169,12 +336,54 @@ export default function LogVisitForm({
                 step={f.step}
                 min="0"
                 placeholder="—"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                value={chem[f.name as keyof ChemFields] ?? ""}
+                onChange={(e) => setChem((prev) => ({ ...prev, [f.name]: e.target.value }))}
+                className={inputCls}
               />
             </div>
           ))}
         </div>
       </fieldset>
+
+      {/* Dosing recommendations — shown once 2+ readings are entered */}
+      {dosingResults && <DosingPanel results={dosingResults} />}
+
+      {/* Checklist — only shown for "completed" visits */}
+      {activeChecklist.length > 0 && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            Pre-completion checklist
+            {!checklistComplete && (
+              <span className="text-xs font-normal text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Required before submitting
+              </span>
+            )}
+          </legend>
+          <div className="rounded-xl border border-gray-200 divide-y divide-gray-100 overflow-hidden">
+            {activeChecklist.map((item) => {
+              const isChecked = checked.has(item.id)
+              return (
+                <label
+                  key={item.id}
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${isChecked ? "bg-green-50" : "bg-white hover:bg-gray-50"}`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleCheck(item.id)}
+                    className={`shrink-0 transition-colors ${isChecked ? "text-green-600" : "text-gray-300"}`}
+                  >
+                    {isChecked
+                      ? <CheckSquare className="w-5 h-5" />
+                      : <Square className="w-5 h-5" />}
+                  </button>
+                  <span className={`text-sm ${isChecked ? "text-green-800" : "text-gray-700"}`}>{item.label}</span>
+                </label>
+              )
+            })}
+          </div>
+        </fieldset>
+      )}
 
       {/* Message / Notes */}
       <div>
@@ -243,7 +452,18 @@ export default function LogVisitForm({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <Button type="submit" disabled={submitting} className="w-full">
+      {/* Submit — disabled until checklist complete */}
+      {activeChecklist.length > 0 && !checklistComplete && (
+        <p className="text-xs text-center text-amber-600">
+          Check off all {activeChecklist.length} items above to submit
+        </p>
+      )}
+
+      <Button
+        type="submit"
+        disabled={submitting || !checklistComplete}
+        className="w-full"
+      >
         {submitting ? (
           <><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>
         ) : done ? (

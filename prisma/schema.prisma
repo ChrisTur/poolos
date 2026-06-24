@@ -61,6 +61,7 @@ model Company {
   messages          CustomerMessage[]
   tags              Tag[]
   attachments       Attachment[]
+  visitChecklist    VisitChecklistItem[]
 }
 
 model User {
@@ -198,11 +199,24 @@ model ServiceVisit {
   ph         Float?
   alkalinity Float?
   calcium    Float?
+  cya        Float?
+  salt       Float?
+  saltwater  Boolean @default(false)
 
   routeId    String?
   route      Route?   @relation(fields: [routeId], references: [id])
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model VisitChecklistItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  label     String
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model Invoice {
