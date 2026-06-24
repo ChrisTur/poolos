@@ -20,7 +20,7 @@
 - [ ] Referral program — "Refer a company, get a free month"; pool owners know pool owners
 - [ ] Start a blog — content like "How to price pool service routes" and "Pool chemical dosing guide" drives organic traffic
 - [x] Connect Google Search Console — track impressions, clicks, and crawl errors after launch
-- [ ] Add a contact/support email (`hello@poolos.biz` referenced in FAQ but not set up)
+- [x] Add a contact/support email (`hello@poolos.biz` — Google Workspace, live)
 
 ## Product
 
