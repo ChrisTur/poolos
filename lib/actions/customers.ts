@@ -109,6 +109,85 @@ export async function disableAutoPay(customerId: string) {
   revalidatePath(`/customers/${customerId}`)
 }
 
+export async function broadcastMessage(
+  customerIds: string[],
+  subject: string,
+  body: string,
+): Promise<{ sent: number; skipped: number; error?: string }> {
+  const { companyId, name: senderName } = await requireSession()
+
+  if (!subject.trim() || !body.trim()) return { sent: 0, skipped: 0, error: "Subject and message are required." }
+
+  const [customers, company] = await Promise.all([
+    db.customer.findMany({
+      where: { companyId, id: { in: customerIds } },
+      select: { id: true, email: true, firstName: true, portalToken: true },
+    }),
+    db.company.findUnique({
+      where: { id: companyId },
+      select: { name: true, logoUrl: true, phone: true, replyToEmail: true },
+    }),
+  ])
+
+  if (!company) return { sent: 0, skipped: 0, error: "Company not found." }
+
+  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+  const withEmail = customers.filter((c) => c.email)
+  const noEmail = customers.length - withEmail.length
+
+  if (withEmail.length === 0) return { sent: 0, skipped: noEmail, error: "None of the selected customers have email addresses." }
+
+  // Build batch payload (Resend batch max = 100 per call)
+  const buildEmail = (c: (typeof withEmail)[0]) => {
+    const portalUrl = c.portalToken
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${c.portalToken}`
+      : null
+    return {
+      from: `${company.name} <${fromEmail}>`,
+      to: c.email!,
+      replyTo: company.replyToEmail ?? undefined,
+      subject,
+      html: buildCustomerMessageHtml({
+        companyName: company.name,
+        companyLogoUrl: company.logoUrl,
+        companyPhone: company.phone,
+        customerFirstName: c.firstName,
+        message: body,
+        portalUrl,
+        sentByName: senderName,
+      }),
+    }
+  }
+
+  let sent = 0
+  let sendFailed = 0
+  for (let i = 0; i < withEmail.length; i += 100) {
+    const chunk = withEmail.slice(i, i + 100)
+    try {
+      await resend.batch.send(chunk.map(buildEmail))
+      sent += chunk.length
+    } catch {
+      sendFailed += chunk.length
+    }
+  }
+
+  if (sent > 0) {
+    await db.customerMessage.createMany({
+      data: withEmail.slice(0, sent).map((c) => ({
+        body,
+        fromCompany: true,
+        sentViaEmail: true,
+        sentByName: senderName,
+        customerId: c.id,
+        companyId,
+      })),
+    })
+  }
+
+  revalidatePath("/customers")
+  return { sent, skipped: noEmail + sendFailed }
+}
+
 export async function sendMessage(_: unknown, formData: FormData) {
   const { companyId, name: senderName } = await requireSession()
 
