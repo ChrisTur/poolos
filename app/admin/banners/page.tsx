@@ -1,7 +1,8 @@
 import Link from "next/link"
 import { db } from "@/lib/db"
-import { toggleBannerActive, deleteBanner } from "@/lib/actions/admin-banners"
-import { Plus, Pencil, Trash2, Eye, EyeOff, Globe, AppWindow } from "lucide-react"
+import { toggleBannerActive } from "@/lib/actions/admin-banners"
+import DeleteBannerButton from "./DeleteBannerButton"
+import { Plus, Pencil, Eye, EyeOff, Globe, AppWindow } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -99,16 +100,7 @@ export default async function AdminBannersPage() {
                 >
                   <Pencil className="w-4 h-4" />
                 </Link>
-                <form action={deleteBanner} onSubmit={(e) => { if (!confirm("Delete this banner?")) e.preventDefault() }}>
-                  <input type="hidden" name="id" value={b.id} />
-                  <button
-                    type="submit"
-                    title="Delete"
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </form>
+                <DeleteBannerButton id={b.id} />
               </div>
             </div>
           ))}
