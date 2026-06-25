@@ -3,10 +3,11 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { logout } from "@/lib/actions/auth"
 
-const nav = [
+const platformNav = [
   { href: "/admin",           label: "Overview",  icon: LayoutDashboard },
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/users",     label: "Users",     icon: Users },
@@ -16,46 +17,76 @@ const nav = [
   { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
 ]
 
+const marketingNav = [
+  { href: "/admin/site-config", label: "Site Config", icon: Settings },
+  { href: "/admin/waitlist",    label: "Waitlist",    icon: ListChecks },
+  { href: "/admin/features",    label: "Features",    icon: Zap },
+  { href: "/admin/blog",        label: "Blog",        icon: BookOpen },
+  { href: "/admin/referrals",   label: "Referrals",   icon: Gift },
+]
+
+function NavLink({ href, label, icon: Icon, pathname, onClose, exact = false }: {
+  href: string; label: string; icon: React.ElementType; pathname: string; onClose: () => void; exact?: boolean
+}) {
+  const active = exact ? pathname === href : (pathname === href || pathname.startsWith(href + "/") || pathname.startsWith(href))
+  return (
+    <Link
+      href={href}
+      onClick={onClose}
+      className={cn(
+        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+        active ? "bg-gray-700 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white"
+      )}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      {label}
+    </Link>
+  )
+}
+
 function AdminSidebar({ pathname, onClose }: { pathname: string; onClose: () => void }) {
   return (
     <aside className="w-56 bg-gray-900 text-white flex flex-col h-full">
-      <div className="flex items-center justify-between px-5 py-5 border-b border-gray-800">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <Waves className="w-5 h-5 text-sky-400" />
           <div>
             <span className="font-bold text-sm">PoolOS</span>
-            <p className="text-xs text-gray-400 leading-none">Admin</p>
+            <p className="text-xs text-gray-400 leading-none">Super Admin</p>
           </div>
         </div>
         <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-white">
           <X className="w-5 h-5" />
         </button>
       </div>
-      <nav className="flex-1 px-3 py-4 space-y-1">
-        {nav.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/admin" && pathname.startsWith(href))
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={onClose}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                active
-                  ? "bg-gray-700 text-white"
-                  : "text-gray-300 hover:bg-gray-800 hover:text-white"
-              )}
-            >
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </Link>
-          )
-        })}
+
+      <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+        {platformNav.map((item) => (
+          <NavLink key={item.href} {...item} pathname={pathname} onClose={onClose} exact={item.href === "/admin"} />
+        ))}
+
+        <p className="px-3 pt-4 pb-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Marketing</p>
+        {marketingNav.map((item) => (
+          <NavLink key={item.href} {...item} pathname={pathname} onClose={onClose} />
+        ))}
       </nav>
-      <div className="px-5 py-4 border-t border-gray-800">
-        <Link href="/dashboard" className="text-xs text-gray-400 hover:text-white transition-colors">
+
+      <div className="px-3 py-3 border-t border-gray-800 space-y-1">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+        >
           ← Back to app
         </Link>
+        <form action={logout}>
+          <button
+            type="submit"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            Sign Out
+          </button>
+        </form>
       </div>
     </aside>
   )
