@@ -31,7 +31,7 @@ export async function requireSession() {
       select: { mustChangePassword: true },
     })
     if (dbUser?.mustChangePassword) redirect("/change-password")
-  } else if ((user as any).mustChangePassword) {
+  } else if ((user as unknown as Record<string, unknown>).mustChangePassword) {
     redirect("/change-password")
   }
 

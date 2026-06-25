@@ -41,7 +41,8 @@ export default function CookieConsent() {
   useEffect(() => {
     const stored = readConsent()
     if (stored) {
-      setConsent(stored)
+      // Defer state update to avoid synchronous setState-in-effect
+      Promise.resolve().then(() => setConsent(stored))
       return
     }
     // Small delay so the banner doesn't flash in before the page paints.

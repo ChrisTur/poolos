@@ -44,6 +44,7 @@ export default async function DashboardPage() {
       db.serviceVisit.findMany({
         where: {
           customer: { companyId },
+          // eslint-disable-next-line react-hooks/purity
           visitedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
           OR: [
             { chlorine: { not: null } },
@@ -134,6 +135,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-sky-100">
               {company.trialEndsAt
                 ? (() => {
+                    // eslint-disable-next-line react-hooks/purity
                     const days = Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                     return days > 0
                       ? `${days} day${days === 1 ? "" : "s"} remaining. Upgrade to keep your routes, invoices, and customer history.`

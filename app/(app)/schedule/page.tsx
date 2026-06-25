@@ -68,6 +68,7 @@ export default async function SchedulePage() {
   const unscheduled = routes.filter((r) => r.dayOfWeek == null)
 
   // Build due/overdue list for customers with serviceFrequency set
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now()
   const dueCustomers = scheduledCustomers
     .filter((c) => c.serviceFrequency && c.serviceFrequency !== "as_needed")

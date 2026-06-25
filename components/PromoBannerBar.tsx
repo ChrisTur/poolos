@@ -17,7 +17,8 @@ export default function PromoBannerBar({ banner }: { banner: BannerData }) {
 
   useEffect(() => {
     if (banner.dismissible && localStorage.getItem(`banner_${banner.id}`)) {
-      setVisible(false)
+      // Defer state update to avoid synchronous setState-in-effect
+      Promise.resolve().then(() => setVisible(false))
     }
   }, [banner.id, banner.dismissible])
 

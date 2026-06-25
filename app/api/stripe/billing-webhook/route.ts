@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     case "customer.subscription.created":
     case "customer.subscription.updated": {
       const sub        = event.data.object
-      const customerId = typeof sub.customer === "string" ? sub.customer : (sub.customer as any)?.id
+      const customerId = typeof sub.customer === "string" ? sub.customer : (sub.customer as { id?: string } | null)?.id
       if (!customerId) break
 
       // Determine plan from price metadata if available
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
 
     case "customer.subscription.deleted": {
       const sub        = event.data.object
-      const customerId = typeof sub.customer === "string" ? sub.customer : (sub.customer as any)?.id
+      const customerId = typeof sub.customer === "string" ? sub.customer : (sub.customer as { id?: string } | null)?.id
       if (!customerId) break
 
       await db.company.updateMany({
@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
 
     case "invoice.payment_failed": {
       const inv        = event.data.object
-      const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer as any)?.id
+      const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer as { id?: string } | null)?.id
       if (!customerId) break
 
       const company = await db.company.findFirst({
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         select: { email: true, firstName: true },
       })
       if (owner?.email) {
-        const attemptCount = (inv as any).attempt_count ?? 1
+        const attemptCount = (inv as unknown as { attempt_count?: number }).attempt_count ?? 1
         const planLabel    = getPlan(company.plan).label
         const billingUrl   = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"}/settings/billing`
         await resend.emails.send({
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
 
     case "invoice.paid": {
       const inv        = event.data.object
-      const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer as any)?.id
+      const customerId = typeof inv.customer === "string" ? inv.customer : (inv.customer as { id?: string } | null)?.id
       if (!customerId) break
 
       await db.company.updateMany({

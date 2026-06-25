@@ -16,7 +16,7 @@ const MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
 function loadMapsScript(): Promise<void> {
   // Already loaded
-  if ((window as any).google?.maps?.Map) return Promise.resolve()
+  if ((window as unknown as { google?: { maps?: { Map?: unknown } } }).google?.maps?.Map) return Promise.resolve()
 
   // Script already in DOM (loading in progress)
   const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')
@@ -50,7 +50,9 @@ export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
     loadMapsScript().then(() => {
       if (cancelled || !mapRef.current) return
 
-      const google = (window as any).google
+      type GMapsMap = { fitBounds: (bounds: unknown) => void }
+      type GMaps = { maps: { Map: new (...args: unknown[]) => GMapsMap; LatLngBounds: new () => { extend: (pos: unknown) => void }; Marker: new (...args: unknown[]) => void } }
+      const google = (window as unknown as { google: GMaps }).google
       const map = new google.maps.Map(mapRef.current, {
         zoom: 12,
         center: { lat: validMarkers[0].lat, lng: validMarkers[0].lng },

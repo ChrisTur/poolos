@@ -69,9 +69,9 @@ export async function login(formData: FormData) {
   const redirectTo = email === process.env.SUPER_ADMIN_EMAIL?.toLowerCase() ? "/admin" : "/dashboard"
   try {
     await signIn("credentials", { email, password, redirectTo })
-  } catch (error: any) {
+  } catch (error: unknown) {
     // NextAuth throws NEXT_REDIRECT on success — re-throw so Next.js can redirect
-    if (error?.digest?.startsWith("NEXT_REDIRECT")) throw error
+    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw error
     return { error: "Invalid email or password." }
   }
 }
@@ -149,7 +149,7 @@ export async function changePassword(formData: FormData) {
   if (!session?.user) return { error: "Not authenticated." }
 
   // Super admin passwords are controlled via environment variables, not the DB
-  if ((session.user as any).role === "super_admin") {
+  if ((session.user as unknown as Record<string, unknown>).role === "super_admin") {
     return { error: "Super admin passwords are managed via the SUPER_ADMIN_PASSWORD_HASH environment variable." }
   }
 
@@ -171,11 +171,12 @@ export async function changePassword(formData: FormData) {
     dbUser = await db.user.findUnique({ where: { email: userEmail } })
   }
   if (!dbUser) {
+    const u = session.user as unknown as Record<string, unknown>
     console.error("[changePassword] user not found — session.user:", {
       id: userId ?? "(none)",
       email: userEmail ?? "(none)",
-      role: (session.user as any).role,
-      companyId: (session.user as any).companyId,
+      role: u.role,
+      companyId: u.companyId,
     })
     return { error: "Account not found. Please sign out and sign back in." }
   }

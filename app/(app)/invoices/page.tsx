@@ -38,6 +38,7 @@ export default async function InvoicesPage({
     overdue: invoices.filter((i) => i.status === "overdue").length,
   }
 
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now()
   const daysOverdue = (dueDate: Date) => Math.floor((now - dueDate.getTime()) / 86_400_000)
 

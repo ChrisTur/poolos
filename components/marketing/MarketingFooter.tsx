@@ -21,9 +21,9 @@ export default function MarketingFooter() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-10 gap-y-6 text-sm w-full sm:w-auto">
             <div className="space-y-2.5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Product</p>
-              <a href="/#features"     className="block hover:text-white transition-colors">Features</a>
+              <Link href="/#features"     className="block hover:text-white transition-colors">Features</Link>
               <Link href="/pricing"    className="block hover:text-white transition-colors">Pricing</Link>
-              <a href="/#how-it-works" className="block hover:text-white transition-colors">How it works</a>
+              <Link href="/#how-it-works" className="block hover:text-white transition-colors">How it works</Link>
             </div>
             <div className="space-y-2.5">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tools</p>

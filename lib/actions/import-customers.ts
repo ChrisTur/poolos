@@ -178,7 +178,8 @@ export async function importCustomersFromCSV(
   }
 
   if (toCreate.length > 0) {
-    await db.customer.createMany({ data: toCreate as any })
+    // toCreate is built from CSV row objects; cast through unknown to satisfy Prisma's overloaded createMany signature
+    await db.customer.createMany({ data: toCreate as unknown as Parameters<typeof db.customer.createMany>[0] extends { data: infer D } ? D : never })
   }
 
   return {

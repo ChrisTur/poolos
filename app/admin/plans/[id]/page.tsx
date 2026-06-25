@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { getPlansFromDb } from "@/lib/plans-db"
 import { updatePlan } from "@/lib/actions/admin-plans"
-import { FEATURE_LABELS, PLAN_IDS } from "@/lib/plans"
+import { FEATURE_LABELS, PLAN_IDS, type PlanId } from "@/lib/plans"
 import { CheckCircle2 } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -34,7 +34,7 @@ export default async function EditPlanPage({
 }) {
   const { id } = await params
   const sp = await searchParams
-  if (!PLAN_IDS.includes(id as any)) notFound()
+  if (!PLAN_IDS.includes(id as PlanId)) notFound()
 
   const plans = await getPlansFromDb()
   const plan  = plans.find((p) => p.id === id)

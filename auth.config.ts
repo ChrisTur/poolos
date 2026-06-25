@@ -11,12 +11,13 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         // Explicitly persist id and email — NextAuth v5 JWT strategy does not
         // guarantee these survive a custom session callback without explicit mapping.
-        token.uid   = (user as any).id ?? token.sub
-        token.email = (user as any).email ?? token.email
-        token.companyId = (user as any).companyId
-        token.companyName = (user as any).companyName
-        token.role = (user as any).role
-        token.mustChangePassword = (user as any).mustChangePassword ?? false
+        const u = user as unknown as Record<string, unknown>
+        token.uid   = u.id ?? token.sub
+        token.email = (u.email as string | undefined) ?? token.email
+        token.companyId = u.companyId
+        token.companyName = u.companyName
+        token.role = u.role
+        token.mustChangePassword = u.mustChangePassword ?? false
       }
       return token
     },
@@ -28,7 +29,7 @@ export const authConfig: NextAuthConfig = {
       session.user.companyId   = token.companyId as string
       session.user.companyName = token.companyName as string
       session.user.role        = token.role as string
-      ;(session.user as any).mustChangePassword = token.mustChangePassword ?? false
+      ;(session.user as unknown as Record<string, unknown>).mustChangePassword = token.mustChangePassword ?? false
       return session
     },
   },

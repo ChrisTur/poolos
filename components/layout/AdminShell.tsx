@@ -16,11 +16,8 @@ const nav = [
   { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
 ]
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false)
-  const pathname = usePathname()
-
-  const Sidebar = () => (
+function AdminSidebar({ pathname, onClose }: { pathname: string; onClose: () => void }) {
+  return (
     <aside className="w-56 bg-gray-900 text-white flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-5 border-b border-gray-800">
         <div className="flex items-center gap-2">
@@ -30,7 +27,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <p className="text-xs text-gray-400 leading-none">Admin</p>
           </div>
         </div>
-        <button onClick={() => setOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
+        <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-white">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -41,7 +38,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
             <Link
               key={href}
               href={href}
-              onClick={() => setOpen(false)}
+              onClick={onClose}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 active
@@ -62,6 +59,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       </div>
     </aside>
   )
+}
+
+export default function AdminShell({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const pathname = usePathname()
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
@@ -78,12 +80,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
         "fixed inset-y-0 left-0 z-30 transition-transform duration-300 lg:hidden",
         open ? "translate-x-0" : "-translate-x-full"
       )}>
-        <Sidebar />
+        <AdminSidebar pathname={pathname} onClose={() => setOpen(false)} />
       </div>
 
       {/* Desktop sidebar */}
       <div className="hidden lg:flex shrink-0">
-        <Sidebar />
+        <AdminSidebar pathname={pathname} onClose={() => setOpen(false)} />
       </div>
 
       {/* Main content */}
