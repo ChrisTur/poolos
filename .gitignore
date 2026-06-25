@@ -49,3 +49,6 @@ next-env.d.ts
 
 # debug scripts
 /scripts/
+
+# Claude Code worktrees
+.claude/worktrees/
