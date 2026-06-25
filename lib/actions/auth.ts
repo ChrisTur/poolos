@@ -97,17 +97,24 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  // NextAuth v5 signOut() does not reliably delete the JWT cookie when called
-  // from a server action in Next.js 16. Delete the cookies manually instead.
-  // Cookie names differ by environment: __Secure- prefix is added on HTTPS.
+  // NextAuth v5 signOut() doesn't reliably clear the JWT cookie from a server
+  // action in Next.js 16 — clear manually instead.
+  //
+  // IMPORTANT: cookies().delete(name) emits a Set-Cookie without the `Secure`
+  // attribute. Browsers silently reject that deletion for __Secure- / __Host-
+  // prefixed cookies (spec requires the deletion header to also carry Secure).
+  // Use cookies().set() with maxAge=0 and the full original options instead.
   const jar = await cookies()
   const secure = process.env.NODE_ENV === "production"
-  const p  = secure ? "__Secure-" : ""   // session-token + callback-url prefix
-  const hp = secure ? "__Host-"   : ""   // csrf-token uses __Host- on HTTPS
+  const p  = secure ? "__Secure-" : ""
+  const hp = secure ? "__Host-"   : ""
 
-  jar.delete(`${p}authjs.session-token`)
-  jar.delete(`${p}authjs.callback-url`)
-  jar.delete(`${hp}authjs.csrf-token`)
+  const base = { value: "", maxAge: 0, path: "/", httpOnly: true, sameSite: "lax" as const, secure }
+
+  jar.set(`${p}authjs.session-token`,  "", base)
+  jar.set(`${p}authjs.callback-url`,   "", base)
+  // __Host- cookies must not have a Domain attribute — omit it (base has none)
+  jar.set(`${hp}authjs.csrf-token`,    "", { ...base, secure: true })
 
   redirect("/login")
 }
