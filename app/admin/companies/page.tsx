@@ -21,7 +21,7 @@ export default async function AdminCompaniesPage({
     db.company.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        _count: { select: { users: true } },
+        _count: { select: { users: true, customers: true } },
       },
     }),
     searchParams,
@@ -93,7 +93,7 @@ export default async function AdminCompaniesPage({
                     {c.name}
                   </Link>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {c._count.users} users · Joined {formatDate(c.createdAt)}
+                    {c._count.customers} customers · {c._count.users} users · Joined {formatDate(c.createdAt)}
                   </p>
                 </div>
                 <Link href={`/admin/companies/${c.id}`} className="shrink-0 ml-3">
@@ -109,7 +109,7 @@ export default async function AdminCompaniesPage({
                 </span>
                 <div className="ml-auto flex gap-2">
                   <form action={toggleAction}>
-                    <Button type="submit" size="sm" variant={c.isActive ? "secondary" : "secondary"}>
+                    <Button type="submit" size="sm" variant="secondary">
                       {c.isActive ? "Deactivate" : "Activate"}
                     </Button>
                   </form>
@@ -136,6 +136,7 @@ export default async function AdminCompaniesPage({
               <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
                 <th className="px-5 py-3 text-left font-medium">Company</th>
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Contact</th>
+                <th className="px-5 py-3 text-center font-medium">Customers</th>
                 <th className="px-5 py-3 text-center font-medium">Users</th>
                 <th className="px-5 py-3 text-left font-medium hidden md:table-cell">Joined</th>
                 <th className="px-5 py-3 text-left font-medium">Plan</th>
@@ -157,12 +158,16 @@ export default async function AdminCompaniesPage({
                       {c.phone && <p>{c.phone}</p>}
                       {c.city && <p>{c.city}, {c.state}</p>}
                     </td>
+                    <td className="px-5 py-3 text-center text-gray-600">{c._count.customers}</td>
                     <td className="px-5 py-3 text-center text-gray-600">{c._count.users}</td>
                     <td className="px-5 py-3 text-gray-500 hidden md:table-cell">{formatDate(c.createdAt)}</td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPlan(c.plan).badge}`}>
                         {getPlan(c.plan).label}
                       </span>
+                      {c.stripeSubStatus && c.stripeSubStatus !== "active" && (
+                        <p className="text-xs text-red-500 mt-0.5">{c.stripeSubStatus}</p>
+                      )}
                     </td>
                     <td className="px-5 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${

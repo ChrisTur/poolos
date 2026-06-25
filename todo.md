@@ -90,6 +90,7 @@
 - [x] Route profitability report — revenue per route, visits, $/visit, and assigned technician
 - [x] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts; admin gets new company alerts
 - [x] Equipment lifecycle management — registry (pump/filter/heater/salt cell/etc. with model, serial, install date, warranty); service history per piece (date, work, parts, cost, technician); auto-scheduling via configurable service interval with overdue badges + notification bell alerts
+- [x] Admin revenue dashboard — /admin/companies now shows KPI summary (total customers, customer MRR, platform MRR, Stripe 30d volume), plan breakdown by tier, and per-company columns for customer count, customer MRR, Stripe 30d, and subscription status
 
 ### Marketing & SEO
 - [x] Add a demo / walkthrough video to the hero — admin sets YouTube/Vimeo URL via /admin/site-config
