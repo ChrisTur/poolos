@@ -504,3 +504,59 @@ model EmailLog {
   company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   serviceVisitId String?
 }
+
+model SiteConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  email     String   @unique
+  name      String?
+  source    String?
+}
+
+model FeatureItem {
+  id          String  @id @default(cuid())
+  position    Int     @default(0)
+  title       String
+  description String
+  icon        String?
+  isActive    Boolean @default(true)
+}
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+  slug        String    @unique
+  title       String
+  excerpt     String?
+  content     String
+  coverImage  String?
+  isPublished Boolean   @default(false)
+}
+
+model ReferralCode {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  code      String   @unique
+  label     String?
+  reward    String   @default("1 free month")
+  isActive  Boolean  @default(true)
+  uses      Referral[]
+}
+
+model Referral {
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  referralCodeId String
+  code           ReferralCode @relation(fields: [referralCodeId], references: [id])
+  email          String?
+  companyId      String?
+  status         String       @default("lead")
+}

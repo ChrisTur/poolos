@@ -33,6 +33,7 @@ export async function registerCompany(formData: FormData) {
   const lastName = formData.get("lastName") as string
   const email = (formData.get("email") as string).toLowerCase()
   const password = formData.get("password") as string
+  const refCode = ((formData.get("ref") as string) ?? "").trim().toUpperCase()
 
   if (password.length < 8) return { error: "Password must be at least 8 characters." }
   if (await isPasswordBreached(password)) {
@@ -45,7 +46,7 @@ export async function registerCompany(formData: FormData) {
   const hashed = await bcrypt.hash(password, 12)
   const slug = await uniqueSlug(slugify(companyName))
 
-  await db.company.create({
+  const company = await db.company.create({
     data: {
       name: companyName,
       slug,
@@ -54,6 +55,23 @@ export async function registerCompany(formData: FormData) {
       },
     },
   })
+
+  // Track referral if a valid code was supplied
+  if (refCode) {
+    const referralCode = await db.referralCode.findUnique({
+      where: { code: refCode, isActive: true },
+    })
+    if (referralCode) {
+      await db.referral.create({
+        data: {
+          referralCodeId: referralCode.id,
+          email,
+          companyId: company.id,
+          status: "lead",
+        },
+      })
+    }
+  }
 
   await signIn("credentials", { email, password, redirectTo: "/onboarding" })
 }

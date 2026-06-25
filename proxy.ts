@@ -19,6 +19,9 @@ const publicPrefixes = [
   "/api/health",   // Cloud Run load balancer probe
   "/pay/",         // public invoice payment pages
   "/portal/",      // customer portal (token-based)
+  "/blog",         // public blog
+  "/features",     // public features page
+  "/waitlist",     // public waitlist page
 ]
 
 // Stripe sends bursts of retries — never rate-limit webhooks.

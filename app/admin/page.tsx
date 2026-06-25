@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
-import { Building2, Users, FileText, Activity, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Building2, Users, FileText, Activity, ChevronRight, CheckCircle2, AlertTriangle, Settings, ListChecks, Zap, BookOpen, Gift } from "lucide-react"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
 
@@ -167,6 +167,35 @@ export default async function AdminOverviewPage() {
           </table>
         </div>
       </Card>
+
+      {/* Marketing CMS */}
+      <div>
+        <h2 className="font-semibold text-gray-900 text-sm sm:text-base mb-3">Marketing CMS</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {[
+            { href: "/admin/site-config", icon: Settings,    label: "Site Config",  desc: "Hero video & waitlist CTA",   color: "text-gray-600",   bg: "bg-gray-50"   },
+            { href: "/admin/waitlist",    icon: ListChecks,  label: "Waitlist",     desc: "View & manage waitlist entries", color: "text-sky-600",   bg: "bg-sky-50"    },
+            { href: "/admin/features",    icon: Zap,         label: "Features",     desc: "Feature cards on /features",  color: "text-amber-600",  bg: "bg-amber-50"  },
+            { href: "/admin/blog",        icon: BookOpen,    label: "Blog",         desc: "Publish posts to /blog",      color: "text-indigo-600", bg: "bg-indigo-50" },
+            { href: "/admin/referrals",   icon: Gift,        label: "Referrals",    desc: "Referral codes & tracking",   color: "text-green-600",  bg: "bg-green-50"  },
+          ].map(({ href, icon: Icon, label, desc, color, bg }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex items-center gap-4 bg-white rounded-2xl border border-gray-200 p-4 hover:border-sky-200 hover:shadow-sm transition-all group"
+            >
+              <span className={`${bg} ${color} p-2.5 rounded-xl shrink-0`}>
+                <Icon className="w-5 h-5" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-900 group-hover:text-sky-700">{label}</p>
+                <p className="text-xs text-gray-400 truncate">{desc}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
