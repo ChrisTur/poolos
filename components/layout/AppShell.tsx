@@ -3,9 +3,11 @@
 import { useState } from "react"
 import { Menu, Waves, Eye, X } from "lucide-react"
 import Sidebar from "./Sidebar"
+import NotificationBell from "./NotificationBell"
 import { stopViewAs } from "@/lib/actions/admin"
 import PromoBannerBar from "@/components/PromoBannerBar"
 import type { BannerData } from "@/lib/banners"
+import type { AppNotification } from "@/lib/notifications"
 
 interface Props {
   children: React.ReactNode
@@ -14,9 +16,10 @@ interface Props {
   appBanner?: BannerData | null
   userName?: string
   userEmail?: string
+  notifications?: AppNotification[]
 }
 
-export default function AppShell({ children, viewAsCompany, planData, appBanner, userName, userEmail }: Props) {
+export default function AppShell({ children, viewAsCompany, planData, appBanner, userName, userEmail, notifications = [] }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const firstName = userName?.split(" ")[0] ?? ""
@@ -53,14 +56,13 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner,
           </div>
         )}
 
-        {/* Desktop greeting header */}
-        {firstName && (
-          <div className="hidden lg:flex items-center px-8 pt-6 pb-0 shrink-0">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Hello, {firstName}!
-            </h2>
-          </div>
-        )}
+        {/* Desktop greeting + notification bell */}
+        <div className="hidden lg:flex items-center justify-between px-8 pt-6 pb-0 shrink-0">
+          <h2 className="text-xl font-semibold text-gray-800">
+            {firstName ? `Hello, ${firstName}!` : ""}
+          </h2>
+          <NotificationBell notifications={notifications} />
+        </div>
 
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0 sticky top-0 z-10">
@@ -77,6 +79,7 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner,
               ? <span className="font-medium text-gray-800 text-sm">Hello, {firstName}!</span>
               : <span className="font-semibold text-sky-900 text-sm">PoolOS</span>}
           </div>
+          <NotificationBell notifications={notifications} />
           <button
             onClick={() => setSidebarOpen(true)}
             className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shrink-0"

@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation"
 import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { logout } from "@/lib/actions/auth"
+import NotificationBell from "./NotificationBell"
+import type { AdminNotification } from "@/lib/notifications"
 
 const platformNav = [
   { href: "/admin",           label: "Overview",  icon: LayoutDashboard },
@@ -92,7 +94,7 @@ function AdminSidebar({ pathname, onClose }: { pathname: string; onClose: () => 
   )
 }
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function AdminShell({ children, notifications = [] }: { children: React.ReactNode; notifications?: AdminNotification[] }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -121,6 +123,11 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+        {/* Desktop notification bar */}
+        <div className="hidden lg:flex items-center justify-end px-8 pt-5 pb-0 shrink-0">
+          <NotificationBell notifications={notifications} />
+        </div>
+
         {/* Mobile header */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-gray-900 text-white shrink-0 sticky top-0 z-10">
           <button
@@ -130,11 +137,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
           >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-1">
             <Waves className="w-4 h-4 text-sky-400" />
             <span className="font-bold text-sm">PoolOS</span>
             <span className="text-gray-400 text-xs">Admin</span>
           </div>
+          <NotificationBell notifications={notifications} />
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
