@@ -35,11 +35,11 @@
 
 ## Marketing & SEO
 
-- [ ] Add a demo / walkthrough video to the hero — highest-converting element a SaaS landing page can have
-- [ ] Add email capture / waitlist form — someone not ready to sign up needs a way to stay connected
-- [ ] Create dedicated `/features` page — more pages = more keyword targets
-- [ ] Referral program — "Refer a company, get a free month"; pool owners know pool owners
-- [ ] Start a blog — "How to price pool service routes", "Pool chemical dosing guide"
+- [x] Add a demo / walkthrough video to the hero — admin sets YouTube/Vimeo URL via /admin/site-config
+- [x] Add email capture / waitlist form — /waitlist page + landing page CTA; leads in /admin/waitlist
+- [x] Create dedicated `/features` page — admin-managed feature cards via /admin/features
+- [x] Referral program — referral codes + signup attribution via ?ref=CODE; managed in /admin/referrals
+- [x] Start a blog — full CMS at /admin/blog; public /blog and /blog/[slug] pages
 - [x] Connect Google Search Console — track impressions, clicks, and crawl errors after launch
 - [x] Add a contact/support email (`hello@poolos.biz` — Google Workspace, live)
 
