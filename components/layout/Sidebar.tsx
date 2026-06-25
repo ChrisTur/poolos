@@ -49,9 +49,15 @@ interface SidebarProps {
   open: boolean
   onClose: () => void
   planData?: { plan: string; trialEndsAt: string | null }
+  userName?: string
+  userEmail?: string
 }
 
-export default function Sidebar({ open, onClose, planData }: SidebarProps) {
+export default function Sidebar({ open, onClose, planData, userName, userEmail }: SidebarProps) {
+  const firstName = userName?.split(" ")[0] ?? ""
+  const initials = userName
+    ? userName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
+    : "?"
   const pathname = usePathname()
 
   const isTrial = planData?.plan === "trial"
@@ -79,15 +85,20 @@ export default function Sidebar({ open, onClose, planData }: SidebarProps) {
           open ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Logo */}
-        <div className="flex items-center justify-between px-5 py-5 border-b border-sky-800">
-          <div className="flex items-center gap-2">
-            <Waves className="w-6 h-6 text-sky-300" />
-            <span className="font-semibold text-lg tracking-tight">PoolOS</span>
+        {/* Logo + greeting */}
+        <div className="px-5 py-4 border-b border-sky-800">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Waves className="w-5 h-5 text-sky-300" />
+              <span className="font-semibold text-base tracking-tight">PoolOS</span>
+            </div>
+            <button onClick={onClose} className="lg:hidden text-sky-300 hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button onClick={onClose} className="lg:hidden text-sky-300 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          {firstName && (
+            <p className="text-sm text-sky-300">Hey, {firstName} 👋</p>
+          )}
         </div>
 
         {/* Nav links */}
@@ -158,19 +169,28 @@ export default function Sidebar({ open, onClose, planData }: SidebarProps) {
               </Link>
             )
           })}
-          <form action={logout}>
-            <button
-              type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-sky-300 hover:bg-sky-800 hover:text-white transition-colors"
-            >
-              <LogOut className="w-4 h-4 shrink-0" />
-              Sign Out
-            </button>
-          </form>
         </div>
 
-        <div className="px-5 py-3 text-xs text-sky-500 border-t border-sky-800">
-          PoolOS
+        {/* User profile + sign out */}
+        <div className="px-3 py-3 border-t border-sky-800">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sky-800/50">
+            <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">{userName ?? "Account"}</p>
+              {userEmail && <p className="text-xs text-sky-400 truncate">{userEmail}</p>}
+            </div>
+            <form action={logout}>
+              <button
+                type="submit"
+                title="Sign out"
+                className="text-sky-400 hover:text-white transition-colors p-1 rounded"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
         </div>
       </aside>
     </>

@@ -96,7 +96,8 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  await signOut({ redirectTo: "/login" })
+  await signOut({ redirect: false })
+  redirect("/login")
 }
 
 export async function requestPasswordReset(formData: FormData) {
