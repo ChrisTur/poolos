@@ -1,15 +1,19 @@
 "use client"
 
+import { Suspense } from "react"
 import { useActionState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { registerCompany } from "@/lib/actions/auth"
 import Button from "@/components/ui/Button"
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [state, action, pending] = useActionState(
     async (_: unknown, formData: FormData) => registerCompany(formData),
     null
   )
+  const searchParams = useSearchParams()
+  const ref = searchParams.get("ref") ?? ""
 
   return (
     <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
@@ -19,6 +23,8 @@ export default function RegisterPage() {
       </p>
 
       <form action={action} className="space-y-4">
+        {ref && <input type="hidden" name="ref" value={ref} />}
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Company Name *
@@ -94,5 +100,23 @@ export default function RegisterPage() {
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+        <div className="h-8 bg-gray-100 rounded animate-pulse mb-4" />
+        <div className="space-y-3">
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+          <div className="h-10 bg-gray-100 rounded animate-pulse" />
+        </div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   )
 }

@@ -23,6 +23,8 @@ import PricingSection from "@/components/marketing/PricingSection"
 import { getPlansFromDb } from "@/lib/plans-db"
 import { getActiveBanner } from "@/lib/banners"
 import PromoBannerBar from "@/components/PromoBannerBar"
+import { db } from "@/lib/db"
+import WaitlistFormSection from "@/components/marketing/WaitlistFormSection"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
@@ -116,10 +118,27 @@ export default async function HomePage() {
   const session = await auth()
   if (session?.user) redirect("/dashboard")
 
-  const [allPlans, banner] = await Promise.all([
+  const [allPlans, banner, siteConfigs] = await Promise.all([
     getPlansFromDb(),
     getActiveBanner("marketing"),
+    db.siteConfig.findMany({ where: { key: { in: ["hero_video_url", "waitlist_cta"] } } }),
   ])
+
+  const heroVideoUrl = siteConfigs.find((c) => c.key === "hero_video_url")?.value ?? ""
+  const waitlistCta  = siteConfigs.find((c) => c.key === "waitlist_cta")?.value  ?? "Join the waitlist"
+
+  function toEmbedUrl(url: string): string | null {
+    if (!url) return null
+    // YouTube: youtube.com/watch?v=ID or youtu.be/ID
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([A-Za-z0-9_-]{11})/)
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`
+    // Vimeo: vimeo.com/ID
+    const vmMatch = url.match(/vimeo\.com\/(\d+)/)
+    if (vmMatch) return `https://player.vimeo.com/video/${vmMatch[1]}`
+    return null
+  }
+
+  const embedUrl = toEmbedUrl(heroVideoUrl)
   const paidPlans = allPlans.filter((p) => p.id !== "trial")
 
   return (
@@ -269,6 +288,23 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Hero Video ─────────────────────────────────────────── */}
+      {embedUrl && (
+        <section className="py-10 sm:py-14 bg-white">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                className="absolute inset-0 w-full h-full rounded-2xl shadow-xl"
+                src={embedUrl}
+                title="PoolOS demo video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Features ───────────────────────────────────────────── */}
       <section id="features" className="py-16 sm:py-24 bg-white scroll-mt-16">
@@ -532,6 +568,9 @@ export default async function HomePage() {
           </p>
         </div>
       </section>
+
+      {/* ── Waitlist ───────────────────────────────────────────── */}
+      <WaitlistFormSection ctaText={waitlistCta} />
 
       {/* ── Final CTA ──────────────────────────────────────────── */}
       <section className="py-16 sm:py-24 bg-sky-600">
