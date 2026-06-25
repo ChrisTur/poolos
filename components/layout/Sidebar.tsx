@@ -21,9 +21,9 @@ import {
   Zap,
   ClipboardList,
   Mail,
+  LifeBuoy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { logout } from "@/lib/actions/auth"
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -35,6 +35,7 @@ const nav = [
   { href: "/estimates", label: "Estimates", icon: FileEdit },
   { href: "/expenses",  label: "Expenses",  icon: Receipt },
   { href: "/reports",   label: "Reports",   icon: BarChart2 },
+  { href: "/support",   label: "Support",   icon: LifeBuoy },
 ]
 
 const settingsNav = [
@@ -181,7 +182,7 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail }
               <p className="text-sm font-medium text-white truncate">{userName ?? "Account"}</p>
               {userEmail && <p className="text-xs text-sky-400 truncate">{userEmail}</p>}
             </div>
-            <form action={logout}>
+            <form method="post" action="/api/auth/logout">
               <button
                 type="submit"
                 title="Sign out"

@@ -36,6 +36,7 @@
 - [ ] SMS notifications — Twilio integration for visit reminders and alerts; start A2P 10DLC carrier registration now (takes 2–4 weeks)
 
 ### Support
+- [x] In-app support tickets — companies submit tickets from /support; admin manages at /admin/support with threaded replies, status controls (open/in-progress/resolved/closed), and email notifications both ways
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
 
 ---

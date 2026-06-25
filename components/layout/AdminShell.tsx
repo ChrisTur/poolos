@@ -3,9 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { logout } from "@/lib/actions/auth"
 import NotificationBell from "./NotificationBell"
 import type { AdminNotification } from "@/lib/notifications"
 
@@ -14,6 +13,7 @@ const platformNav = [
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/users",     label: "Users",     icon: Users },
   { href: "/admin/plans",     label: "Plans",     icon: CreditCard },
+  { href: "/admin/support",   label: "Support",   icon: LifeBuoy },
   { href: "/admin/contact",   label: "Inbox",     icon: Inbox },
   { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
 ]
@@ -80,7 +80,7 @@ function AdminSidebar({ pathname, onClose }: { pathname: string; onClose: () => 
         >
           ← Back to app
         </Link>
-        <form action={logout}>
+        <form method="post" action="/api/auth/logout">
           <button
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"

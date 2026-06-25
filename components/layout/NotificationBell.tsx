@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, X } from "lucide-react"
+import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
 import { dismissNotification } from "@/lib/actions/notifications"
 
@@ -15,6 +15,7 @@ const ICON_MAP = {
   chemical_alert:  FlaskConical,
   equipment_due:   Wrench,
   new_company:     Building2,
+  open_ticket:     LifeBuoy,
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
@@ -31,6 +32,7 @@ const SECTION_LABELS: Record<string, string> = {
   portal_reply:    "Unread Replies",
   chemical_alert:  "Chemical Alerts",
   equipment_due:   "Equipment Due",
+  open_ticket:     "Open Support Tickets",
   new_company:     "New Companies (7 days)",
 }
 
@@ -68,7 +70,7 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
   const count   = visible.length
 
   // Group by type preserving a stable order
-  const order = ["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "new_company"]
+  const order = ["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "open_ticket", "new_company"]
   const grouped = order.reduce<Record<string, AnyNotification[]>>((acc, type) => {
     const items = visible.filter((n) => n.type === type)
     if (items.length) acc[type] = items
@@ -139,7 +141,7 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
                         {canDismiss && (
                           <button
                             onClick={(e) => handleDismiss(e, n.id)}
-                            className="shrink-0 mt-0.5 p-1 rounded-lg text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-500 hover:bg-gray-200 transition-all"
+                            className="shrink-0 mt-0.5 p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-200 transition-all"
                             aria-label="Dismiss notification"
                             title="Dismiss"
                           >

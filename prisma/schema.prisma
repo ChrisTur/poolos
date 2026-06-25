@@ -63,6 +63,7 @@ model Company {
   attachments       Attachment[]
   visitChecklist    VisitChecklistItem[]
   dismissedNotifications DismissedNotification[]
+  supportTickets         SupportTicket[]
 }
 
 model User {
@@ -88,6 +89,7 @@ model User {
   assignedRoutes    Route[]             @relation("RouteAssignee")
   serviceVisits     ServiceVisit[]      @relation("VisitTechnician")
   equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
+  submittedTickets  SupportTicket[]     @relation("TicketSubmitter")
 }
 
 model Customer {
@@ -583,6 +585,41 @@ model Referral {
   email          String?
   companyId      String?
   status         String       @default("lead")
+}
+
+model SupportTicket {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subject   String
+  category  String            // billing | technical | feature_request | account | other
+  priority  String  @default("normal")  // low | normal | high
+  status    String  @default("open")    // open | in_progress | resolved | closed
+
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  submittedById String?
+  submittedBy   User?    @relation("TicketSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+
+  messages SupportTicketMessage[]
+
+  @@index([companyId, status])
+}
+
+model SupportTicketMessage {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  body       String
+  fromAdmin  Boolean @default(false)
+  authorName String?
+
+  ticketId String
+  ticket   SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
 }
 
 model DismissedNotification {
