@@ -50,5 +50,24 @@
 
 ## Infrastructure & Operations
 
-- [ ] In-app support chat — add Crisp or Intercom once companies are paying
+### Cloud Migration (Netlify → Google Cloud Run)
+- [x] Health check endpoint — `/api/health` returns 200 + DB ping; required by Cloud Run load balancer
+- [ ] Dockerfile — multi-stage production build (node:alpine, standalone Next.js output) for Cloud Run
+- [ ] GitHub Actions CI — lint, type-check, build, deploy to Cloud Run on push to main
+- [ ] Distributed rate limiting — current in-memory rate limiter breaks across multiple container instances; migrate to Upstash Redis
+- [ ] Structured JSON logging — replace ad-hoc console.log with pino so logs ingest correctly into Google Cloud Logging
+- [ ] Google Secret Manager — document which env vars move from Netlify dashboard to GCP Secret Manager at migration time
+
+### Mobile API Foundation (Android / iOS)
+- [ ] API token auth — issue long-lived JWT tokens for mobile clients (separate from web session cookies)
+- [ ] Versioned API routes — `/api/v1/` prefix with dedicated mobile endpoints (customers, visits, schedule, chemistry)
+- [ ] CORS policy — configure allowed origins in next.config.ts for mobile API consumers
+- [ ] OpenAPI spec — document the mobile API (Swagger/OpenAPI 3) for app developers
+
+### Quality & Reliability
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
+- [ ] Error alerting — configure Sentry alert rules so critical errors page on-call (currently tracking but not alerting)
+- [ ] Database backup verification — confirm Neon point-in-time recovery is enabled and test a restore
+
+### Support
+- [ ] In-app support chat — add Crisp or Intercom once companies are paying
