@@ -21,6 +21,7 @@ import {
   Zap,
   ClipboardList,
   Mail,
+  LifeBuoy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { logout } from "@/lib/actions/auth"
@@ -35,6 +36,7 @@ const nav = [
   { href: "/estimates", label: "Estimates", icon: FileEdit },
   { href: "/expenses",  label: "Expenses",  icon: Receipt },
   { href: "/reports",   label: "Reports",   icon: BarChart2 },
+  { href: "/support",   label: "Support",   icon: LifeBuoy },
 ]
 
 const settingsNav = [
