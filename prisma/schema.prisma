@@ -62,6 +62,7 @@ model Company {
   tags              Tag[]
   attachments       Attachment[]
   visitChecklist    VisitChecklistItem[]
+  dismissedNotifications DismissedNotification[]
 }
 
 model User {
@@ -582,4 +583,14 @@ model Referral {
   email          String?
   companyId      String?
   status         String       @default("lead")
+}
+
+model DismissedNotification {
+  companyId      String
+  notificationId String
+  dismissedAt    DateTime @default(now())
+  company        Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@id([companyId, notificationId])
+  @@index([companyId])
 }
