@@ -45,8 +45,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
+  const userName = (session?.user?.name as string | undefined) ?? session?.user?.email ?? ""
+  const userEmail = (session?.user?.email as string | undefined) ?? ""
+
   return (
-    <AppShell viewAsCompany={viewAsCompany} planData={planData} appBanner={appBanner}>
+    <AppShell viewAsCompany={viewAsCompany} planData={planData} appBanner={appBanner} userName={userName} userEmail={userEmail}>
       <PlanGate planData={planData}>
         {children}
       </PlanGate>

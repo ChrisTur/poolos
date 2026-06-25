@@ -12,14 +12,21 @@ interface Props {
   viewAsCompany?: string
   planData?: { plan: string; trialEndsAt: string | null }
   appBanner?: BannerData | null
+  userName?: string
+  userEmail?: string
 }
 
-export default function AppShell({ children, viewAsCompany, planData, appBanner }: Props) {
+export default function AppShell({ children, viewAsCompany, planData, appBanner, userName, userEmail }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const firstName = userName?.split(" ")[0] ?? ""
+  const initials = userName
+    ? userName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
+    : "?"
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} planData={planData} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} planData={planData} userName={userName} userEmail={userEmail} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
         {/* Promo banner for trial users */}
@@ -46,6 +53,15 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner 
           </div>
         )}
 
+        {/* Desktop greeting header */}
+        {firstName && (
+          <div className="hidden lg:flex items-center px-8 pt-6 pb-0 shrink-0">
+            <h2 className="text-xl font-semibold text-gray-800">
+              Hello, {firstName}!
+            </h2>
+          </div>
+        )}
+
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0 sticky top-0 z-10">
           <button
@@ -55,10 +71,19 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner 
           >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-1">
             <Waves className="w-4 h-4 text-sky-600" />
-            <span className="font-semibold text-sky-900 text-sm">PoolOS</span>
+            {firstName
+              ? <span className="font-medium text-gray-800 text-sm">Hello, {firstName}!</span>
+              : <span className="font-semibold text-sky-900 text-sm">PoolOS</span>}
           </div>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shrink-0"
+            aria-label="Account menu"
+          >
+            {initials}
+          </button>
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">{children}</main>
