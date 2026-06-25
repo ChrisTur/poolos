@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
-import { Bell, FileText, MessageSquare, FlaskConical, Building2, X } from "lucide-react"
+import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
 
 type AnyNotification = AppNotification | AdminNotification
@@ -11,21 +11,24 @@ const ICON_MAP = {
   overdue_invoice: FileText,
   portal_reply:    MessageSquare,
   chemical_alert:  FlaskConical,
+  equipment_due:   Wrench,
   new_company:     Building2,
 }
 
 const SEVERITY_STYLES: Record<string, string> = {
-  red:   "bg-red-50   text-red-600   border-red-100",
-  blue:  "bg-blue-50  text-blue-600  border-blue-100",
-  amber: "bg-amber-50 text-amber-600 border-amber-100",
+  red:    "bg-red-50    text-red-600    border-red-100",
+  blue:   "bg-blue-50   text-blue-600   border-blue-100",
+  amber:  "bg-amber-50  text-amber-600  border-amber-100",
+  orange: "bg-orange-50 text-orange-600 border-orange-100",
   // admin (new_company) has no severity — default
-  "":    "bg-gray-50  text-gray-500  border-gray-100",
+  "":     "bg-gray-50   text-gray-500   border-gray-100",
 }
 
 const SECTION_LABELS: Record<string, string> = {
   overdue_invoice: "Overdue Invoices",
   portal_reply:    "Unread Replies",
   chemical_alert:  "Chemical Alerts",
+  equipment_due:   "Equipment Due",
   new_company:     "New Companies (7 days)",
 }
 
@@ -48,7 +51,7 @@ export default function NotificationBell({ notifications }: Props) {
   const count = notifications.length
 
   // Group by type preserving a stable order
-  const order = ["overdue_invoice", "portal_reply", "chemical_alert", "new_company"]
+  const order = ["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "new_company"]
   const grouped = order.reduce<Record<string, AnyNotification[]>>((acc, type) => {
     const items = notifications.filter((n) => n.type === type)
     if (items.length) acc[type] = items

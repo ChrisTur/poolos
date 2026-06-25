@@ -106,6 +106,7 @@ function DosingPanel({ results }: { results: DoseResult[] }) {
 
 type RouteWithAssignment = Route & { assignedUserId?: string | null }
 type UserOption = { id: string; firstName: string; lastName: string }
+type CustomerWithEquipment = Customer & { equipment?: { type: string }[] }
 
 export default function LogVisitForm({
   customers,
@@ -113,7 +114,7 @@ export default function LogVisitForm({
   checklistItems = [],
   users = [],
 }: {
-  customers: Customer[]
+  customers: CustomerWithEquipment[]
   routes: RouteWithAssignment[]
   checklistItems?: VisitChecklistItem[]
   users?: UserOption[]
@@ -139,13 +140,15 @@ export default function LogVisitForm({
   // Derive selected customer's pool info
   const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
   const poolVolume = selectedCustomer?.poolSize ? parseFloat(selectedCustomer.poolSize) : null
-  const inferredSaltwater = selectedCustomer?.poolType?.toLowerCase().includes("salt") ?? false
+  const hasSaltSystem = selectedCustomer?.equipment?.some((e) => e.type === "salt_system") ?? false
+  const inferredSaltwater = hasSaltSystem || (selectedCustomer?.poolType?.toLowerCase().includes("salt") ?? false)
 
   // Auto-set saltwater when customer changes
   function handleCustomerChange(id: string) {
     setCustomerId(id)
     const c = customers.find((x) => x.id === id)
-    if (c?.poolType?.toLowerCase().includes("salt")) setSaltwater(true)
+    const saltEquipment = c?.equipment?.some((e) => e.type === "salt_system") ?? false
+    if (saltEquipment || c?.poolType?.toLowerCase().includes("salt")) setSaltwater(true)
     else setSaltwater(false)
   }
 

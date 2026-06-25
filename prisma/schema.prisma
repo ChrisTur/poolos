@@ -84,8 +84,9 @@ model User {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  assignedRoutes Route[]        @relation("RouteAssignee")
-  serviceVisits  ServiceVisit[] @relation("VisitTechnician")
+  assignedRoutes    Route[]             @relation("RouteAssignee")
+  serviceVisits     ServiceVisit[]      @relation("VisitTechnician")
+  equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
 }
 
 model Customer {
@@ -370,8 +371,30 @@ model Equipment {
   warrantyNotes    String?
   notes        String?
 
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  serviceIntervalDays Int?      // days between routine service (e.g. 90 for quarterly filter clean)
+  lastServicedAt      DateTime? // auto-set when a service record is added
+
+  customerId     String
+  customer       Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  serviceRecords EquipmentService[]
+}
+
+model EquipmentService {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  date        DateTime
+  description String
+  parts       String?
+  laborCost   Float    @default(0)
+  partsCost   Float    @default(0)
+  notes       String?
+
+  technicianId String?
+  technician   User?      @relation("EquipmentServiceTech", fields: [technicianId], references: [id], onDelete: SetNull)
+
+  equipmentId  String
+  equipment    Equipment  @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
 }
 
 model CustomerAlert {
