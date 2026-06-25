@@ -2,7 +2,7 @@ import { requireSuperAdmin } from "@/lib/session"
 import { db } from "@/lib/db"
 import { toggleFeatureActive, deleteFeature } from "@/lib/actions/admin-features"
 import Link from "next/link"
-import { Plus, Pencil, Eye, EyeOff, Trash2 } from "lucide-react"
+import { Plus, Pencil, Eye, EyeOff, Trash2, ExternalLink } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -18,13 +18,24 @@ export default async function AdminFeaturesPage() {
           <h1 className="text-2xl font-bold text-gray-900">Features</h1>
           <p className="text-sm text-gray-500 mt-1">Manage feature cards shown on the public /features page.</p>
         </div>
-        <Link
-          href="/admin/features/new"
-          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New feature
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/features"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-sky-300 text-gray-600 hover:text-sky-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Preview page
+          </Link>
+          <Link
+            href="/admin/features/new"
+            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New feature
+          </Link>
+        </div>
       </div>
 
       {features.length === 0 ? (

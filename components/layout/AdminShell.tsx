@@ -12,7 +12,6 @@ const platformNav = [
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/users",     label: "Users",     icon: Users },
   { href: "/admin/plans",     label: "Plans",     icon: CreditCard },
-  { href: "/admin/banners",   label: "Banners",   icon: Megaphone },
   { href: "/admin/contact",   label: "Inbox",     icon: Inbox },
   { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
 ]
@@ -22,6 +21,7 @@ const marketingNav = [
   { href: "/admin/waitlist",    label: "Waitlist",    icon: ListChecks },
   { href: "/admin/features",    label: "Features",    icon: Zap },
   { href: "/admin/blog",        label: "Blog",        icon: BookOpen },
+  { href: "/admin/banners",     label: "Banners",     icon: Megaphone },
   { href: "/admin/referrals",   label: "Referrals",   icon: Gift },
 ]
 

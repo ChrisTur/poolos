@@ -2,7 +2,8 @@ import { requireSuperAdmin } from "@/lib/session"
 import { db } from "@/lib/db"
 import { deleteWaitlistEntry } from "@/lib/actions/admin-waitlist"
 import { formatDate } from "@/lib/utils"
-import { Trash2, Users } from "lucide-react"
+import Link from "next/link"
+import { Trash2, Users, ExternalLink } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -20,9 +21,20 @@ export default async function AdminWaitlistPage() {
             {entries.length} {entries.length === 1 ? "entry" : "entries"} total
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-sky-50 text-sky-700 px-4 py-2 rounded-xl">
-          <Users className="w-4 h-4" />
-          <span className="text-sm font-semibold">{entries.length}</span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-sky-50 text-sky-700 px-4 py-2 rounded-xl">
+            <Users className="w-4 h-4" />
+            <span className="text-sm font-semibold">{entries.length}</span>
+          </div>
+          <Link
+            href="/waitlist"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-sky-300 text-gray-600 hover:text-sky-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Preview page
+          </Link>
         </div>
       </div>
 
