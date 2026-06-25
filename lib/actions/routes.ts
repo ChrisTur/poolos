@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildVisitCompletionHtml } from "@/lib/email"
+import { geocodeAddress, nearestNeighborOrder } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
   const { companyId } = await requireSession()
@@ -26,13 +27,15 @@ export async function updateRoute(id: string, formData: FormData) {
   const route = await db.route.findFirst({ where: { id, companyId } })
   if (!route) return
 
+  const assignedUserId = formData.get("assignedUserId") as string | null
   await db.route.update({
     where: { id },
     data: {
-      name: formData.get("name") as string,
-      description: (formData.get("description") as string) || null,
-      dayOfWeek: formData.get("dayOfWeek") !== "" ? parseInt(formData.get("dayOfWeek") as string) : null,
-      isActive: formData.get("isActive") === "true",
+      name:           formData.get("name") as string,
+      description:    (formData.get("description") as string) || null,
+      dayOfWeek:      formData.get("dayOfWeek") !== "" ? parseInt(formData.get("dayOfWeek") as string) : null,
+      isActive:       formData.get("isActive") === "true",
+      assignedUserId: assignedUserId || null,
     },
   })
   revalidatePath(`/routes/${id}`)
@@ -99,11 +102,13 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 }
 
 export async function logVisit(formData: FormData) {
-  const { companyId, name: technicianName } = await requireSession()
+  const session = await requireSession()
+  const { companyId } = session
 
   const customerId       = formData.get("customerId") as string
   const status           = (formData.get("status") as string) || "completed"
   const attachmentKeys   = formData.getAll("attachmentKey") as string[]
+  const technicianId     = (formData.get("technicianId") as string) || null
   const chlorine    = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
   const ph          = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
   const alkalinity  = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
@@ -113,10 +118,18 @@ export async function logVisit(formData: FormData) {
   const saltwater   = formData.get("saltwater") === "true"
   const notes       = (formData.get("notes") as string) || null
 
+  // Resolve which technician's name to use in notifications
+  let technicianName = session.name as string
+  if (technicianId) {
+    const tech = await db.user.findUnique({ where: { id: technicianId }, select: { firstName: true, lastName: true } })
+    if (tech) technicianName = `${tech.firstName} ${tech.lastName}`
+  }
+
   const visit = await db.serviceVisit.create({
     data: {
       customerId,
       routeId: (formData.get("routeId") as string) || null,
+      technicianId,
       status,
       notes,
       chlorine,
@@ -233,4 +246,43 @@ export async function logVisit(formData: FormData) {
 
   revalidatePath("/dashboard")
   revalidatePath("/schedule")
+}
+
+export async function optimizeRoute(routeId: string): Promise<{ optimized: boolean; message: string }> {
+  const { companyId } = await requireSession()
+
+  const route = await db.route.findFirst({
+    where: { id: routeId, companyId },
+    include: {
+      stops: {
+        orderBy: { position: "asc" },
+        include: { customer: true },
+      },
+    },
+  })
+
+  if (!route) return { optimized: false, message: "Route not found." }
+  if (route.stops.length < 3) return { optimized: false, message: "Need at least 3 stops to optimize." }
+
+  const coords = await Promise.all(
+    route.stops.map((stop) =>
+      geocodeAddress(
+        `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`,
+      ),
+    ),
+  )
+
+  if (coords.some((c) => c === null)) {
+    return { optimized: false, message: "Could not geocode all addresses — check that every stop has a full address." }
+  }
+
+  const order = nearestNeighborOrder(coords as Array<{ lat: number; lng: number }>)
+  const orderedIds = order.map((i) => route.stops[i].id)
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.routeStop.update({ where: { id: orderedIds[i] }, data: { position: i } })
+  }
+
+  revalidatePath(`/routes/${routeId}`)
+  return { optimized: true, message: `Optimized ${route.stops.length} stops.` }
 }

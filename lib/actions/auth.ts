@@ -8,6 +8,7 @@ import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
 import { rateLimit } from "@/lib/rate-limit"
 import { isPasswordBreached } from "@/lib/hibp"
+import { authLog } from "@/lib/logger"
 
 function slugify(name: string) {
   return name
@@ -172,12 +173,7 @@ export async function changePassword(formData: FormData) {
   }
   if (!dbUser) {
     const u = session.user as unknown as Record<string, unknown>
-    console.error("[changePassword] user not found — session.user:", {
-      id: userId ?? "(none)",
-      email: userEmail ?? "(none)",
-      role: u.role,
-      companyId: u.companyId,
-    })
+    authLog.error({ userId: userId ?? null, userEmail: userEmail ?? null, role: u.role, companyId: u.companyId }, "changePassword: user not found in DB")
     return { error: "Account not found. Please sign out and sign back in." }
   }
 

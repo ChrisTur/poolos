@@ -4,6 +4,7 @@ import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { DAY_NAMES, formatDate } from "@/lib/utils"
 import { statusBadge } from "@/components/ui/Badge"
 import LogVisitForm from "@/components/schedule/LogVisitForm"
+import ScheduleCalendar from "@/components/schedule/ScheduleCalendar"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -26,7 +27,14 @@ const FREQUENCY_LABELS: Record<string, string> = {
 
 export default async function SchedulePage() {
   const { companyId } = await requireSession()
-  const [routes, recentVisits, customers, scheduledCustomers, checklistItems] = await Promise.all([
+  // eslint-disable-next-line react-hooks/purity
+  const today = new Date()
+  const thisYear  = today.getFullYear()
+  const thisMonth = today.getMonth()
+  const monthStart = new Date(thisYear, thisMonth, 1)
+  const monthEnd   = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
+
+  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits, companyUsers] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -35,6 +43,7 @@ export default async function SchedulePage() {
           orderBy: { position: "asc" },
           include: { customer: true },
         },
+        assignedUser: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
     db.serviceVisit.findMany({
@@ -58,6 +67,21 @@ export default async function SchedulePage() {
       where: { companyId, isActive: true },
       orderBy: { position: "asc" },
     }),
+    db.serviceVisit.findMany({
+      where: { customer: { companyId }, visitedAt: { gte: monthStart, lte: monthEnd } },
+      select: {
+        id: true, visitedAt: true, status: true,
+        customer:   { select: { id: true, firstName: true, lastName: true } },
+        route:      { select: { id: true, name: true } },
+        technician: { select: { id: true, firstName: true, lastName: true } },
+      },
+      orderBy: { visitedAt: "asc" },
+    }),
+    db.user.findMany({
+      where: { companyId, isActive: true },
+      orderBy: [{ firstName: "asc" }],
+      select: { id: true, firstName: true, lastName: true },
+    }),
   ])
 
   const byDay = DAY_NAMES.reduce<Record<number, typeof routes>>((acc, _, i) => {
@@ -68,8 +92,7 @@ export default async function SchedulePage() {
   const unscheduled = routes.filter((r) => r.dayOfWeek == null)
 
   // Build due/overdue list for customers with serviceFrequency set
-  // eslint-disable-next-line react-hooks/purity
-  const now = Date.now()
+  const now = today.getTime()
   const dueCustomers = scheduledCustomers
     .filter((c) => c.serviceFrequency && c.serviceFrequency !== "as_needed")
     .map((c) => {
@@ -96,6 +119,18 @@ export default async function SchedulePage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Schedule</h1>
+
+      {/* Calendar */}
+      <Card>
+        <CardBody>
+          <ScheduleCalendar
+            initialVisits={monthVisits}
+            routes={routes.map((r) => ({ id: r.id, name: r.name, dayOfWeek: r.dayOfWeek, stops: r.stops }))}
+            initialYear={thisYear}
+            initialMonth={thisMonth}
+          />
+        </CardBody>
+      </Card>
 
       {/* Overdue / Due Soon section */}
       {dueCustomers.length > 0 && (
@@ -140,7 +175,7 @@ export default async function SchedulePage() {
         <Card>
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
           <CardBody>
-            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} />
+            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} />
           </CardBody>
         </Card>
       </div>
@@ -160,9 +195,16 @@ export default async function SchedulePage() {
                   <div className="divide-y divide-gray-50">
                     {dayRoutes.map((route) => (
                       <div key={route.id} className="px-4 sm:px-5 py-3">
-                        <Link href={`/routes/${route.id}`} className="text-sm font-medium text-sky-700 hover:underline">
-                          {route.name}
-                        </Link>
+                        <div className="flex items-center justify-between gap-2">
+                          <Link href={`/routes/${route.id}`} className="text-sm font-medium text-sky-700 hover:underline">
+                            {route.name}
+                          </Link>
+                          {route.assignedUser && (
+                            <span className="text-xs text-gray-400 shrink-0">
+                              {route.assignedUser.firstName} {route.assignedUser.lastName}
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-2 space-y-1.5">
                           {route.stops.map((stop, idx) => (
                             <div key={stop.id} className="flex items-center gap-2 text-xs text-gray-500">
@@ -253,7 +295,7 @@ export default async function SchedulePage() {
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>
-              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} />
+              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} />
             </CardBody>
           </Card>
         </div>

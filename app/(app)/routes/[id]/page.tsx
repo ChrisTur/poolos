@@ -11,31 +11,16 @@ import { deleteRoute, updateRoute } from "@/lib/actions/routes"
 import Button from "@/components/ui/Button"
 import RouteMap from "@/components/routes/RouteMap"
 import DeleteRouteButton from "@/components/routes/DeleteRouteButton"
+import OptimizeButton from "@/components/routes/OptimizeButton"
+import { geocodeAddress } from "@/lib/geocode"
 
 export const dynamic = "force-dynamic"
-
-async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
-  // Prefer a server-only key with no referrer restrictions; fall back to the public key
-  const key = process.env.GOOGLE_MAPS_GEOCODING_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  if (!key) return null
-  try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`,
-      { next: { revalidate: 60 * 60 * 24 } } // cache geocode results for 24h
-    )
-    const data = await res.json()
-    if (data.status !== "OK" || !data.results?.[0]) return null
-    return data.results[0].geometry.location
-  } catch {
-    return null
-  }
-}
 
 export default async function RouteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [route, allCustomers] = await Promise.all([
+  const [route, allCustomers, companyUsers] = await Promise.all([
     db.route.findFirst({
       where: { id, companyId },
       include: {
@@ -43,11 +28,17 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
           orderBy: { position: "asc" },
           include: { customer: true },
         },
+        assignedUser: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
     db.customer.findMany({
       where: { companyId, status: "active" },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    db.user.findMany({
+      where: { companyId, isActive: true },
+      orderBy: [{ firstName: "asc" }],
+      select: { id: true, firstName: true, lastName: true },
     }),
   ])
 
@@ -63,7 +54,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   const markers = await Promise.all(
     route.stops.map(async (stop, i) => {
       const addr = `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`
-      const coords = await geocode(addr)
+      const coords = await geocodeAddress(addr)
       return {
         label: String(i + 1),
         name: `${stop.customer.firstName} ${stop.customer.lastName}`,
@@ -97,7 +88,10 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">Stops</h2>
-              <p className="text-xs text-gray-400">Drag to reorder</p>
+              <div className="flex items-center gap-3">
+                <OptimizeButton routeId={id} stopCount={route.stops.length} />
+                <p className="text-xs text-gray-400">Drag to reorder</p>
+              </div>
             </CardHeader>
             <CardBody>
               <RouteStopList stops={route.stops} routeId={id} />
@@ -144,6 +138,21 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
                     ))}
                   </select>
                 </div>
+                {companyUsers.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Technician</label>
+                    <select
+                      name="assignedUserId"
+                      defaultValue={route.assignedUserId ?? ""}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                      <option value="">Unassigned</option>
+                      {companyUsers.map((u) => (
+                        <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select

@@ -1,5 +1,6 @@
 import { stripe } from "@/lib/stripe"
 import { db } from "@/lib/db"
+import { paymentLog } from "@/lib/logger"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(req: NextRequest) {
@@ -12,19 +13,26 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch {
+    paymentLog.warn("stripe webhook: invalid signature")
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 })
   }
 
   if (event.type === "payment_intent.succeeded") {
     const pi = event.data.object
     const invoiceId = pi.metadata?.invoiceId
-    if (!invoiceId) return NextResponse.json({ received: true })
+    if (!invoiceId) {
+      paymentLog.warn({ piId: pi.id }, "payment_intent.succeeded: no invoiceId in metadata")
+      return NextResponse.json({ received: true })
+    }
 
     const invoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       include: { items: true, payments: true },
     })
-    if (!invoice || invoice.status === "paid") return NextResponse.json({ received: true })
+    if (!invoice || invoice.status === "paid") {
+      paymentLog.info({ invoiceId, status: invoice?.status ?? "not_found" }, "payment_intent.succeeded: skipped")
+      return NextResponse.json({ received: true })
+    }
 
     const total       = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
     const alreadyPaid = invoice.payments.reduce((s, p) => s + p.amount, 0)
@@ -45,6 +53,7 @@ export async function POST(req: NextRequest) {
           notes: "Paid online via Stripe",
         },
       })
+      paymentLog.info({ invoiceId, piId: pi.id, amount: amountPaid }, "payment recorded")
     }
 
     const newTotal = alreadyPaid + amountPaid
@@ -53,11 +62,11 @@ export async function POST(req: NextRequest) {
         where: { id: invoiceId },
         data: { status: "paid", paidAt: new Date() },
       })
+      paymentLog.info({ invoiceId, total, paid: newTotal }, "invoice marked paid")
     }
 
     // If card was saved for auto-pay, store the payment method on the customer
     if (pi.setup_future_usage === "off_session" && pi.payment_method && pi.customer) {
-      const customerId = pi.metadata?.companyId // we'll use invoice.customerId instead
       await db.customer.updateMany({
         where: { id: invoice.customerId },
         data: {
@@ -67,6 +76,7 @@ export async function POST(req: NextRequest) {
             : pi.payment_method.id,
         },
       })
+      paymentLog.info({ customerId: invoice.customerId }, "autopay method stored")
     }
   }
 

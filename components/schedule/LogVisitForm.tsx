@@ -104,30 +104,37 @@ function DosingPanel({ results }: { results: DoseResult[] }) {
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 
+type RouteWithAssignment = Route & { assignedUserId?: string | null }
+type UserOption = { id: string; firstName: string; lastName: string }
+
 export default function LogVisitForm({
   customers,
   routes,
   checklistItems = [],
+  users = [],
 }: {
   customers: Customer[]
-  routes: Route[]
+  routes: RouteWithAssignment[]
   checklistItems?: VisitChecklistItem[]
+  users?: UserOption[]
 }) {
   const router  = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const [customerId, setCustomerId] = useState("")
-  const [status, setStatus]         = useState("completed")
-  const [saltwater, setSaltwater]   = useState(false)
-  const [chem, setChem]             = useState<ChemFields>(EMPTY_CHEM)
-  const [notes, setNotes]           = useState("")
-  const [photos, setPhotos]         = useState<File[]>([])
-  const [previews, setPreviews]     = useState<string[]>([])
-  const [checked, setChecked]       = useState<Set<string>>(new Set())
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone]             = useState(false)
-  const [error, setError]           = useState<string | null>(null)
+  const [customerId,    setCustomerId]    = useState("")
+  const [selectedRoute, setSelectedRoute] = useState("")
+  const [technicianId,  setTechnicianId]  = useState("")
+  const [status,        setStatus]        = useState("completed")
+  const [saltwater,     setSaltwater]     = useState(false)
+  const [chem,          setChem]          = useState<ChemFields>(EMPTY_CHEM)
+  const [notes,         setNotes]         = useState("")
+  const [photos,        setPhotos]        = useState<File[]>([])
+  const [previews,      setPreviews]      = useState<string[]>([])
+  const [checked,       setChecked]       = useState<Set<string>>(new Set())
+  const [submitting,    setSubmitting]    = useState(false)
+  const [done,          setDone]          = useState(false)
+  const [error,         setError]         = useState<string | null>(null)
 
   // Derive selected customer's pool info
   const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
@@ -140,6 +147,15 @@ export default function LogVisitForm({
     const c = customers.find((x) => x.id === id)
     if (c?.poolType?.toLowerCase().includes("salt")) setSaltwater(true)
     else setSaltwater(false)
+  }
+
+  // Pre-fill assigned tech when route changes
+  function handleRouteChange(routeId: string) {
+    setSelectedRoute(routeId)
+    if (routeId) {
+      const route = routes.find((r) => r.id === routeId)
+      if (route?.assignedUserId) setTechnicianId(route.assignedUserId)
+    }
   }
 
   // Run dosing calculation whenever readings or pool info change
@@ -263,10 +279,33 @@ export default function LogVisitForm({
       {routes.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Route</label>
-          <select name="routeId" className={inputCls}>
+          <select
+            name="routeId"
+            value={selectedRoute}
+            onChange={(e) => handleRouteChange(e.target.value)}
+            className={inputCls}
+          >
             <option value="">None</option>
             {routes.map((r) => (
               <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Technician */}
+      {users.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Technician</label>
+          <select
+            name="technicianId"
+            value={technicianId}
+            onChange={(e) => setTechnicianId(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">Unassigned</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
             ))}
           </select>
         </div>
