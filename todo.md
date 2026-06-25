@@ -5,8 +5,8 @@
 - [x] In-app dosing calculator — live recommendations on the visit form using existing chemistry engine
 - [x] Required visit checklist — configurable items techs must confirm before logging a completed visit
 - [x] Broadcast email — bulk message to all or filtered customers (price changes, weather closures, etc.)
-- [ ] Route optimization — auto-sort stops by shortest drive distance (nearest-neighbor, no API cost)
-- [ ] Calendar view — visual weekly/monthly calendar showing routes and scheduled visits
+- [x] Route optimization — auto-sort stops by shortest drive distance (nearest-neighbor, no API cost)
+- [x] Calendar view — visual weekly/monthly calendar showing routes and scheduled visits
 - [ ] Digital signatures on estimates — customers sign online via the customer portal
 - [ ] Data export — let companies download all their data (GDPR requirement)
 - [ ] Sentry error alerting — configure alert rules so critical errors page on-call (already integrated, just needs rules)
@@ -16,14 +16,14 @@
 - [ ] Chemical trend alerts — flag customers whose readings are consistently out of range
 - [ ] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts
 - [ ] Equipment maintenance log — `EquipmentService` records (date, work done, parts used)
-- [ ] Route profitability report — revenue per route vs time/fuel estimate
+- [x] Route profitability report — revenue per route, visits, $/visit, and assigned technician
 
 ## Setup Overhead / External Dependency
 
 - [ ] SMS notifications — Twilio integration; start A2P 10DLC registration now (takes 2–4 weeks)
 - [ ] QuickBooks Online integration — OAuth sync of invoices and payments; needs QBO developer account
 - [ ] Auto-invoicing — generate monthly invoices for customers with a `monthlyRate` (waiting on GCP Cloud Scheduler)
-- [ ] Technician assignment — assign specific techs to routes/visits
+- [x] Technician assignment — assign specific techs to routes/visits; auto-fills on log visit form
 - [ ] Mobile PWA — installable on homescreen with offline visit-log drafting
 
 ## Hold (partner approval / premature)
