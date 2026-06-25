@@ -141,7 +141,7 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
                         {canDismiss && (
                           <button
                             onClick={(e) => handleDismiss(e, n.id)}
-                            className="shrink-0 mt-0.5 p-1 rounded-lg text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-500 hover:bg-gray-200 transition-all"
+                            className="shrink-0 mt-0.5 p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-200 transition-all"
                             aria-label="Dismiss notification"
                             title="Dismiss"
                           >

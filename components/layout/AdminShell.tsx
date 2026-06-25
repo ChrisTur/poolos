@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { logout } from "@/lib/actions/auth"
 import NotificationBell from "./NotificationBell"
 import type { AdminNotification } from "@/lib/notifications"
 
@@ -81,7 +80,7 @@ function AdminSidebar({ pathname, onClose }: { pathname: string; onClose: () => 
         >
           ← Back to app
         </Link>
-        <form action={logout}>
+        <form method="post" action="/api/auth/logout">
           <button
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"

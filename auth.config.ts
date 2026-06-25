@@ -3,7 +3,7 @@ import type { NextAuthConfig } from "next-auth"
 // Lightweight config with no DB imports — safe for Edge runtime (proxy/middleware)
 export const authConfig: NextAuthConfig = {
   trustHost: true,
-  session: { strategy: "jwt", maxAge: 8 * 60 * 60 }, // 8-hour sessions
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30-day sessions
   pages: { signIn: "/login" },
   providers: [],
   callbacks: {
