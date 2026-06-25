@@ -1,4 +1,4 @@
-name: CI / Deploy
+name: CI
 
 on:
   push:
@@ -6,12 +6,7 @@ on:
   pull_request:
     branches: [main]
 
-env:
-  # Google Artifact Registry image path
-  IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/poolos/app
-
 jobs:
-  # ─── Lint & type-check ──────────────────────────────────────────────────────
   ci:
     name: Lint & type-check
     runs-on: ubuntu-latest
@@ -38,106 +33,3 @@ jobs:
 
       - name: Type-check
         run: npx tsc --noEmit
-
-  # ─── Build & deploy to Cloud Run ────────────────────────────────────────────
-  # Runs only on pushes to main, after CI passes.
-  # Requires the following to be configured in your GitHub repo first:
-  #
-  # Repository variables (Settings → Secrets and variables → Variables):
-  #   GCP_PROJECT_ID          — your Google Cloud project ID
-  #   GCP_REGION              — Cloud Run region (e.g. us-central1)
-  #   CLOUD_RUN_SERVICE       — Cloud Run service name (e.g. poolos)
-  #   NEXT_PUBLIC_APP_URL     — https://poolos.biz
-  #   NEXT_PUBLIC_GCS_PUBLIC_URL
-  #
-  # Repository secrets (Settings → Secrets and variables → Secrets):
-  #   GCP_WORKLOAD_IDENTITY_PROVIDER  — projects/123/locations/global/workloadIdentityPools/...
-  #   GCP_SERVICE_ACCOUNT             — deploy@your-project.iam.gserviceaccount.com
-  #   DATABASE_URL                    — pooled Neon connection string
-  #   DATABASE_URL_UNPOOLED           — direct Neon connection string (for migrations)
-  #   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-  #   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  #   NEXT_PUBLIC_SENTRY_DSN
-  #   SENTRY_AUTH_TOKEN
-  #   SENTRY_ORG
-  #   SENTRY_PROJECT
-  #
-  deploy:
-    name: Deploy to Cloud Run
-    runs-on: ubuntu-latest
-    needs: ci
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    # Required for Workload Identity Federation token exchange
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # ── Authenticate to Google Cloud via Workload Identity Federation ────────
-      # No long-lived service account key stored in GitHub — WIF exchanges a
-      # short-lived OIDC token instead.
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ vars.GCP_REGION }}-docker.pkg.dev --quiet
-
-      # ── Run database migrations before deploying new code ───────────────────
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-
-      - name: Run database migrations
-        run: npx prisma migrate deploy
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
-
-      # ── Build and push Docker image ─────────────────────────────────────────
-      - name: Build Docker image
-        run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_APP_URL="${{ vars.NEXT_PUBLIC_APP_URL }}" \
-            --build-arg NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}" \
-            --build-arg NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}" \
-            --build-arg NEXT_PUBLIC_SENTRY_DSN="${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}" \
-            --build-arg NEXT_PUBLIC_GCS_PUBLIC_URL="${{ vars.NEXT_PUBLIC_GCS_PUBLIC_URL }}" \
-            --tag "${{ env.IMAGE }}:${{ github.sha }}" \
-            --tag "${{ env.IMAGE }}:latest" \
-            .
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-
-      - name: Push Docker image
-        run: |
-          docker push "${{ env.IMAGE }}:${{ github.sha }}"
-          docker push "${{ env.IMAGE }}:latest"
-
-      # ── Deploy to Cloud Run ─────────────────────────────────────────────────
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: ${{ vars.CLOUD_RUN_SERVICE }}
-          region:  ${{ vars.GCP_REGION }}
-          image:   ${{ env.IMAGE }}:${{ github.sha }}
-          # Runtime secrets come from Secret Manager — not baked into the image.
-          # Mount them under Secret Manager > Cloud Run service > Edit > Variables & Secrets.
-
-      - name: Show deployment URL
-        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"
