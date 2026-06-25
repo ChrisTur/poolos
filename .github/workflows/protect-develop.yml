@@ -1,0 +1,23 @@
+name: Enforce Develop PR Source
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only allow feature/* or bugfix/* into develop
+        run: |
+          echo "PR source branch: ${{ github.head_ref }}"
+          case "${{ github.head_ref }}" in
+            feature/*|bugfix/*)
+              echo "✅ Valid source branch — OK to merge into develop."
+              ;;
+            *)
+              echo "❌ Only 'feature/*' or 'bugfix/*' branches can merge into 'develop'. Got: ${{ github.head_ref }}"
+              exit 1
+              ;;
+          esac
