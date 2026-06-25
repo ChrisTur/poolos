@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildVisitCompletionHtml } from "@/lib/email"
+import { geocodeAddress, nearestNeighborOrder } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
   const { companyId } = await requireSession()
@@ -233,4 +234,43 @@ export async function logVisit(formData: FormData) {
 
   revalidatePath("/dashboard")
   revalidatePath("/schedule")
+}
+
+export async function optimizeRoute(routeId: string): Promise<{ optimized: boolean; message: string }> {
+  const { companyId } = await requireSession()
+
+  const route = await db.route.findFirst({
+    where: { id: routeId, companyId },
+    include: {
+      stops: {
+        orderBy: { position: "asc" },
+        include: { customer: true },
+      },
+    },
+  })
+
+  if (!route) return { optimized: false, message: "Route not found." }
+  if (route.stops.length < 3) return { optimized: false, message: "Need at least 3 stops to optimize." }
+
+  const coords = await Promise.all(
+    route.stops.map((stop) =>
+      geocodeAddress(
+        `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`,
+      ),
+    ),
+  )
+
+  if (coords.some((c) => c === null)) {
+    return { optimized: false, message: "Could not geocode all addresses — check that every stop has a full address." }
+  }
+
+  const order = nearestNeighborOrder(coords as Array<{ lat: number; lng: number }>)
+  const orderedIds = order.map((i) => route.stops[i].id)
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.routeStop.update({ where: { id: orderedIds[i] }, data: { position: i } })
+  }
+
+  revalidatePath(`/routes/${routeId}`)
+  return { optimized: true, message: `Optimized ${route.stops.length} stops.` }
 }

@@ -11,25 +11,10 @@ import { deleteRoute, updateRoute } from "@/lib/actions/routes"
 import Button from "@/components/ui/Button"
 import RouteMap from "@/components/routes/RouteMap"
 import DeleteRouteButton from "@/components/routes/DeleteRouteButton"
+import OptimizeButton from "@/components/routes/OptimizeButton"
+import { geocodeAddress } from "@/lib/geocode"
 
 export const dynamic = "force-dynamic"
-
-async function geocode(address: string): Promise<{ lat: number; lng: number } | null> {
-  // Prefer a server-only key with no referrer restrictions; fall back to the public key
-  const key = process.env.GOOGLE_MAPS_GEOCODING_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  if (!key) return null
-  try {
-    const res = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${key}`,
-      { next: { revalidate: 60 * 60 * 24 } } // cache geocode results for 24h
-    )
-    const data = await res.json()
-    if (data.status !== "OK" || !data.results?.[0]) return null
-    return data.results[0].geometry.location
-  } catch {
-    return null
-  }
-}
 
 export default async function RouteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { companyId } = await requireSession()
@@ -63,7 +48,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   const markers = await Promise.all(
     route.stops.map(async (stop, i) => {
       const addr = `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`
-      const coords = await geocode(addr)
+      const coords = await geocodeAddress(addr)
       return {
         label: String(i + 1),
         name: `${stop.customer.firstName} ${stop.customer.lastName}`,
@@ -97,7 +82,10 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
           <Card>
             <CardHeader className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">Stops</h2>
-              <p className="text-xs text-gray-400">Drag to reorder</p>
+              <div className="flex items-center gap-3">
+                <OptimizeButton routeId={id} stopCount={route.stops.length} />
+                <p className="text-xs text-gray-400">Drag to reorder</p>
+              </div>
             </CardHeader>
             <CardBody>
               <RouteStopList stops={route.stops} routeId={id} />

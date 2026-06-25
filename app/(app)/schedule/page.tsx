@@ -4,6 +4,7 @@ import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { DAY_NAMES, formatDate } from "@/lib/utils"
 import { statusBadge } from "@/components/ui/Badge"
 import LogVisitForm from "@/components/schedule/LogVisitForm"
+import ScheduleCalendar from "@/components/schedule/ScheduleCalendar"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -26,7 +27,14 @@ const FREQUENCY_LABELS: Record<string, string> = {
 
 export default async function SchedulePage() {
   const { companyId } = await requireSession()
-  const [routes, recentVisits, customers, scheduledCustomers, checklistItems] = await Promise.all([
+  // eslint-disable-next-line react-hooks/purity
+  const today = new Date()
+  const thisYear  = today.getFullYear()
+  const thisMonth = today.getMonth()
+  const monthStart = new Date(thisYear, thisMonth, 1)
+  const monthEnd   = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
+
+  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -58,6 +66,15 @@ export default async function SchedulePage() {
       where: { companyId, isActive: true },
       orderBy: { position: "asc" },
     }),
+    db.serviceVisit.findMany({
+      where: { customer: { companyId }, visitedAt: { gte: monthStart, lte: monthEnd } },
+      select: {
+        id: true, visitedAt: true, status: true,
+        customer: { select: { id: true, firstName: true, lastName: true } },
+        route:    { select: { id: true, name: true } },
+      },
+      orderBy: { visitedAt: "asc" },
+    }),
   ])
 
   const byDay = DAY_NAMES.reduce<Record<number, typeof routes>>((acc, _, i) => {
@@ -68,8 +85,7 @@ export default async function SchedulePage() {
   const unscheduled = routes.filter((r) => r.dayOfWeek == null)
 
   // Build due/overdue list for customers with serviceFrequency set
-  // eslint-disable-next-line react-hooks/purity
-  const now = Date.now()
+  const now = today.getTime()
   const dueCustomers = scheduledCustomers
     .filter((c) => c.serviceFrequency && c.serviceFrequency !== "as_needed")
     .map((c) => {
@@ -96,6 +112,18 @@ export default async function SchedulePage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Schedule</h1>
+
+      {/* Calendar */}
+      <Card>
+        <CardBody>
+          <ScheduleCalendar
+            initialVisits={monthVisits}
+            routes={routes.map((r) => ({ id: r.id, name: r.name, dayOfWeek: r.dayOfWeek, stops: r.stops }))}
+            initialYear={thisYear}
+            initialMonth={thisMonth}
+          />
+        </CardBody>
+      </Card>
 
       {/* Overdue / Due Soon section */}
       {dueCustomers.length > 0 && (
