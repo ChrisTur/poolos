@@ -28,12 +28,14 @@ const WEBHOOK_PATHS = [
 ]
 
 // [pathPrefix, requestsAllowed, windowSeconds]
+// Note: /forgot-password is intentionally absent — the page gets RSC-prefetched by
+// Next.js on every login page render, so a page-level limit fires false 429s.
+// The actual reset action in lib/actions/auth.ts enforces 3 req/hr per email.
 const RATE_RULES: [string, number, number][] = [
-  ["/api/auth",        30,  60],   // auth endpoints  — 30 req/min  (brute-force)
-  ["/register",        15, 600],   // sign-ups        — 15 per 10 min per IP
-  ["/forgot-password", 10, 600],   // password reset  — 10 per 10 min per IP
-  ["/pay/",            60,  60],   // public pay page — 60 req/min
-  ["/portal/",         60,  60],   // customer portal — 60 req/min
+  ["/api/auth",  30,  60],   // auth endpoints — 30 req/min  (brute-force)
+  ["/register",  15, 600],   // sign-ups       — 15 per 10 min per IP
+  ["/pay/",      60,  60],   // public pay page — 60 req/min
+  ["/portal/",   60,  60],   // customer portal — 60 req/min
 ]
 
 function clientIp(req: Request): string {
