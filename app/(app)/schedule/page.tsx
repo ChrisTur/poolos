@@ -55,6 +55,7 @@ export default async function SchedulePage() {
     db.customer.findMany({
       where: { companyId, status: "active" },
       orderBy: [{ lastName: "asc" }],
+      include: { equipment: { select: { type: true } } },
     }),
     db.customer.findMany({
       where: { companyId, status: "active", serviceFrequency: { not: null } },

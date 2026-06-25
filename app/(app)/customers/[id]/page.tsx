@@ -8,7 +8,6 @@ import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote, disableAutoPay } from "@/lib/actions/customers"
-import { addEquipment, deleteEquipment } from "@/lib/actions/equipment"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
@@ -17,6 +16,7 @@ import CustomerAlerts from "@/components/customers/CustomerAlerts"
 import CustomerTags from "@/components/customers/CustomerTags"
 import ChemicalChart from "@/components/customers/ChemicalChart"
 import FileUpload from "@/components/ui/FileUpload"
+import EquipmentCard from "@/components/customers/EquipmentCard"
 
 export const dynamic = "force-dynamic"
 
@@ -32,7 +32,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [customer, emailLogs, messages, companyTags] = await Promise.all([
+  const [customer, emailLogs, messages, companyTags, companyUsers] = await Promise.all([
     db.customer.findFirst({
       where: { id, companyId },
       include: {
@@ -43,7 +43,15 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           take: 10,
           include: { items: true, payments: true },
         },
-        equipment: { orderBy: { createdAt: "asc" } },
+        equipment: {
+          orderBy: { createdAt: "asc" },
+          include: {
+            serviceRecords: {
+              orderBy: { date: "desc" },
+              include: { technician: { select: { firstName: true, lastName: true } } },
+            },
+          },
+        },
         routeStops: { include: { route: true } },
         alerts: { orderBy: { createdAt: "desc" } },
         tags: { include: { tag: true } },
@@ -61,6 +69,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       orderBy: { createdAt: "asc" },
     }),
     db.tag.findMany({ where: { companyId }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: { companyId, isActive: true }, orderBy: { firstName: "asc" }, select: { id: true, firstName: true, lastName: true } }),
   ])
 
   if (!customer) notFound()
@@ -226,80 +235,12 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 <Wrench className="w-3.5 h-3.5 text-gray-400" /> Equipment
               </h2>
             </CardHeader>
-            <CardBody className="space-y-3">
-              {customer.equipment.length > 0 && (
-                <div className="space-y-2">
-                  {customer.equipment.map((eq) => {
-                    const delAction = deleteEquipment.bind(null, eq.id, id)
-                    return (
-                      <div key={eq.id} className="flex items-start justify-between gap-2 text-sm">
-                        <div className="min-w-0">
-                          <p className="font-medium text-gray-900 capitalize">{eq.type.replace("_", " ")}</p>
-                          {(eq.brand || eq.model) && (
-                            <p className="text-xs text-gray-500">{[eq.brand, eq.model].filter(Boolean).join(" ")}</p>
-                          )}
-                          {eq.serialNumber && <p className="text-xs text-gray-400">S/N: {eq.serialNumber}</p>}
-                          {eq.installedAt && (
-                            <p className="text-xs text-gray-400">Installed {formatDate(eq.installedAt)}</p>
-                          )}
-                          {eq.warrantyExpiry && (() => {
-                            const expired = new Date(eq.warrantyExpiry) < new Date()
-                            return (
-                              <p className={`text-xs mt-0.5 ${expired ? "text-red-500" : "text-gray-400"}`}>
-                                Warranty {expired ? "expired" : "until"} {formatDate(eq.warrantyExpiry)}
-                                {eq.warrantyProvider && ` · ${eq.warrantyProvider}`}
-                              </p>
-                            )
-                          })()}
-                          {eq.warrantyNotes && <p className="text-xs text-gray-400 italic mt-0.5">{eq.warrantyNotes}</p>}
-                          {eq.notes && <p className="text-xs text-gray-400 mt-0.5">{eq.notes}</p>}
-                        </div>
-                        <form action={delAction}>
-                          <button type="submit" className="text-gray-300 hover:text-red-500 transition-colors mt-0.5 shrink-0">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </form>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Add equipment form */}
-              <form action={addEquipment.bind(null, id)} className="space-y-2 pt-2 border-t border-gray-100">
-                <p className="text-xs font-medium text-gray-500">Add Equipment</p>
-                <select
-                  name="type"
-                  required
-                  className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                >
-                  <option value="">Type…</option>
-                  {["pump", "filter", "heater", "salt_system", "cleaner", "light", "other"].map((t) => (
-                    <option key={t} value={t}>{t.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase())}</option>
-                  ))}
-                </select>
-                <div className="grid grid-cols-2 gap-2">
-                  <input name="brand" placeholder="Brand" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                  <input name="model" placeholder="Model" className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                </div>
-                <input name="serialNumber" placeholder="Serial # (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-gray-500">Install date</label>
-                    <input name="installedAt" type="date" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mt-0.5" />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">Warranty expiry</label>
-                    <input name="warrantyExpiry" type="date" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 mt-0.5" />
-                  </div>
-                </div>
-                <input name="warrantyProvider" placeholder="Warranty provider (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <input name="warrantyNotes" placeholder="Warranty notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <input name="notes" placeholder="General notes (optional)" className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                <Button type="submit" size="sm" variant="secondary">
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </Button>
-              </form>
+            <CardBody>
+              <EquipmentCard
+                customerId={id}
+                equipment={customer.equipment}
+                users={companyUsers}
+              />
             </CardBody>
           </Card>
 

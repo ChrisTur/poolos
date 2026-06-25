@@ -2,8 +2,8 @@ import { db } from "@/lib/db"
 
 export type AppNotification = {
   id:       string
-  type:     "overdue_invoice" | "portal_reply" | "chemical_alert"
-  severity: "red" | "blue" | "amber"
+  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "equipment_due"
+  severity: "red" | "blue" | "amber" | "orange"
   label:    string
   detail:   string
   href:     string
@@ -42,7 +42,7 @@ function chemIssues(v: {
 export async function getCompanyNotifications(companyId: string): Promise<AppNotification[]> {
   const now = new Date()
 
-  const [overdueInvoices, allMessages, recentVisits] = await Promise.all([
+  const [overdueInvoices, allMessages, recentVisits, equipmentDue] = await Promise.all([
     // 1. Overdue invoices
     db.invoice.findMany({
       where: { companyId, status: "sent", dueDate: { lt: now } },
@@ -72,6 +72,19 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
       select: {
         id: true, visitedAt: true,
         ph: true, chlorine: true, alkalinity: true, calcium: true, cya: true,
+        customer: { select: { id: true, firstName: true, lastName: true } },
+      },
+    }),
+
+    // 4. Equipment with service intervals that are overdue
+    db.equipment.findMany({
+      where: {
+        customer: { companyId },
+        serviceIntervalDays: { not: null },
+      },
+      select: {
+        id: true, type: true, brand: true, model: true,
+        serviceIntervalDays: true, lastServicedAt: true, installedAt: true,
         customer: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
@@ -126,6 +139,26 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
         href:     `/customers/${v.customer.id}`,
       })
     }
+  }
+
+  // Equipment due for service
+  for (const eq of equipmentDue) {
+    const intervalDays = eq.serviceIntervalDays!
+    // Use lastServicedAt if available, fall back to installedAt; skip if neither
+    const reference = eq.lastServicedAt ?? eq.installedAt
+    if (!reference) continue
+    const dueAt  = new Date(reference.getTime() + intervalDays * 86_400_000)
+    if (dueAt > now) continue // not yet due
+    const daysOverdue = Math.floor((now.getTime() - dueAt.getTime()) / 86_400_000)
+    const eqName = [eq.brand, eq.model ?? eq.type].filter(Boolean).join(" ")
+    notifications.push({
+      id:       `eqdue-${eq.id}`,
+      type:     "equipment_due",
+      severity: "orange",
+      label:    `${eq.customer.firstName} ${eq.customer.lastName} — ${eqName}`,
+      detail:   daysOverdue === 0 ? "Due today" : `${daysOverdue} day${daysOverdue !== 1 ? "s" : ""} overdue`,
+      href:     `/customers/${eq.customer.id}`,
+    })
   }
 
   return notifications
