@@ -1,22 +1,37 @@
 # PoolOS — Todo
 
+> Items marked ⚡ are direct competitive gaps vs. PoolBrain.
+
 ## Build Now (no external blockers, ranked by impact)
 
+- [ ] ⚡ Equipment registry per customer — store equipment (pump, filter, heater, sanitizer type, salt cell) with model, serial number, install date, and notes; visit form adapts based on equipment (e.g., hide salt reading if no salt cell)
+- [ ] ⚡ Issue reports — technicians flag problems mid-visit with category (leak, equipment failure, safety hazard, etc.), photos, and notes; visible to all staff and linked to the visit
+- [ ] ⚡ Customer feedback — one-click satisfaction rating sent after proof-of-service email; score stored per visit; low scores trigger a staff alert before a customer leaves a public review
+- [ ] ⚡ Job templates — one-click pre-built workflows for common tasks: pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for recurring jobs
+- [ ] ⚡ Chemical cost & usage tracking — log which chemicals were added and the quantity per visit; track cost per chemical per customer, technician, and company-wide; dashboard widget showing chemical spend vs. revenue
 - [ ] Digital signatures on estimates — customers sign online via the customer portal
+- [ ] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply
 - [ ] Data export — let companies download all their data (GDPR requirement)
 - [ ] Sentry error alerting — configure alert rules so critical errors page on-call (already integrated, just needs rules)
 
 ## Medium Effort / Real Value
 
 - [ ] Chemical trend alerts — flag customers whose readings are consistently out of range
-- [ ] Equipment maintenance log — `EquipmentService` records (date, work done, parts used)
+- [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer, each with its own readings, pricing, workflow, and chemical history
+- [ ] ⚡ Filter / equipment clean auto-scheduling — auto-create filter clean and salt cell clean jobs based on a configurable interval; auto-update last-cleaned date after completion
+- [ ] ⚡ Technician scorecards — per-tech performance dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, and open alert trends
+- [ ] ⚡ Drag-and-drop route scheduling — rearrange stops within a route and move stops between days via drag-and-drop; unscheduled queue for pending jobs
+- [ ] ⚡ Interactive report charts — clickable bars/points on report charts that drill down to the underlying invoices, visits, or customers
+- [ ] Equipment maintenance log — `EquipmentService` records (date, work done, parts used); links to the equipment registry entry
 
 ## Setup Overhead / External Dependency
 
 - [ ] SMS notifications — Twilio integration; start A2P 10DLC registration now (takes 2–4 weeks)
-- [ ] QuickBooks Online integration — OAuth sync of invoices and payments; needs QBO developer account
+- [ ] QuickBooks Online integration — two-way sync of customers, invoices, payments, refunds, and service categories; needs QBO developer account
 - [ ] Auto-invoicing — generate monthly invoices for customers with a `monthlyRate` (waiting on GCP Cloud Scheduler)
-- [ ] Mobile PWA — installable on homescreen with offline visit-log drafting
+- [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and customer portal; lower processing fees than card; daily retry on declines
+- [ ] ⚡ Technician payroll calculations — automated pay based on jobs completed; configurable rates per employee, property, body of water, and service level
+- [ ] Mobile PWA — installable on homescreen with offline visit-log drafting (PoolBrain's biggest differentiator: full offline operation with auto-sync)
 
 ## Hold (partner approval / premature)
 
