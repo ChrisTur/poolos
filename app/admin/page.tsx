@@ -1,183 +1,282 @@
 import { db } from "@/lib/db"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
-import { Building2, Users, FileText, Activity, ChevronRight, CheckCircle2, AlertTriangle, Settings, ListChecks, Zap, BookOpen, Gift } from "lucide-react"
+import {
+  Building2, Users, TrendingUp, DollarSign, CreditCard, Activity,
+  ChevronRight, CheckCircle2, AlertTriangle, Settings, ListChecks,
+  Zap, BookOpen, Gift, UserPlus, AlertCircle,
+} from "lucide-react"
 import Link from "next/link"
-import { formatDate } from "@/lib/utils"
+import { formatDate, formatCurrency } from "@/lib/utils"
+import { PLANS } from "@/lib/plans"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminOverviewPage() {
-  const [companyCount, userCount, customerCount, invoiceCount, recentCompanies, activeSubscriptions] = await Promise.all([
-    db.company.count(),
-    db.user.count(),
-    db.customer.count(),
-    db.invoice.count(),
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const sevenDaysAgo  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000)
+
+  const [
+    allCompanies,
+    newLast30d,
+    newLast7d,
+    totalCustomers,
+    stripe30dPayments,
+    recentCompanies,
+  ] = await Promise.all([
     db.company.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      include: { _count: { select: { users: true, customers: true } } },
+      select: { plan: true, isActive: true, stripeSubStatus: true },
+    }),
+    db.company.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    db.company.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+    db.customer.count(),
+    db.payment.aggregate({
+      where: { method: "card", createdAt: { gte: thirtyDaysAgo } },
+      _sum: { amount: true },
     }),
     db.company.findMany({
-      where: { stripeSubStatus: "active" },
-      select: { plan: true },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      include: { _count: { select: { customers: true } } },
     }),
   ])
 
-  // MRR from active subscriptions
-  const MRR_BY_PLAN: Record<string, number> = { starter: 49, pro: 99, unlimited: 199 }
-  const mrr = activeSubscriptions.reduce((sum, c) => sum + (MRR_BY_PLAN[c.plan] ?? 0), 0)
+  // ── PoolOS platform metrics ───────────────────────────────────────────────
+
+  const activeCompanies = allCompanies.filter((c) => c.isActive)
+
+  // MRR from companies confirmed active on Stripe
+  const stripeMrr = allCompanies
+    .filter((c) => c.stripeSubStatus === "active")
+    .reduce((s, c) => s + (PLANS[c.plan as keyof typeof PLANS]?.priceMonthly ?? 0), 0)
+
+  // MRR from all non-trial active companies (plan-assigned, whether billed yet or not)
+  const planMrr = activeCompanies
+    .filter((c) => c.plan !== "trial")
+    .reduce((s, c) => s + (PLANS[c.plan as keyof typeof PLANS]?.priceMonthly ?? 0), 0)
+
+  const trialCount    = activeCompanies.filter((c) => c.plan === "trial").length
+  const pastDueCount  = allCompanies.filter((c) => c.stripeSubStatus === "past_due").length
+  const inactiveCount = allCompanies.filter((c) => !c.isActive).length
+
+  const stripe30dVolume = stripe30dPayments._sum.amount ?? 0
+
+  // Plan distribution (active companies only)
+  const planCounts = (["trial", "starter", "pro", "unlimited"] as const).map((id) => ({
+    id,
+    plan: PLANS[id],
+    count: activeCompanies.filter((c) => c.plan === id).length,
+  }))
 
   const healthChecks = [
     {
       label: "Resend API key",
       ok: !!process.env.RESEND_API_KEY,
-      okNote: "Configured",
-      failNote: "Set RESEND_API_KEY in environment variables",
-    },
-    {
-      label: "Email FROM address",
-      ok: !!process.env.EMAIL_FROM,
-      okNote: process.env.EMAIL_FROM ?? "Using default billing@poolos.biz",
-      failNote: "Set EMAIL_FROM=PoolOS <billing@poolos.biz> in environment variables",
+      note: process.env.RESEND_API_KEY ? "Configured" : "Set RESEND_API_KEY in environment variables",
     },
     {
       label: "App URL",
       ok: !!process.env.NEXT_PUBLIC_APP_URL,
-      okNote: process.env.NEXT_PUBLIC_APP_URL ?? "",
-      failNote: "Set NEXT_PUBLIC_APP_URL in environment variables",
+      note: process.env.NEXT_PUBLIC_APP_URL ?? "Set NEXT_PUBLIC_APP_URL in environment variables",
+    },
+    {
+      label: "Email FROM",
+      ok: !!process.env.EMAIL_FROM,
+      note: process.env.EMAIL_FROM ?? "Set EMAIL_FROM in environment variables",
     },
     {
       label: "DNS / SPF · DKIM · DMARC",
       ok: false,
-      okNote: "Verified in Resend dashboard",
-      failNote: "Verify poolos.biz domain in Resend → Domains and add the provided DNS records",
+      note: "Verify poolos.biz in Resend → Domains and add the provided DNS records",
     },
   ]
 
-  const stats = [
-    { label: "Companies", value: companyCount, icon: Building2, color: "text-sky-600", bg: "bg-sky-50" },
-    { label: "Users", value: userCount, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50" },
-    { label: "Customers", value: customerCount, icon: Activity, color: "text-green-600", bg: "bg-green-50" },
-    { label: "MRR", value: `$${mrr}`, icon: FileText, color: "text-emerald-600", bg: "bg-emerald-50" },
-  ]
-
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Admin Overview</h1>
+    <div className="space-y-6">
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">PoolOS Overview</h1>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {stats.map(({ label, value, icon: Icon, color, bg }) => (
-          <Card key={label} className="p-3 sm:p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-xs text-gray-500 font-medium">{label}</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1">{value}</p>
-              </div>
-              <span className={`${bg} ${color} p-1.5 sm:p-2 rounded-lg shrink-0`}>
-                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+      {/* ── Primary KPIs ──────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          {
+            label: "Stripe MRR",
+            value: formatCurrency(stripeMrr),
+            sub: "confirmed active subscriptions",
+            icon: DollarSign,
+            color: "text-emerald-600 bg-emerald-50",
+          },
+          {
+            label: "Plan MRR",
+            value: formatCurrency(planMrr),
+            sub: stripeMrr < planMrr ? `$${planMrr - stripeMrr} unbilled` : "fully billed",
+            subColor: stripeMrr < planMrr ? "text-amber-500" : "text-gray-400",
+            icon: TrendingUp,
+            color: "text-sky-600 bg-sky-50",
+          },
+          {
+            label: "Active companies",
+            value: activeCompanies.length,
+            sub: `${trialCount} on trial`,
+            icon: Building2,
+            color: "text-indigo-600 bg-indigo-50",
+          },
+          {
+            label: "Stripe volume (30d)",
+            value: formatCurrency(stripe30dVolume),
+            sub: "card payments processed",
+            icon: CreditCard,
+            color: "text-purple-600 bg-purple-50",
+          },
+        ].map((kpi) => (
+          <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3.5">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="text-xs text-gray-500 font-medium">{kpi.label}</p>
+              <span className={`p-1.5 rounded-lg shrink-0 ${kpi.color}`}>
+                <kpi.icon className="w-3.5 h-3.5" />
               </span>
             </div>
-          </Card>
+            <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
+            <p className={`text-xs mt-0.5 ${(kpi as { subColor?: string }).subColor ?? "text-gray-400"}`}>
+              {kpi.sub}
+            </p>
+          </div>
         ))}
       </div>
 
-      {/* Platform health */}
+      {/* ── Secondary KPIs ────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          {
+            label: "New (7d)",
+            value: newLast7d,
+            icon: UserPlus,
+            color: "text-green-600 bg-green-50",
+          },
+          {
+            label: "New (30d)",
+            value: newLast30d,
+            icon: UserPlus,
+            color: "text-green-600 bg-green-50",
+          },
+          {
+            label: "Customers managed",
+            value: totalCustomers.toLocaleString(),
+            icon: Users,
+            color: "text-sky-600 bg-sky-50",
+          },
+          {
+            label: "At risk",
+            value: pastDueCount + inactiveCount,
+            sub: `${pastDueCount} past due · ${inactiveCount} inactive`,
+            icon: AlertCircle,
+            color: pastDueCount > 0 ? "text-red-600 bg-red-50" : "text-gray-400 bg-gray-50",
+          },
+        ].map((kpi) => (
+          <div key={kpi.label} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`p-1.5 rounded-lg shrink-0 ${kpi.color}`}>
+                <kpi.icon className="w-3.5 h-3.5" />
+              </span>
+              <p className="text-xs text-gray-500">{kpi.label}</p>
+            </div>
+            <p className="text-xl font-bold text-gray-900">{kpi.value}</p>
+            {(kpi as { sub?: string }).sub && (
+              <p className="text-xs text-gray-400 mt-0.5">{(kpi as { sub?: string }).sub}</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Plan distribution ─────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Platform Health</h2>
+          <h2 className="font-semibold text-gray-900 text-sm">Plan Distribution</h2>
+          <p className="text-xs text-gray-400">Active companies only</p>
         </CardHeader>
-        <CardBody className="divide-y divide-gray-50 !p-0">
-          {healthChecks.map((check) => (
-            <div key={check.label} className="flex items-center gap-3 px-4 sm:px-5 py-3">
-              {check.ok
-                ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                : <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900">{check.label}</p>
-                <p className={`text-xs mt-0.5 truncate ${check.ok ? "text-gray-400" : "text-amber-600"}`}>
-                  {check.ok ? check.okNote : check.failNote}
-                </p>
-              </div>
-            </div>
-          ))}
+        <CardBody className="!p-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-gray-100">
+            {planCounts.map(({ id, plan, count }) => {
+              const value = plan.priceMonthly ? plan.priceMonthly * count : 0
+              return (
+                <div key={id} className="px-5 py-4">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${plan.badge} mb-2`}>
+                    {plan.label}
+                  </span>
+                  <p className="text-2xl font-bold text-gray-900">{count}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {value > 0 ? `${formatCurrency(value)}/mo` : "Free"}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
         </CardBody>
       </Card>
 
-      <Card>
-        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Recent Companies</h2>
-          <Link href="/admin/companies" className="text-xs text-sky-600 hover:underline">View all</Link>
-        </div>
+      {/* ── Recent signups + health in a 2-col layout ─────────────────── */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        {/* Recent companies */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 text-sm">Recent Signups</h2>
+            <Link href="/admin/companies" className="text-xs text-sky-600 hover:underline">Manage all</Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentCompanies.map((c) => (
+              <Link
+                key={c.id}
+                href={`/admin/companies/${c.id}`}
+                className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 text-sm truncate">{c.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {c._count.customers} customers · {formatDate(c.createdAt)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 ml-3">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
+                  }`}>{c.isActive ? "Active" : "Inactive"}</span>
+                  <ChevronRight className="w-4 h-4 text-gray-300" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Card>
 
-        {/* Mobile card list */}
-        <div className="sm:hidden divide-y divide-gray-50">
-          {recentCompanies.map((c) => (
-            <Link key={c.id} href={`/admin/companies/${c.id}`}
-              className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 active:bg-gray-100">
-              <div className="min-w-0">
-                <p className="font-medium text-gray-900 text-sm truncate">{c.name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {c._count.users} users · {c._count.customers} customers · {formatDate(c.createdAt)}
-                </p>
+        {/* Platform health */}
+        <Card>
+          <CardHeader>
+            <h2 className="font-semibold text-gray-900 text-sm">Platform Health</h2>
+          </CardHeader>
+          <CardBody className="divide-y divide-gray-50 !p-0">
+            {healthChecks.map((check) => (
+              <div key={check.label} className="flex items-center gap-3 px-4 sm:px-5 py-3">
+                {check.ok
+                  ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                  : <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{check.label}</p>
+                  <p className={`text-xs mt-0.5 truncate ${check.ok ? "text-gray-400" : "text-amber-600"}`}>
+                    {check.note}
+                  </p>
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0 ml-3">
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                  c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
-                }`}>{c.isActive ? "Active" : "Inactive"}</span>
-                <ChevronRight className="w-4 h-4 text-gray-300" />
-              </div>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </CardBody>
+        </Card>
+      </div>
 
-        {/* Desktop table */}
-        <div className="hidden sm:block overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
-                <th className="px-5 py-3 text-left font-medium">Company</th>
-                <th className="px-5 py-3 text-left font-medium">Users</th>
-                <th className="px-5 py-3 text-left font-medium">Customers</th>
-                <th className="px-5 py-3 text-left font-medium">Joined</th>
-                <th className="px-5 py-3 text-left font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {recentCompanies.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-5 py-3">
-                    <Link href={`/admin/companies/${c.id}`} className="font-medium text-gray-900 hover:text-sky-600">
-                      {c.name}
-                    </Link>
-                    <p className="text-xs text-gray-400">{c.slug}</p>
-                  </td>
-                  <td className="px-5 py-3 text-gray-600">{c._count.users}</td>
-                  <td className="px-5 py-3 text-gray-600">{c._count.customers}</td>
-                  <td className="px-5 py-3 text-gray-500">{formatDate(c.createdAt)}</td>
-                  <td className="px-5 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      c.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-600"
-                    }`}>
-                      {c.isActive ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Marketing CMS */}
+      {/* ── Marketing CMS links ───────────────────────────────────────── */}
       <div>
         <h2 className="font-semibold text-gray-900 text-sm sm:text-base mb-3">Marketing CMS</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {[
-            { href: "/admin/site-config", icon: Settings,    label: "Site Config",  desc: "Hero video & waitlist CTA",   color: "text-gray-600",   bg: "bg-gray-50"   },
-            { href: "/admin/waitlist",    icon: ListChecks,  label: "Waitlist",     desc: "View & manage waitlist entries", color: "text-sky-600",   bg: "bg-sky-50"    },
-            { href: "/admin/features",    icon: Zap,         label: "Features",     desc: "Feature cards on /features",  color: "text-amber-600",  bg: "bg-amber-50"  },
-            { href: "/admin/blog",        icon: BookOpen,    label: "Blog",         desc: "Publish posts to /blog",      color: "text-indigo-600", bg: "bg-indigo-50" },
-            { href: "/admin/referrals",   icon: Gift,        label: "Referrals",    desc: "Referral codes & tracking",   color: "text-green-600",  bg: "bg-green-50"  },
+            { href: "/admin/site-config", icon: Settings,   label: "Site Config", desc: "Hero video & waitlist CTA",      color: "text-gray-600",   bg: "bg-gray-50"   },
+            { href: "/admin/waitlist",    icon: ListChecks, label: "Waitlist",    desc: "View & manage waitlist entries", color: "text-sky-600",   bg: "bg-sky-50"    },
+            { href: "/admin/features",    icon: Zap,        label: "Features",    desc: "Feature cards on /features",    color: "text-amber-600", bg: "bg-amber-50"  },
+            { href: "/admin/blog",        icon: BookOpen,   label: "Blog",        desc: "Publish posts to /blog",        color: "text-indigo-600",bg: "bg-indigo-50" },
+            { href: "/admin/referrals",   icon: Gift,       label: "Referrals",   desc: "Referral codes & tracking",     color: "text-green-600", bg: "bg-green-50"  },
           ].map(({ href, icon: Icon, label, desc, color, bg }) => (
             <Link
               key={href}
