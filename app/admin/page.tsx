@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import {
-  Building2, Users, TrendingUp, DollarSign, CreditCard, Activity,
+  Building2, Users, TrendingUp, DollarSign, CreditCard,
   ChevronRight, CheckCircle2, AlertTriangle, Settings, ListChecks,
   Zap, BookOpen, Gift, UserPlus, AlertCircle,
 } from "lucide-react"
@@ -12,7 +12,9 @@ import { PLANS } from "@/lib/plans"
 export const dynamic = "force-dynamic"
 
 export default async function AdminOverviewPage() {
+  // eslint-disable-next-line react-hooks/purity
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  // eslint-disable-next-line react-hooks/purity
   const sevenDaysAgo  = new Date(Date.now() -  7 * 24 * 60 * 60 * 1000)
 
   const [
