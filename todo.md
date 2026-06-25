@@ -1,66 +1,83 @@
 # PoolOS — Todo
 
-> Items marked ⚡ are direct competitive gaps vs. PoolBrain.
+> ⚡ = competitive gap vs. PoolBrain
 
-## Build Now (no external blockers, ranked by impact)
+---
 
-- [ ] ⚡ Equipment registry per customer — store equipment (pump, filter, heater, sanitizer type, salt cell) with model, serial number, install date, and notes; visit form adapts based on equipment (e.g., hide salt reading if no salt cell)
-- [ ] ⚡ Issue reports — technicians flag problems mid-visit with category (leak, equipment failure, safety hazard, etc.), photos, and notes; visible to all staff and linked to the visit
-- [ ] ⚡ Customer feedback — one-click satisfaction rating sent after proof-of-service email; score stored per visit; low scores trigger a staff alert before a customer leaves a public review
-- [ ] ⚡ Job templates — one-click pre-built workflows for common tasks: pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for recurring jobs
-- [ ] ⚡ Chemical cost & usage tracking — log which chemicals were added and the quantity per visit; track cost per chemical per customer, technician, and company-wide; dashboard widget showing chemical spend vs. revenue
-- [ ] Digital signatures on estimates — customers sign online via the customer portal
-- [ ] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply
-- [ ] Data export — let companies download all their data (GDPR requirement)
+## Implement Now
+
+*Web features, no infrastructure blockers, ranked by impact.*
+
+### Competitive Parity — Core Operations
+- [ ] ⚡ Equipment registry per customer — store pump, filter, heater, sanitizer type, salt cell with model, serial, install date; visit form hides irrelevant readings (e.g., no salt reading if no salt cell)
+- [ ] ⚡ Issue reports — techs flag problems mid-visit (leak, equipment failure, safety hazard) with category, notes, and photos; visible to all staff and linked to the visit record
+- [ ] ⚡ Customer feedback — one-click satisfaction rating in the proof-of-service email; low scores trigger a staff alert before the customer can post a public review
+- [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
+- [ ] ⚡ Chemical cost & usage tracking — log chemicals added + quantity per visit; cost analytics by customer, technician, and company-wide; spend vs. revenue widget on reports
+- [ ] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
+- [ ] Digital signatures on estimates — customer signs the approved estimate online via the portal
+- [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
+- [ ] ⚡ Filter / equipment clean auto-scheduling — auto-create maintenance jobs (filter clean, salt cell clean) on a configurable interval; auto-update last-cleaned date on completion
+
+### Competitive Parity — Analytics & Management
+- [ ] ⚡ Technician scorecards — per-tech dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, open alert trends
+- [ ] ⚡ Drag-and-drop route scheduling — rearrange stops within a route and move stops between routes/days via drag-and-drop; unscheduled queue for pending jobs
+- [ ] ⚡ Interactive report charts — clickable bars and data points on all report charts that drill down to the underlying invoices, visits, or customers
+- [ ] Chemical trend alerts — flag customers whose readings have been consistently out of range across 3+ visits
+- [ ] Equipment maintenance log — `EquipmentService` records per equipment registry entry (date, work done, parts used, cost)
+
+### Payments & Billing
+- [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and the customer portal; lower fees than card; daily retry logic on declines
+- [ ] ⚡ Technician payroll calculations — automated pay based on jobs completed; configurable rates per employee, property, body of water, and service type
+
+### Compliance & Reliability
+- [ ] Data export — companies can download all their data as CSV/ZIP (GDPR requirement)
 - [ ] Sentry error alerting — configure alert rules so critical errors page on-call (already integrated, just needs rules)
 
-## Medium Effort / Real Value
-
-- [ ] Chemical trend alerts — flag customers whose readings are consistently out of range
-- [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer, each with its own readings, pricing, workflow, and chemical history
-- [ ] ⚡ Filter / equipment clean auto-scheduling — auto-create filter clean and salt cell clean jobs based on a configurable interval; auto-update last-cleaned date after completion
-- [ ] ⚡ Technician scorecards — per-tech performance dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, and open alert trends
-- [ ] ⚡ Drag-and-drop route scheduling — rearrange stops within a route and move stops between days via drag-and-drop; unscheduled queue for pending jobs
-- [ ] ⚡ Interactive report charts — clickable bars/points on report charts that drill down to the underlying invoices, visits, or customers
-- [ ] Equipment maintenance log — `EquipmentService` records (date, work done, parts used); links to the equipment registry entry
-
-## Setup Overhead / External Dependency
-
-- [ ] SMS notifications — Twilio integration; start A2P 10DLC registration now (takes 2–4 weeks)
-- [ ] QuickBooks Online integration — two-way sync of customers, invoices, payments, refunds, and service categories; needs QBO developer account
-- [ ] Auto-invoicing — generate monthly invoices for customers with a `monthlyRate` (waiting on GCP Cloud Scheduler)
-- [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and customer portal; lower processing fees than card; daily retry on declines
-- [ ] ⚡ Technician payroll calculations — automated pay based on jobs completed; configurable rates per employee, property, body of water, and service level
-- [ ] Mobile PWA — installable on homescreen with offline visit-log drafting (PoolBrain's biggest differentiator: full offline operation with auto-sync)
-
-## Hold (partner approval / premature)
-
-- [ ] Heritage Pool+ integration — nightly product catalog sync; requires partner approval (customersupport@heritagepoolplus.com)
-- [ ] LaMotte Bluetooth integration — auto-fill chemical readings from device (Web Bluetooth API)
-- [ ] AI phone receptionist — inbound call handling add-on ($99/mo, Bland AI / Vapi)
-- [ ] Consumer financing — Sunbit or similar payment plan option on invoices
-
-## Marketing & SEO
-
-- [ ] Google Search Console — track impressions, clicks, and crawl errors after launch
-
-## Infrastructure & Operations
-
-### Cloud Migration (Netlify → Google Cloud Run)
-- [ ] Google Secret Manager — document which env vars move from Netlify to GCP Secret Manager at migration time
-
-### Quality & Reliability
-- [ ] Error alerting — configure Sentry alert rules so critical errors page on-call
-- [ ] Database backup verification — confirm Neon point-in-time recovery is enabled and test a restore
-
-### Mobile API Foundation (Android / iOS)
-- [ ] API token auth — issue long-lived JWT tokens for mobile clients (separate from web session cookies)
-- [ ] Versioned API routes — `/api/v1/` prefix with dedicated mobile endpoints
-- [ ] CORS policy — configure allowed origins in next.config.ts for mobile API consumers
-- [ ] OpenAPI spec — document the mobile API (Swagger/OpenAPI 3) for app developers
+### Integrations (External Services — No GCP Dependency)
+- [ ] QuickBooks Online — two-way sync of customers, invoices, payments, refunds, and service categories; needs QBO developer account
+- [ ] SMS notifications — Twilio integration for visit reminders and alerts; start A2P 10DLC carrier registration now (takes 2–4 weeks)
 
 ### Support
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
+
+---
+
+## Once on Google Cloud
+
+*These are blocked on or significantly better with GCP infrastructure.*
+
+- [ ] Auto-invoicing — generate monthly invoices for all customers with a `monthlyRate` on a cron schedule (requires GCP Cloud Scheduler)
+- [ ] Google Secret Manager — migrate all env vars from Netlify dashboard to Secret Manager; document the mapping before cutover
+- [ ] Database backup verification — confirm Neon point-in-time recovery is enabled and run a test restore
+
+---
+
+## Requires a Native App
+
+*Web / PWA cannot fully deliver these — defer until iOS/Android app exists.*
+
+- [ ] Offline operation — full offline visit logging with auto-sync on reconnect (PoolBrain's biggest differentiator in the field)
+- [ ] Push notifications — real-time alerts to techs' phones for schedule changes, new jobs, and issue escalations
+- [ ] API token auth — long-lived JWT tokens for mobile clients (separate from web session cookies)
+- [ ] Versioned API routes — `/api/v1/` prefix with dedicated mobile endpoints
+- [ ] CORS policy — configure allowed origins in next.config.ts for mobile API consumers
+- [ ] OpenAPI spec — document the mobile API (Swagger/OpenAPI 3) for app developers
+- [ ] LaMotte Bluetooth integration — auto-fill chemical readings from Bluetooth device (Web Bluetooth API is too unreliable without a native wrapper)
+
+---
+
+## Hold (Partner Approval / Premature)
+
+- [ ] Heritage Pool+ integration — nightly product catalog sync; requires partner approval (customersupport@heritagepoolplus.com)
+- [ ] AI phone receptionist — inbound call handling add-on ($99/mo, Bland AI / Vapi)
+- [ ] Consumer financing — Sunbit or similar payment plan option on invoices
+
+---
+
+## Marketing & SEO
+
+- [ ] Google Search Console — verify domain and monitor impressions, clicks, and crawl errors
 
 ---
 
