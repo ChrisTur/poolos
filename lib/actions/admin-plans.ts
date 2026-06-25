@@ -4,7 +4,7 @@ import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { upsertPlanConfig } from "@/lib/plans-db"
-import { PLANS, PLAN_IDS } from "@/lib/plans"
+import { PLANS, PLAN_IDS, type PlanId } from "@/lib/plans"
 import { db } from "@/lib/db"
 
 async function requireSuperAdmin() {
@@ -25,7 +25,7 @@ export async function updatePlan(formData: FormData) {
   await requireSuperAdmin()
 
   const id = formData.get("id") as string
-  if (!PLAN_IDS.includes(id as any)) throw new Error("Invalid plan id")
+  if (!PLAN_IDS.includes(id as PlanId)) throw new Error("Invalid plan id")
 
   await upsertPlanConfig({
     id,

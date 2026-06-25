@@ -56,12 +56,11 @@ export default function PaymentDonut({
   }
 
   // Build segments: each accumulates the offset from the 12-o'clock start (offset=25)
-  let runningOffset = 25
-  const segments = slices.map((s) => {
-    const offset = runningOffset
-    runningOffset -= s.percent
-    return { ...s, offset }
-  })
+  const segments = slices.reduce<({ offset: number } & PaymentSlice)[]>((acc, s) => {
+    const offset = acc.length === 0 ? 25 : acc[acc.length - 1].offset - acc[acc.length - 1].percent
+    acc.push({ ...s, offset })
+    return acc
+  }, [])
 
   return (
     <div className="flex flex-col sm:flex-row items-center gap-6 py-2">

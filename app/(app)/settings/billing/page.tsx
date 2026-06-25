@@ -49,6 +49,7 @@ export default async function BillingPage({
   const isSubscribed   = !!company.stripeSubId && company.stripeSubStatus === "active"
   const isPastDue      = company.stripeSubStatus === "past_due"
   const trialDaysLeft  = company.trialEndsAt
+    // eslint-disable-next-line react-hooks/purity
     ? Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null
   const trialExpired   = isTrial && trialDaysLeft !== null && trialDaysLeft <= 0

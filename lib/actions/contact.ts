@@ -23,6 +23,19 @@ export async function submitContactForm(_: unknown, formData: FormData) {
 
   await db.contactMessage.create({ data: { name, email, subject, body } })
 
+  // Notify hello@poolos.biz so we don't miss inbound inquiries
+  try {
+    await resend.emails.send({
+      from:    "PoolOS <billing@poolos.biz>",
+      to:      "hello@poolos.biz",
+      replyTo: email,
+      subject: subject ? `Contact: ${subject}` : `New contact message from ${name}`,
+      html:    `<p><strong>From:</strong> ${name} &lt;${email}&gt;</p><p><strong>Message:</strong></p><blockquote style="border-left:3px solid #0ea5e9;padding-left:12px;color:#374151">${body.replace(/\n/g, "<br>")}</blockquote>`,
+    })
+  } catch {
+    // Don't fail the form if notification email fails — message is already saved
+  }
+
   return { success: true }
 }
 

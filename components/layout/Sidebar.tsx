@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -54,9 +55,12 @@ export default function Sidebar({ open, onClose, planData }: SidebarProps) {
   const pathname = usePathname()
 
   const isTrial = planData?.plan === "trial"
-  const trialDaysLeft = planData?.trialEndsAt
-    ? Math.ceil((new Date(planData.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-    : null
+  const trialEndsAt = planData?.trialEndsAt ?? null
+  const trialDaysLeft = useMemo(() => {
+    if (!trialEndsAt) return null
+    // eslint-disable-next-line react-hooks/purity
+    return Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  }, [trialEndsAt])
 
   return (
     <>

@@ -20,7 +20,7 @@
 - [ ] Referral program — "Refer a company, get a free month"; pool owners know pool owners
 - [ ] Start a blog — content like "How to price pool service routes" and "Pool chemical dosing guide" drives organic traffic
 - [x] Connect Google Search Console — track impressions, clicks, and crawl errors after launch
-- [ ] Add a contact/support email (`hello@poolos.biz` referenced in FAQ but not set up)
+- [x] Add a contact/support email (`hello@poolos.biz` — Google Workspace, live)
 
 ## Product
 
@@ -50,5 +50,24 @@
 
 ## Infrastructure & Operations
 
-- [ ] In-app support chat — add Crisp or Intercom once companies are paying
+### Cloud Migration (Netlify → Google Cloud Run)
+- [x] Health check endpoint — `/api/health` returns 200 + DB ping; required by Cloud Run load balancer
+- [x] Dockerfile — multi-stage production build (node:22-slim, standalone Next.js output) for Cloud Run
+- [x] GitHub Actions CI — lint, type-check, build, deploy to Cloud Run on push to main
+- [x] Distributed rate limiting — migrated to Upstash Redis (sliding window); falls back to in-memory when env vars absent (local dev)
+- [ ] Structured JSON logging — replace ad-hoc console.log with pino so logs ingest correctly into Google Cloud Logging
+- [ ] Google Secret Manager — document which env vars move from Netlify dashboard to GCP Secret Manager at migration time
+
+### Mobile API Foundation (Android / iOS)
+- [ ] API token auth — issue long-lived JWT tokens for mobile clients (separate from web session cookies)
+- [ ] Versioned API routes — `/api/v1/` prefix with dedicated mobile endpoints (customers, visits, schedule, chemistry)
+- [ ] CORS policy — configure allowed origins in next.config.ts for mobile API consumers
+- [ ] OpenAPI spec — document the mobile API (Swagger/OpenAPI 3) for app developers
+
+### Quality & Reliability
 - [ ] Automated tests — at minimum cover invoice creation, payment, and auth flows
+- [ ] Error alerting — configure Sentry alert rules so critical errors page on-call (currently tracking but not alerting)
+- [ ] Database backup verification — confirm Neon point-in-time recovery is enabled and test a restore
+
+### Support
+- [ ] In-app support chat — add Crisp or Intercom once companies are paying

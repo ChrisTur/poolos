@@ -93,12 +93,15 @@ export default function InvoiceForm({
     if (!defaultCustomerId || initialItems) return
     const customer = customers.find((c) => c.id === defaultCustomerId)
     if (!customer) return
-    if (isMonthlyType(initialServiceType ?? "") && customer.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
-      setItems([{ description: "Monthly pool service", quantity: "1", unitPrice: customer.monthlyRate.toString() }])
-    }
-    if (!initialDueDate) {
-      setDueDate(calcDueDate(customer.dueDays ?? defaultDueDays))
-    }
+    // Defer state updates to avoid synchronous setState-in-effect
+    Promise.resolve().then(() => {
+      if (isMonthlyType(initialServiceType ?? "") && customer.monthlyRate && items[0].description === "" && items[0].unitPrice === "") {
+        setItems([{ description: "Monthly pool service", quantity: "1", unitPrice: customer.monthlyRate.toString() }])
+      }
+      if (!initialDueDate) {
+        setDueDate(calcDueDate(customer.dueDays ?? defaultDueDays))
+      }
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -86,6 +86,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const portalLastAccessed = customer.portalLastAccessedAt
   const portalAccessLabel = portalLastAccessed
     ? (() => {
+        // eslint-disable-next-line react-hooks/purity
         const days = Math.floor((Date.now() - new Date(portalLastAccessed).getTime()) / (1000 * 60 * 60 * 24))
         return days === 0 ? "Last accessed today" : `Last accessed ${days} day${days === 1 ? "" : "s"} ago`
       })()

@@ -2,7 +2,7 @@ import type { NextConfig } from "next"
 import { withSentryConfig } from "@sentry/nextjs"
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  output: "standalone",
 }
 
 export default withSentryConfig(nextConfig, {
@@ -17,9 +17,10 @@ export default withSentryConfig(nextConfig, {
   widenClientFileUpload: true,
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
 
-  // Tree-shake Sentry debug logging out of production bundles.
-  disableLogger: true,
-
-  // Avoid Sentry wrapping Vercel/Netlify route handlers unnecessarily.
-  automaticVercelMonitors: false,
+  webpack: {
+    // Tree-shake Sentry debug logging out of production bundles.
+    treeshake: { removeDebugLogging: true },
+    // Avoid Sentry wrapping Vercel/Netlify route handlers unnecessarily.
+    automaticVercelMonitors: false,
+  },
 })
