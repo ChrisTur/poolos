@@ -54,7 +54,7 @@
 - [x] Health check endpoint — `/api/health` returns 200 + DB ping; required by Cloud Run load balancer
 - [x] Dockerfile — multi-stage production build (node:22-slim, standalone Next.js output) for Cloud Run
 - [x] GitHub Actions CI — lint, type-check, build, deploy to Cloud Run on push to main
-- [ ] Distributed rate limiting — current in-memory rate limiter breaks across multiple container instances; migrate to Upstash Redis
+- [x] Distributed rate limiting — migrated to Upstash Redis (sliding window); falls back to in-memory when env vars absent (local dev)
 - [ ] Structured JSON logging — replace ad-hoc console.log with pino so logs ingest correctly into Google Cloud Logging
 - [ ] Google Secret Manager — document which env vars move from Netlify dashboard to GCP Secret Manager at migration time
 

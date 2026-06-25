@@ -1,36 +1,59 @@
-/**
- * In-memory sliding-window rate limiter.
- *
- * Works in both Node and Edge runtimes — no external dependencies.
- * State is per-process / per-edge-node. Good enough to stop brute-force
- * attacks and credential stuffing; not a substitute for a global
- * distributed limiter (e.g. Upstash) for cross-region enforcement.
- */
-
-interface Entry { count: number; resetAt: number }
-
-const store = new Map<string, Entry>()
-
-// Prune expired buckets every 60 s so the Map doesn't grow unbounded.
-let lastPruned = Date.now()
-function maybePrune() {
-  const now = Date.now()
-  if (now - lastPruned < 60_000) return
-  lastPruned = now
-  for (const [k, e] of store) if (e.resetAt <= now) store.delete(k)
-}
+import { Redis } from "@upstash/redis"
+import { Ratelimit } from "@upstash/ratelimit"
 
 export interface RateLimitResult {
   allowed:   boolean
   remaining: number
-  resetAt:   number   // unix ms — use for Retry-After header
+  resetAt:   number  // unix ms — use for Retry-After header
 }
 
-export function rateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
-  maybePrune()
-  const now   = Date.now()
-  const entry = store.get(key)
+// ─── Upstash (production) ────────────────────────────────────────────────────
 
+let redis: Redis | null = null
+
+function getRedis(): Redis | null {
+  if (redis) return redis
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url:   process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    })
+  }
+  return redis
+}
+
+// Cache one Ratelimit instance per (limit, window) combination.
+const limiters = new Map<string, Ratelimit>()
+
+function getLimiter(limit: number, windowMs: number): Ratelimit | null {
+  const r = getRedis()
+  if (!r) return null
+
+  const cacheKey = `${limit}:${windowMs}`
+  if (!limiters.has(cacheKey)) {
+    limiters.set(cacheKey, new Ratelimit({
+      redis:   r,
+      limiter: Ratelimit.slidingWindow(limit, `${windowMs / 1000} s`),
+      prefix:  "poolos:rl",
+    }))
+  }
+  return limiters.get(cacheKey)!
+}
+
+// ─── In-memory fallback (local dev / no Upstash configured) ─────────────────
+
+interface Entry { count: number; resetAt: number }
+const store = new Map<string, Entry>()
+let lastPruned = Date.now()
+
+function memoryRateLimit(key: string, limit: number, windowMs: number): RateLimitResult {
+  const now = Date.now()
+  if (now - lastPruned > 60_000) {
+    lastPruned = now
+    for (const [k, e] of store) if (e.resetAt <= now) store.delete(k)
+  }
+
+  const entry = store.get(key)
   if (!entry || entry.resetAt <= now) {
     store.set(key, { count: 1, resetAt: now + windowMs })
     return { allowed: true, remaining: limit - 1, resetAt: now + windowMs }
@@ -42,7 +65,15 @@ export function rateLimit(key: string, limit: number, windowMs: number): RateLim
   return { allowed: true, remaining: limit - entry.count, resetAt: entry.resetAt }
 }
 
-/** Legacy single-boolean helper kept for any callers that use the old API. */
-export function checkRateLimit(key: string, max: number, windowMs: number): boolean {
-  return rateLimit(key, max, windowMs).allowed
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export async function rateLimit(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
+  const limiter = getLimiter(limit, windowMs)
+
+  if (!limiter) {
+    return memoryRateLimit(key, limit, windowMs)
+  }
+
+  const { success, remaining, reset } = await limiter.limit(key)
+  return { allowed: success, remaining, resetAt: reset }
 }

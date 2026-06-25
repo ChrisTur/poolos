@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
-import { checkRateLimit } from "@/lib/rate-limit"
+import { rateLimit } from "@/lib/rate-limit"
 import { isPasswordBreached } from "@/lib/hibp"
 
 function slugify(name: string) {
@@ -61,7 +61,8 @@ export async function login(formData: FormData) {
   const email = (formData.get("email") as string).toLowerCase().trim()
   const password = formData.get("password") as string
 
-  if (!checkRateLimit(`login:${email}`, 5, 15 * 60 * 1000)) {
+  const loginLimit = await rateLimit(`login:${email}`, 5, 15 * 60 * 1000)
+  if (!loginLimit.allowed) {
     return { error: "Too many login attempts. Please try again in 15 minutes." }
   }
 
@@ -89,7 +90,8 @@ export async function requestPasswordReset(formData: FormData) {
   })
 
   // Rate-limit by email: max 3 requests per hour (still return success to prevent enumeration)
-  if (!checkRateLimit(`reset:${email}`, 3, 60 * 60 * 1000)) {
+  const resetLimit = await rateLimit(`reset:${email}`, 3, 60 * 60 * 1000)
+  if (!resetLimit.allowed) {
     return { success: true }
   }
 

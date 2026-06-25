@@ -42,7 +42,7 @@ function clientIp(req: Request): string {
   return (req.headers as Headers).get("x-real-ip") ?? "unknown"
 }
 
-export default auth((req) => {
+export default auth(async (req) => {
   const { pathname } = req.nextUrl
 
   // Rate limiting — skip Stripe webhooks.
@@ -50,7 +50,7 @@ export default auth((req) => {
     const rule = RATE_RULES.find(([prefix]) => pathname.startsWith(prefix))
     if (rule) {
       const [prefix, limit, windowSec] = rule
-      const result = rateLimit(`${prefix}:${clientIp(req)}`, limit, windowSec * 1000)
+      const result = await rateLimit(`${prefix}:${clientIp(req)}`, limit, windowSec * 1000)
       if (!result.allowed) {
         const retryAfter = Math.ceil((result.resetAt - Date.now()) / 1000)
         return new NextResponse("Too many requests — please wait and try again.", {

@@ -23,6 +23,8 @@
 #   SENTRY_AUTH_TOKEN
 #   SENTRY_ORG
 #   SENTRY_PROJECT
+#   UPSTASH_REDIS_REST_URL
+#   UPSTASH_REDIS_REST_TOKEN
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Deploy to Cloud Run
