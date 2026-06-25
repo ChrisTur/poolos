@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
+import { dismissNotification } from "@/lib/actions/notifications"
 
 type AnyNotification = AppNotification | AdminNotification
 
@@ -32,13 +34,19 @@ const SECTION_LABELS: Record<string, string> = {
   new_company:     "New Companies (7 days)",
 }
 
+// Which notification types can be dismissed (admin types are not dismissible here)
+const DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due"])
+
 interface Props {
   notifications: AnyNotification[]
+  isAdmin?: boolean
 }
 
-export default function NotificationBell({ notifications }: Props) {
-  const [open, setOpen] = useState(false)
-  const ref  = useRef<HTMLDivElement>(null)
+export default function NotificationBell({ notifications, isAdmin }: Props) {
+  const router = useRouter()
+  const [open, setOpen]           = useState(false)
+  const [locallyDismissed, setLocallyDismissed] = useState<Set<string>>(new Set())
+  const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -48,12 +56,21 @@ export default function NotificationBell({ notifications }: Props) {
     return () => document.removeEventListener("mousedown", onClick)
   }, [open])
 
-  const count = notifications.length
+  const handleDismiss = useCallback(async (e: React.MouseEvent, id: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setLocallyDismissed((prev) => new Set([...prev, id]))
+    await dismissNotification(id)
+    router.refresh()
+  }, [router])
+
+  const visible = notifications.filter((n) => !locallyDismissed.has(n.id))
+  const count   = visible.length
 
   // Group by type preserving a stable order
   const order = ["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "new_company"]
   const grouped = order.reduce<Record<string, AnyNotification[]>>((acc, type) => {
-    const items = notifications.filter((n) => n.type === type)
+    const items = visible.filter((n) => n.type === type)
     if (items.length) acc[type] = items
     return acc
   }, {})
@@ -99,24 +116,37 @@ export default function NotificationBell({ notifications }: Props) {
                     {SECTION_LABELS[type]}
                   </p>
                   {items.map((n) => {
-                    const Icon = ICON_MAP[n.type as keyof typeof ICON_MAP] ?? Bell
-                    const severity = "severity" in n ? n.severity : ""
-                    const style = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES[""]
+                    const Icon      = ICON_MAP[n.type as keyof typeof ICON_MAP] ?? Bell
+                    const severity  = "severity" in n ? n.severity : ""
+                    const style     = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES[""]
+                    const canDismiss = !isAdmin && DISMISSIBLE_TYPES.has(n.type)
+
                     return (
-                      <Link
-                        key={n.id}
-                        href={n.href}
-                        onClick={() => setOpen(false)}
-                        className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors"
-                      >
-                        <span className={`mt-0.5 p-1.5 rounded-lg border shrink-0 ${style}`}>
-                          <Icon className="w-3.5 h-3.5" />
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{n.label}</p>
-                          <p className="text-xs text-gray-400 truncate">{n.detail}</p>
-                        </div>
-                      </Link>
+                      <div key={n.id} className="group flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
+                        <Link
+                          href={n.href}
+                          onClick={() => setOpen(false)}
+                          className="flex items-start gap-3 flex-1 min-w-0"
+                        >
+                          <span className={`mt-0.5 p-1.5 rounded-lg border shrink-0 ${style}`}>
+                            <Icon className="w-3.5 h-3.5" />
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{n.label}</p>
+                            <p className="text-xs text-gray-400 truncate">{n.detail}</p>
+                          </div>
+                        </Link>
+                        {canDismiss && (
+                          <button
+                            onClick={(e) => handleDismiss(e, n.id)}
+                            className="shrink-0 mt-0.5 p-1 rounded-lg text-gray-300 opacity-0 group-hover:opacity-100 hover:text-gray-500 hover:bg-gray-200 transition-all"
+                            aria-label="Dismiss notification"
+                            title="Dismiss"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     )
                   })}
                 </div>

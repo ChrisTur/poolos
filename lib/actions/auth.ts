@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import { auth, signIn } from "@/auth"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
 import { rateLimit } from "@/lib/rate-limit"
@@ -97,24 +97,37 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  // NextAuth v5 signOut() doesn't reliably clear the JWT cookie from a server
+  // NextAuth v5 signOut() doesn't reliably clear JWT cookies from a server
   // action in Next.js 16 — clear manually instead.
   //
-  // IMPORTANT: cookies().delete(name) emits a Set-Cookie without the `Secure`
-  // attribute. Browsers silently reject that deletion for __Secure- / __Host-
-  // prefixed cookies (spec requires the deletion header to also carry Secure).
-  // Use cookies().set() with maxAge=0 and the full original options instead.
-  const jar = await cookies()
-  const secure = process.env.NODE_ENV === "production"
+  // IMPORTANT: Match NextAuth's own useSecureCookies logic exactly:
+  //   `config.useSecureCookies ?? url.protocol === "https:"`
+  // NextAuth reads the actual request URL via trustHost (x-forwarded-proto),
+  // NOT process.env.NODE_ENV. Using NODE_ENV here caused a mismatch behind
+  // Netlify's reverse proxy, leaving the __Secure- prefixed cookie un-cleared.
+  //
+  // Also: cookies().delete() omits the Secure flag, which browsers silently
+  // reject for __Secure- / __Host- prefixed cookies. We use set(maxAge=0).
+  const [jar, hdrs] = await Promise.all([cookies(), headers()])
+
+  const proto  = hdrs.get("x-forwarded-proto") ?? "http"
+  const secure = proto === "https" || process.env.NODE_ENV === "production"
   const p  = secure ? "__Secure-" : ""
   const hp = secure ? "__Host-"   : ""
 
-  const base = { value: "", maxAge: 0, path: "/", httpOnly: true, sameSite: "lax" as const, secure }
+  const base = { maxAge: 0, path: "/", httpOnly: true, sameSite: "lax" as const, secure }
 
-  jar.set(`${p}authjs.session-token`,  "", base)
-  jar.set(`${p}authjs.callback-url`,   "", base)
-  // __Host- cookies must not have a Domain attribute — omit it (base has none)
-  jar.set(`${hp}authjs.csrf-token`,    "", { ...base, secure: true })
+  // Clear session-token and any chunked variants NextAuth may have created (.0, .1, …)
+  const sessionBase = `${p}authjs.session-token`
+  for (const c of jar.getAll()) {
+    if (c.name === sessionBase || c.name.startsWith(`${sessionBase}.`)) {
+      jar.set(c.name, "", base)
+    }
+  }
+
+  jar.set(`${p}authjs.callback-url`, "", base)
+  // __Host- cookies must not have a Domain attribute — base has none
+  jar.set(`${hp}authjs.csrf-token`,  "", { ...base, secure: true })
 
   redirect("/login")
 }

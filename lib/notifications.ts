@@ -42,7 +42,7 @@ function chemIssues(v: {
 export async function getCompanyNotifications(companyId: string): Promise<AppNotification[]> {
   const now = new Date()
 
-  const [overdueInvoices, allMessages, recentVisits, equipmentDue] = await Promise.all([
+  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed] = await Promise.all([
     // 1. Overdue invoices
     db.invoice.findMany({
       where: { companyId, status: "sent", dueDate: { lt: now } },
@@ -88,7 +88,15 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
         customer: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
+
+    // 5. Dismissed notification IDs for this company
+    db.dismissedNotification.findMany({
+      where: { companyId },
+      select: { notificationId: true },
+    }),
   ])
+
+  const dismissedIds = new Set(dismissed.map((d) => d.notificationId))
 
   const notifications: AppNotification[] = []
 
@@ -161,7 +169,7 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
     })
   }
 
-  return notifications
+  return notifications.filter((n) => !dismissedIds.has(n.id))
 }
 
 // ── Admin notifications ───────────────────────────────────────────────────────
