@@ -1,0 +1,36 @@
+# Dependencies (reinstalled inside Docker)
+node_modules
+
+# Build output (rebuilt inside Docker)
+.next
+
+# Local env files — secrets must come from Cloud Run env vars / Secret Manager
+.env.local
+.env*.local
+.env
+
+# Dev tooling
+.git
+.github
+*.md
+README*
+
+# Prisma generated client (regenerated during build)
+app/generated
+
+# Test artifacts
+coverage
+*.test.ts
+*.spec.ts
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Netlify
+netlify.toml
+.netlify
