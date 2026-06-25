@@ -14,7 +14,7 @@
 ## Medium Effort / Real Value
 
 - [ ] Chemical trend alerts — flag customers whose readings are consistently out of range
-- [ ] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts
+- [x] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts; admin gets new company alerts
 - [ ] Equipment maintenance log — `EquipmentService` records (date, work done, parts used)
 - [x] Route profitability report — revenue per route, visits, $/visit, and assigned technician
 
