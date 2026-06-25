@@ -27,13 +27,15 @@ export async function updateRoute(id: string, formData: FormData) {
   const route = await db.route.findFirst({ where: { id, companyId } })
   if (!route) return
 
+  const assignedUserId = formData.get("assignedUserId") as string | null
   await db.route.update({
     where: { id },
     data: {
-      name: formData.get("name") as string,
-      description: (formData.get("description") as string) || null,
-      dayOfWeek: formData.get("dayOfWeek") !== "" ? parseInt(formData.get("dayOfWeek") as string) : null,
-      isActive: formData.get("isActive") === "true",
+      name:           formData.get("name") as string,
+      description:    (formData.get("description") as string) || null,
+      dayOfWeek:      formData.get("dayOfWeek") !== "" ? parseInt(formData.get("dayOfWeek") as string) : null,
+      isActive:       formData.get("isActive") === "true",
+      assignedUserId: assignedUserId || null,
     },
   })
   revalidatePath(`/routes/${id}`)
@@ -100,11 +102,13 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 }
 
 export async function logVisit(formData: FormData) {
-  const { companyId, name: technicianName } = await requireSession()
+  const session = await requireSession()
+  const { companyId } = session
 
   const customerId       = formData.get("customerId") as string
   const status           = (formData.get("status") as string) || "completed"
   const attachmentKeys   = formData.getAll("attachmentKey") as string[]
+  const technicianId     = (formData.get("technicianId") as string) || null
   const chlorine    = formData.get("chlorine")   ? parseFloat(formData.get("chlorine")   as string) : null
   const ph          = formData.get("ph")         ? parseFloat(formData.get("ph")         as string) : null
   const alkalinity  = formData.get("alkalinity") ? parseFloat(formData.get("alkalinity") as string) : null
@@ -114,10 +118,18 @@ export async function logVisit(formData: FormData) {
   const saltwater   = formData.get("saltwater") === "true"
   const notes       = (formData.get("notes") as string) || null
 
+  // Resolve which technician's name to use in notifications
+  let technicianName = session.name as string
+  if (technicianId) {
+    const tech = await db.user.findUnique({ where: { id: technicianId }, select: { firstName: true, lastName: true } })
+    if (tech) technicianName = `${tech.firstName} ${tech.lastName}`
+  }
+
   const visit = await db.serviceVisit.create({
     data: {
       customerId,
       routeId: (formData.get("routeId") as string) || null,
+      technicianId,
       status,
       notes,
       chlorine,

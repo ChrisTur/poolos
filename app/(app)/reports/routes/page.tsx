@@ -33,11 +33,12 @@ export default async function RouteRevenueReportPage({
   const { period = "30d" } = await searchParams
   const periodStart = getPeriodStart(period)
 
-  const [routes, allCustomerIds] = await Promise.all([
+  const [routes, allCustomerIds, visitCounts] = await Promise.all([
     db.route.findMany({
       where: { companyId },
       orderBy: { name: "asc" },
       include: {
+        assignedUser: { select: { firstName: true, lastName: true } },
         stops: {
           include: {
             customer: {
@@ -56,6 +57,12 @@ export default async function RouteRevenueReportPage({
     db.routeStop.findMany({
       where: { route: { companyId } },
       select: { customerId: true },
+    }),
+    // Visit counts per route in the period
+    db.serviceVisit.groupBy({
+      by: ["routeId"],
+      where: { route: { companyId }, visitedAt: { gte: periodStart }, status: "completed" },
+      _count: { id: true },
     }),
   ])
 
@@ -77,17 +84,23 @@ export default async function RouteRevenueReportPage({
     return { invoiced, collected }
   }
 
+  const visitCountMap = new Map(visitCounts.map((v) => [v.routeId, v._count.id]))
+
   const routeStats = routes.map((route) => {
     const invoices = route.stops.flatMap((s) => s.customer.invoices)
     const { invoiced, collected } = calcStats(invoices)
+    const visits = visitCountMap.get(route.id) ?? 0
     return {
       id:            route.id,
       name:          route.name,
       dayOfWeek:     route.dayOfWeek,
+      assignedUser:  route.assignedUser,
       customerCount: route.stops.length,
       invoiceCount:  invoices.length,
       invoiced,
       collected,
+      visits,
+      revenuePerVisit: visits > 0 ? invoiced / visits : null,
     }
   })
 
@@ -171,7 +184,9 @@ export default async function RouteRevenueReportPage({
                     </div>
                   </div>
                   <p className="text-xs text-gray-400">
-                    {r.customerCount} customer{r.customerCount !== 1 ? "s" : ""} · {r.invoiceCount} invoice{r.invoiceCount !== 1 ? "s" : ""}
+                    {r.customerCount} customer{r.customerCount !== 1 ? "s" : ""} · {r.invoiceCount} invoice{r.invoiceCount !== 1 ? "s" : ""} · {r.visits} visit{r.visits !== 1 ? "s" : ""}
+                    {r.revenuePerVisit != null && ` · ${formatCurrency(r.revenuePerVisit)}/visit`}
+                    {r.assignedUser && ` · ${r.assignedUser.firstName} ${r.assignedUser.lastName}`}
                   </p>
                 </div>
               ))}
@@ -211,9 +226,11 @@ export default async function RouteRevenueReportPage({
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wide">
                   <th className="px-5 py-3 text-left font-medium">Route</th>
+                  <th className="px-5 py-3 text-right font-medium">Technician</th>
                   <th className="px-5 py-3 text-right font-medium">Customers</th>
-                  <th className="px-5 py-3 text-right font-medium">Invoices</th>
+                  <th className="px-5 py-3 text-right font-medium">Visits</th>
                   <th className="px-5 py-3 text-right font-medium">Invoiced</th>
+                  <th className="px-5 py-3 text-right font-medium">$/Visit</th>
                   <th className="px-5 py-3 text-right font-medium">Collected</th>
                   <th className="px-5 py-3 text-right font-medium">Rate</th>
                 </tr>
@@ -227,9 +244,15 @@ export default async function RouteRevenueReportPage({
                         <span className="ml-2 text-xs text-gray-400">{DAY_LABELS[r.dayOfWeek]}</span>
                       )}
                     </td>
+                    <td className="px-5 py-3 text-right text-gray-500">
+                      {r.assignedUser ? `${r.assignedUser.firstName} ${r.assignedUser.lastName}` : "—"}
+                    </td>
                     <td className="px-5 py-3 text-right text-gray-500">{r.customerCount}</td>
-                    <td className="px-5 py-3 text-right text-gray-500">{r.invoiceCount}</td>
+                    <td className="px-5 py-3 text-right text-gray-500">{r.visits}</td>
                     <td className="px-5 py-3 text-right font-medium text-gray-900">{formatCurrency(r.invoiced)}</td>
+                    <td className="px-5 py-3 text-right text-gray-500">
+                      {r.revenuePerVisit != null ? formatCurrency(r.revenuePerVisit) : "—"}
+                    </td>
                     <td className="px-5 py-3 text-right text-green-700">{formatCurrency(r.collected)}</td>
                     <td className="px-5 py-3 text-right text-gray-500">
                       {r.invoiced > 0 ? `${Math.round((r.collected / r.invoiced) * 100)}%` : "—"}
@@ -240,13 +263,15 @@ export default async function RouteRevenueReportPage({
               <tfoot>
                 <tr className="border-t-2 border-gray-200 font-semibold">
                   <td className="px-5 py-3 text-gray-700">Total</td>
+                  <td className="px-5 py-3 text-right text-gray-500">—</td>
                   <td className="px-5 py-3 text-right text-gray-700">
                     {routeStats.reduce((s, r) => s + r.customerCount, 0)}
                   </td>
                   <td className="px-5 py-3 text-right text-gray-700">
-                    {routeStats.reduce((s, r) => s + r.invoiceCount, 0)}
+                    {routeStats.reduce((s, r) => s + r.visits, 0)}
                   </td>
                   <td className="px-5 py-3 text-right text-gray-900">{formatCurrency(grandInvoiced)}</td>
+                  <td className="px-5 py-3 text-right text-gray-500">—</td>
                   <td className="px-5 py-3 text-right text-green-700">{formatCurrency(grandCollected)}</td>
                   <td className="px-5 py-3 text-right text-gray-500">
                     {grandInvoiced > 0 ? `${Math.round((grandCollected / grandInvoiced) * 100)}%` : "—"}

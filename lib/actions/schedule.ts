@@ -14,11 +14,12 @@ export async function getMonthVisits(year: number, month: number) {
       visitedAt: { gte: start, lte: end },
     },
     select: {
-      id:        true,
-      visitedAt: true,
-      status:    true,
-      customer:  { select: { id: true, firstName: true, lastName: true } },
-      route:     { select: { id: true, name: true } },
+      id:          true,
+      visitedAt:   true,
+      status:      true,
+      customer:    { select: { id: true, firstName: true, lastName: true } },
+      route:       { select: { id: true, name: true } },
+      technician:  { select: { id: true, firstName: true, lastName: true } },
     },
     orderBy: { visitedAt: "asc" },
   })

@@ -20,7 +20,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [route, allCustomers] = await Promise.all([
+  const [route, allCustomers, companyUsers] = await Promise.all([
     db.route.findFirst({
       where: { id, companyId },
       include: {
@@ -28,11 +28,17 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
           orderBy: { position: "asc" },
           include: { customer: true },
         },
+        assignedUser: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
     db.customer.findMany({
       where: { companyId, status: "active" },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+    db.user.findMany({
+      where: { companyId, isActive: true },
+      orderBy: [{ firstName: "asc" }],
+      select: { id: true, firstName: true, lastName: true },
     }),
   ])
 
@@ -132,6 +138,21 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
                     ))}
                   </select>
                 </div>
+                {companyUsers.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Technician</label>
+                    <select
+                      name="assignedUserId"
+                      defaultValue={route.assignedUserId ?? ""}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    >
+                      <option value="">Unassigned</option>
+                      {companyUsers.map((u) => (
+                        <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                   <select

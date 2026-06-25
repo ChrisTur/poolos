@@ -9,8 +9,9 @@ type Visit = {
   id: string
   visitedAt: Date | string
   status: string
-  customer: { id: string; firstName: string; lastName: string }
-  route: { id: string; name: string } | null
+  customer:   { id: string; firstName: string; lastName: string }
+  route:      { id: string; name: string } | null
+  technician: { id: string; firstName: string; lastName: string } | null
 }
 
 type Route = {
@@ -179,9 +180,12 @@ export default function ScheduleCalendar({
                 {dayVisits.slice(0, 3).map((v) => (
                   <span
                     key={v.id}
-                    className={`text-[10px] leading-tight px-1 py-0.5 rounded truncate font-medium ${STATUS_STYLE[v.status] ?? "bg-gray-100 text-gray-500"}`}
+                    className={`text-[10px] leading-tight px-1 py-0.5 rounded truncate font-medium flex items-center gap-0.5 ${STATUS_STYLE[v.status] ?? "bg-gray-100 text-gray-500"}`}
                   >
-                    {v.customer.firstName} {v.customer.lastName[0]}.
+                    <span className="truncate">{v.customer.firstName} {v.customer.lastName[0]}.</span>
+                    {v.technician && (
+                      <span className="shrink-0 opacity-60">· {v.technician.firstName[0]}{v.technician.lastName[0]}</span>
+                    )}
                   </span>
                 ))}
                 {dayPlanned.slice(0, dayVisits.length >= 3 ? 0 : 3 - dayVisits.length).map((r) => (
@@ -226,9 +230,11 @@ export default function ScheduleCalendar({
                     >
                       {v.customer.firstName} {v.customer.lastName}
                     </Link>
-                    {v.route && (
-                      <p className="text-xs text-gray-400">{v.route.name}</p>
-                    )}
+                    <p className="text-xs text-gray-400">
+                      {v.route?.name}
+                      {v.route && v.technician && " · "}
+                      {v.technician && `${v.technician.firstName} ${v.technician.lastName}`}
+                    </p>
                   </div>
                   <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[v.status] ?? "bg-gray-100 text-gray-500"}`}>
                     {v.status.charAt(0).toUpperCase() + v.status.slice(1)}

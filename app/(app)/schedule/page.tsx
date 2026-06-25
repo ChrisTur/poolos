@@ -34,7 +34,7 @@ export default async function SchedulePage() {
   const monthStart = new Date(thisYear, thisMonth, 1)
   const monthEnd   = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
 
-  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits] = await Promise.all([
+  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits, companyUsers] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -43,6 +43,7 @@ export default async function SchedulePage() {
           orderBy: { position: "asc" },
           include: { customer: true },
         },
+        assignedUser: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
     db.serviceVisit.findMany({
@@ -70,10 +71,16 @@ export default async function SchedulePage() {
       where: { customer: { companyId }, visitedAt: { gte: monthStart, lte: monthEnd } },
       select: {
         id: true, visitedAt: true, status: true,
-        customer: { select: { id: true, firstName: true, lastName: true } },
-        route:    { select: { id: true, name: true } },
+        customer:   { select: { id: true, firstName: true, lastName: true } },
+        route:      { select: { id: true, name: true } },
+        technician: { select: { id: true, firstName: true, lastName: true } },
       },
       orderBy: { visitedAt: "asc" },
+    }),
+    db.user.findMany({
+      where: { companyId, isActive: true },
+      orderBy: [{ firstName: "asc" }],
+      select: { id: true, firstName: true, lastName: true },
     }),
   ])
 
@@ -168,7 +175,7 @@ export default async function SchedulePage() {
         <Card>
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
           <CardBody>
-            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} />
+            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} />
           </CardBody>
         </Card>
       </div>
@@ -188,9 +195,16 @@ export default async function SchedulePage() {
                   <div className="divide-y divide-gray-50">
                     {dayRoutes.map((route) => (
                       <div key={route.id} className="px-4 sm:px-5 py-3">
-                        <Link href={`/routes/${route.id}`} className="text-sm font-medium text-sky-700 hover:underline">
-                          {route.name}
-                        </Link>
+                        <div className="flex items-center justify-between gap-2">
+                          <Link href={`/routes/${route.id}`} className="text-sm font-medium text-sky-700 hover:underline">
+                            {route.name}
+                          </Link>
+                          {route.assignedUser && (
+                            <span className="text-xs text-gray-400 shrink-0">
+                              {route.assignedUser.firstName} {route.assignedUser.lastName}
+                            </span>
+                          )}
+                        </div>
                         <div className="mt-2 space-y-1.5">
                           {route.stops.map((stop, idx) => (
                             <div key={stop.id} className="flex items-center gap-2 text-xs text-gray-500">
@@ -281,7 +295,7 @@ export default async function SchedulePage() {
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>
-              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} />
+              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} />
             </CardBody>
           </Card>
         </div>
