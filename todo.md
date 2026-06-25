@@ -9,7 +9,10 @@
 *Web features, no infrastructure blockers, ranked by impact.*
 
 ### Competitive Parity — Core Operations
-- [ ] ⚡ Equipment registry per customer — store pump, filter, heater, sanitizer type, salt cell with model, serial, install date; visit form hides irrelevant readings (e.g., no salt reading if no salt cell)
+- [ ] ⚡ **Equipment lifecycle management** — one objective, three deliverables:
+  - **Registry** — catalog all pool equipment per customer (pump, filter, heater, salt cell, automation system) with model, serial number, install date, and warranty expiry; visit form adapts automatically (e.g., salt reading hidden if no salt cell installed)
+  - **Service history** — `EquipmentService` records per piece: date, work performed, parts used, labor cost; full history visible on the customer profile and linkable to invoices
+  - **Auto-scheduling** — auto-create routine maintenance jobs (filter clean, salt cell clean) based on a configurable service interval per equipment piece; last-serviced date auto-updates on job completion
 - [ ] ⚡ Issue reports — techs flag problems mid-visit (leak, equipment failure, safety hazard) with category, notes, and photos; visible to all staff and linked to the visit record
 - [ ] ⚡ Customer feedback — one-click satisfaction rating in the proof-of-service email; low scores trigger a staff alert before the customer can post a public review
 - [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
@@ -17,14 +20,12 @@
 - [ ] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
 - [ ] Digital signatures on estimates — customer signs the approved estimate online via the portal
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
-- [ ] ⚡ Filter / equipment clean auto-scheduling — auto-create maintenance jobs (filter clean, salt cell clean) on a configurable interval; auto-update last-cleaned date on completion
 
 ### Competitive Parity — Analytics & Management
 - [ ] ⚡ Technician scorecards — per-tech dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, open alert trends
 - [ ] ⚡ Drag-and-drop route scheduling — rearrange stops within a route and move stops between routes/days via drag-and-drop; unscheduled queue for pending jobs
 - [ ] ⚡ Interactive report charts — clickable bars and data points on all report charts that drill down to the underlying invoices, visits, or customers
 - [ ] Chemical trend alerts — flag customers whose readings have been consistently out of range across 3+ visits
-- [ ] Equipment maintenance log — `EquipmentService` records per equipment registry entry (date, work done, parts used, cost)
 
 ### Payments & Billing
 - [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and the customer portal; lower fees than card; daily retry logic on declines
