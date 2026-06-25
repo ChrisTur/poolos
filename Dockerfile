@@ -19,7 +19,19 @@ COPY . .
 # Generate Prisma client for the Linux target inside this container
 RUN npx prisma generate
 
-# Build-time env vars (not secrets — only public/build-time values needed here)
+# NEXT_PUBLIC_* vars are baked into the client JS bundle at build time.
+# Pass them via --build-arg in CI; they are not secrets (safe to expose).
+ARG NEXT_PUBLIC_APP_URL
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ARG NEXT_PUBLIC_SENTRY_DSN
+ARG NEXT_PUBLIC_GCS_PUBLIC_URL
+
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_GCS_PUBLIC_URL=$NEXT_PUBLIC_GCS_PUBLIC_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 

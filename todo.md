@@ -53,7 +53,7 @@
 ### Cloud Migration (Netlify → Google Cloud Run)
 - [x] Health check endpoint — `/api/health` returns 200 + DB ping; required by Cloud Run load balancer
 - [x] Dockerfile — multi-stage production build (node:22-slim, standalone Next.js output) for Cloud Run
-- [ ] GitHub Actions CI — lint, type-check, build, deploy to Cloud Run on push to main
+- [x] GitHub Actions CI — lint, type-check, build, deploy to Cloud Run on push to main
 - [ ] Distributed rate limiting — current in-memory rate limiter breaks across multiple container instances; migrate to Upstash Redis
 - [ ] Structured JSON logging — replace ad-hoc console.log with pino so logs ingest correctly into Google Cloud Logging
 - [ ] Google Secret Manager — document which env vars move from Netlify dashboard to GCP Secret Manager at migration time
