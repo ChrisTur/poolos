@@ -9,10 +9,6 @@
 *Web features, no infrastructure blockers, ranked by impact.*
 
 ### Competitive Parity — Core Operations
-- [ ] ⚡ **Equipment lifecycle management** — one objective, three deliverables:
-  - **Registry** — catalog all pool equipment per customer (pump, filter, heater, salt cell, automation system) with model, serial number, install date, and warranty expiry; visit form adapts automatically (e.g., salt reading hidden if no salt cell installed)
-  - **Service history** — `EquipmentService` records per piece: date, work performed, parts used, labor cost; full history visible on the customer profile and linkable to invoices
-  - **Auto-scheduling** — auto-create routine maintenance jobs (filter clean, salt cell clean) based on a configurable service interval per equipment piece; last-serviced date auto-updates on job completion
 - [ ] ⚡ Issue reports — techs flag problems mid-visit (leak, equipment failure, safety hazard) with category, notes, and photos; visible to all staff and linked to the visit record
 - [ ] ⚡ Customer feedback — one-click satisfaction rating in the proof-of-service email; low scores trigger a staff alert before the customer can post a public review
 - [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
@@ -93,6 +89,7 @@
 - [x] Technician assignment — assign specific techs to routes/visits; auto-fills on log visit form
 - [x] Route profitability report — revenue per route, visits, $/visit, and assigned technician
 - [x] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts; admin gets new company alerts
+- [x] Equipment lifecycle management — registry (pump/filter/heater/salt cell/etc. with model, serial, install date, warranty); service history per piece (date, work, parts, cost, technician); auto-scheduling via configurable service interval with overdue badges + notification bell alerts
 
 ### Marketing & SEO
 - [x] Add a demo / walkthrough video to the hero — admin sets YouTube/Vimeo URL via /admin/site-config
