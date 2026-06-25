@@ -11,7 +11,7 @@ export type AppNotification = {
 
 export type AdminNotification = {
   id:        string
-  type:      "new_company"
+  type:      "new_company" | "open_ticket"
   label:     string
   detail:    string
   href:      string
@@ -176,20 +176,44 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
 export async function getAdminNotifications(): Promise<AdminNotification[]> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // last 7 days
 
-  const newCompanies = await db.company.findMany({
-    where: { createdAt: { gte: since } },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, createdAt: true },
-  })
+  const [newCompanies, openTickets] = await Promise.all([
+    db.company.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, createdAt: true },
+    }),
+    db.supportTicket.findMany({
+      where: { status: { in: ["open", "in_progress"] } },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true, subject: true, status: true, updatedAt: true,
+        company: { select: { name: true } },
+      },
+    }),
+  ])
 
-  return newCompanies.map((c) => {
+  const notifications: AdminNotification[] = []
+
+  for (const t of openTickets) {
+    notifications.push({
+      id:     `ticket-${t.id}`,
+      type:   "open_ticket",
+      label:  t.company.name,
+      detail: t.subject,
+      href:   `/admin/support/${t.id}`,
+    })
+  }
+
+  for (const c of newCompanies) {
     const daysAgo = Math.floor((Date.now() - c.createdAt.getTime()) / 86_400_000)
-    return {
+    notifications.push({
       id:     `company-${c.id}`,
-      type:   "new_company" as const,
+      type:   "new_company",
       label:  c.name,
       detail: daysAgo === 0 ? "Joined today" : `${daysAgo} day${daysAgo !== 1 ? "s" : ""} ago`,
       href:   `/admin/companies/${c.id}`,
-    }
-  })
+    })
+  }
+
+  return notifications
 }
