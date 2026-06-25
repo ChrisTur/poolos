@@ -1,9 +1,10 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { auth, signIn, signOut } from "@/auth"
+import { auth, signIn } from "@/auth"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
+import { cookies } from "next/headers"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
 import { rateLimit } from "@/lib/rate-limit"
@@ -96,7 +97,18 @@ export async function login(formData: FormData) {
 }
 
 export async function logout() {
-  await signOut({ redirect: false })
+  // NextAuth v5 signOut() does not reliably delete the JWT cookie when called
+  // from a server action in Next.js 16. Delete the cookies manually instead.
+  // Cookie names differ by environment: __Secure- prefix is added on HTTPS.
+  const jar = await cookies()
+  const secure = process.env.NODE_ENV === "production"
+  const p  = secure ? "__Secure-" : ""   // session-token + callback-url prefix
+  const hp = secure ? "__Host-"   : ""   // csrf-token uses __Host- on HTTPS
+
+  jar.delete(`${p}authjs.session-token`)
+  jar.delete(`${p}authjs.callback-url`)
+  jar.delete(`${hp}authjs.csrf-token`)
+
   redirect("/login")
 }
 

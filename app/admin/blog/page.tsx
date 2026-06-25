@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { togglePublished, deleteBlogPost } from "@/lib/actions/admin-blog"
 import Link from "next/link"
 import { formatDate } from "@/lib/utils"
-import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react"
+import { Plus, Pencil, Trash2, Eye, EyeOff, ExternalLink } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -19,13 +19,24 @@ export default async function AdminBlogPage() {
           <h1 className="text-2xl font-bold text-gray-900">Blog</h1>
           <p className="text-sm text-gray-500 mt-1">Manage blog posts published on the public /blog page.</p>
         </div>
-        <Link
-          href="/admin/blog/new"
-          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          New post
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/blog"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 bg-white border border-gray-200 hover:border-sky-300 text-gray-600 hover:text-sky-700 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Preview page
+          </Link>
+          <Link
+            href="/admin/blog/new"
+            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            New post
+          </Link>
+        </div>
       </div>
 
       {posts.length === 0 ? (
@@ -56,6 +67,15 @@ export default async function AdminBlogPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                <Link
+                  href={`/blog/${p.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors"
+                  title="Preview post"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Link>
                 <form action={togglePublished}>
                   <input type="hidden" name="id" value={p.id} />
                   <button
