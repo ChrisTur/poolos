@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 
 export type AppNotification = {
   id:       string
-  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "equipment_due"
+  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "equipment_due" | "open_issue"
   severity: "red" | "blue" | "amber" | "orange"
   label:    string
   detail:   string
@@ -42,7 +42,7 @@ function chemIssues(v: {
 export async function getCompanyNotifications(companyId: string): Promise<AppNotification[]> {
   const now = new Date()
 
-  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed] = await Promise.all([
+  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues] = await Promise.all([
     // 1. Overdue invoices
     db.invoice.findMany({
       where: { companyId, status: "sent", dueDate: { lt: now } },
@@ -93,6 +93,17 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
     db.dismissedNotification.findMany({
       where: { companyId },
       select: { notificationId: true },
+    }),
+
+    // 6. Open or in-progress high-priority issues
+    db.issueReport.findMany({
+      where: { companyId, status: { in: ["open", "in_progress"] }, priority: "high" },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        id: true, category: true, notes: true,
+        customer: { select: { id: true, firstName: true, lastName: true } },
+      },
     }),
   ])
 
@@ -169,6 +180,22 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
     })
   }
 
+  // High-priority open issues
+  const CAT_LABELS: Record<string, string> = {
+    leak: "Leak", equipment_failure: "Equipment Failure",
+    safety_hazard: "Safety Hazard", water_quality: "Water Quality", other: "Issue",
+  }
+  for (const issue of highPriorityIssues) {
+    notifications.push({
+      id:       `issue-${issue.id}`,
+      type:     "open_issue",
+      severity: "red",
+      label:    `${issue.customer.firstName} ${issue.customer.lastName} — ${CAT_LABELS[issue.category] ?? "Issue"}`,
+      detail:   issue.notes.length > 60 ? issue.notes.slice(0, 60) + "…" : issue.notes,
+      href:     `/customers/${issue.customer.id}`,
+    })
+  }
+
   return notifications.filter((n) => !dismissedIds.has(n.id))
 }
 
@@ -176,7 +203,7 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
 export async function getAdminNotifications(): Promise<AdminNotification[]> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // last 7 days
 
-  const [newCompanies, openTickets] = await Promise.all([
+  const [newCompanies, openTickets, dismissed] = await Promise.all([
     db.company.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
@@ -190,7 +217,10 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
         company: { select: { name: true } },
       },
     }),
+    db.adminDismissedNotification.findMany({ select: { notificationId: true } }),
   ])
+
+  const dismissedIds = new Set(dismissed.map((d) => d.notificationId))
 
   const notifications: AdminNotification[] = []
 
@@ -215,5 +245,5 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
     })
   }
 
-  return notifications
+  return notifications.filter((n) => !dismissedIds.has(n.id))
 }

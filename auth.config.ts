@@ -3,6 +3,10 @@ import type { NextAuthConfig } from "next-auth"
 // Lightweight config with no DB imports — safe for Edge runtime (proxy/middleware)
 export const authConfig: NextAuthConfig = {
   trustHost: true,
+  // Explicit: in production (HTTPS) use __Secure- prefixed cookies; in local HTTP dev do not,
+  // because NextAuth's URL detection can fall back to "https" even on localhost, causing
+  // browsers to silently discard the Secure-flagged cookie over plain HTTP.
+  useSecureCookies: process.env.NODE_ENV === "production",
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30-day sessions
   pages: { signIn: "/login" },
   providers: [],
