@@ -118,6 +118,10 @@ export async function sendEstimateEmail(estimateId: string, formData: FormData) 
   if (!estimate.customer.email) redirect(`/estimates/${estimateId}?emailError=no_email`)
 
   const total = estimate.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+  const portalUrl = estimate.customer.portalToken
+    ? `${process.env.AUTH_URL ?? ""}/portal/${estimate.customer.portalToken}/estimates/${estimateId}`
+    : null
+
   const html = buildEstimateHtml({
     estimateNumber: estimate.estimateNumber,
     companyName: estimate.company.name,
@@ -140,6 +144,7 @@ export async function sendEstimateEmail(estimateId: string, formData: FormData) 
     notes: estimate.notes,
     customMessage,
     issuedAt: estimate.createdAt,
+    portalUrl,
   })
 
   const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM

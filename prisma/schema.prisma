@@ -315,12 +315,20 @@ model Estimate {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  estimateNumber String    @unique
-  status         String    @default("draft") // draft | sent | accepted | declined | converted
-  serviceType    String?   // monthly | repair | equipment | chemical | installation | other
-  validUntil     DateTime?
-  notes          String?
+  estimateNumber    String    @unique
+  status            String    @default("draft") // draft | sent | accepted | declined | converted
+  serviceType       String?   // monthly | repair | equipment | chemical | installation | other
+  validUntil        DateTime?
+  notes             String?
   convertedInvoiceId String?
+
+  // Portal approval / digital signature
+  approvedAt    DateTime?
+  signedByName  String?
+  signedAt      DateTime?
+  signatureData String?   @db.Text
+  deniedAt      DateTime?
+  denialReason  String?
 
   customerId String
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)

@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
-import { revalidatePath } from "next/cache"
+import { refresh } from "next/cache"
 
 export async function addChecklistItem(formData: FormData) {
   const { companyId } = await requireSession()
@@ -18,17 +18,17 @@ export async function addChecklistItem(formData: FormData) {
   await db.visitChecklistItem.create({
     data: { companyId, label, position: (last?.position ?? -1) + 1 },
   })
-  revalidatePath("/settings/checklist")
+  refresh()
 }
 
 export async function deleteChecklistItem(id: string) {
   const { companyId } = await requireSession()
   await db.visitChecklistItem.deleteMany({ where: { id, companyId } })
-  revalidatePath("/settings/checklist")
+  refresh()
 }
 
 export async function toggleChecklistItem(id: string, isActive: boolean) {
   const { companyId } = await requireSession()
   await db.visitChecklistItem.updateMany({ where: { id, companyId }, data: { isActive } })
-  revalidatePath("/settings/checklist")
+  refresh()
 }
