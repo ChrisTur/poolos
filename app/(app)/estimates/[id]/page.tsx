@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import {
   ChevronLeft, Trash2, Mail, CheckCircle, AlertCircle,
-  Send, ArrowRight, FileText, Pencil
+  Send, ArrowRight, FileText, Pencil, PenLine
 } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
@@ -53,15 +53,17 @@ export default async function EstimateDetailPage({
   if (!estimate || !company) notFound()
 
   const total = estimate.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-  const hasEmail = !!estimate.customer.email
-  const canConvert = estimate.status !== "converted" && estimate.status !== "declined"
-  const canEdit   = estimate.status === "draft" || estimate.status === "sent"
+  const hasEmail   = !!estimate.customer.email
+  const canConvert = estimate.status !== "converted" && estimate.status !== "declined" && !estimate.convertedInvoiceId
+  const canEdit    = estimate.status === "draft" || estimate.status === "sent"
+  const portalApproved = !!estimate.approvedAt
+  const portalDenied   = !!estimate.deniedAt
 
-  const deleteAction   = deleteEstimate.bind(null, id)
-  const sendAction     = sendEstimateEmail.bind(null, id)
-  const markAccepted   = updateEstimateStatus.bind(null, id, "accepted")
-  const markDeclined   = updateEstimateStatus.bind(null, id, "declined")
-  const convertAction  = convertEstimateToInvoice.bind(null, id)
+  const deleteAction  = deleteEstimate.bind(null, id)
+  const sendAction    = sendEstimateEmail.bind(null, id)
+  const markAccepted  = updateEstimateStatus.bind(null, id, "accepted")
+  const markDeclined  = updateEstimateStatus.bind(null, id, "declined")
+  const convertAction = convertEstimateToInvoice.bind(null, id)
 
   const emailErrorMsg: Record<string, string> = {
     no_email:    "This customer has no email address on file.",
@@ -84,8 +86,34 @@ export default async function EstimateDetailPage({
         </div>
       )}
 
-      {/* If already converted, show link to the invoice */}
-      {estimate.status === "converted" && estimate.convertedInvoiceId && (
+      {/* Portal-approved banner */}
+      {portalApproved && estimate.approvedAt && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <PenLine className="w-4 h-4 shrink-0" />
+            Approved online by <strong>{estimate.signedByName}</strong> on {new Date(estimate.approvedAt).toLocaleDateString()}
+          </div>
+          {estimate.convertedInvoiceId && (
+            <Link href={`/invoices/${estimate.convertedInvoiceId}`} className="flex items-center gap-1 font-medium hover:underline shrink-0 whitespace-nowrap">
+              View Invoice <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Portal-denied banner */}
+      {portalDenied && estimate.deniedAt && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            Declined online on {new Date(estimate.deniedAt).toLocaleDateString()}
+            {estimate.denialReason && ` — "${estimate.denialReason}"`}
+          </div>
+        </div>
+      )}
+
+      {/* If already converted (manual), show link to the invoice */}
+      {estimate.status === "converted" && estimate.convertedInvoiceId && !portalApproved && (
         <div className="rounded-lg bg-purple-50 border border-purple-200 px-4 py-3 text-sm text-purple-800 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 shrink-0" />
@@ -131,7 +159,7 @@ export default async function EstimateDetailPage({
                 </Button>
               </form>
             )}
-            {estimate.status === "sent" && (
+            {estimate.status === "sent" && !portalApproved && !portalDenied && (
               <>
                 <form action={markAccepted}>
                   <Button type="submit" variant="secondary" size="sm">Mark Accepted</Button>
@@ -279,6 +307,31 @@ export default async function EstimateDetailPage({
               </div>
             </CardBody>
           </Card>
+
+          {/* Digital signature */}
+          {estimate.signatureData && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                  <PenLine className="w-3.5 h-3.5 text-gray-400" /> Customer Signature
+                </h2>
+              </CardHeader>
+              <CardBody className="space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={estimate.signatureData}
+                  alt="Customer signature"
+                  className="w-full border border-gray-100 rounded bg-white p-2"
+                />
+                {estimate.signedByName && (
+                  <p className="text-xs text-gray-500">Signed by <strong>{estimate.signedByName}</strong></p>
+                )}
+                {estimate.signedAt && (
+                  <p className="text-xs text-gray-400">{new Date(estimate.signedAt).toLocaleString()}</p>
+                )}
+              </CardBody>
+            </Card>
+          )}
 
           {/* Email history */}
           <Card>

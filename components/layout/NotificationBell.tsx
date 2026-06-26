@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
 import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, AlertTriangle, Star, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
 import { dismissNotification, dismissAdminNotification } from "@/lib/actions/notifications"
@@ -49,7 +48,6 @@ interface Props {
 }
 
 export default function NotificationBell({ notifications, isAdmin }: Props) {
-  const router = useRouter()
   const [open, setOpen]           = useState(false)
   const [locallyDismissed, setLocallyDismissed] = useState<Set<string>>(new Set())
   const ref = useRef<HTMLDivElement>(null)
@@ -62,21 +60,17 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
     return () => document.removeEventListener("mousedown", onClick)
   }, [open])
 
-  const handleDismiss = useCallback(async (e: React.MouseEvent, id: string, type: string) => {
+  const handleDismiss = useCallback((e: React.MouseEvent, id: string, type: string) => {
     e.preventDefault()
     e.stopPropagation()
     setLocallyDismissed((prev) => new Set([...prev, id]))
-    try {
-      if (isAdmin) {
-        await dismissAdminNotification(id)
-      } else if (DB_DISMISSIBLE_TYPES.has(type)) {
-        await dismissNotification(id)
-      }
-    } catch {
-      // ignore — local state already hides the notification; server sync on refresh
+    // Fire-and-forget: save to DB so it stays dismissed on next page load
+    if (isAdmin) {
+      dismissAdminNotification(id).catch(() => {})
+    } else if (DB_DISMISSIBLE_TYPES.has(type)) {
+      dismissNotification(id).catch(() => {})
     }
-    router.refresh()
-  }, [isAdmin, router])
+  }, [isAdmin])
 
   const visible = notifications.filter((n) => !locallyDismissed.has(n.id))
   const count   = visible.length
