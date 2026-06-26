@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, AlertTriangle, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
-import { dismissNotification } from "@/lib/actions/notifications"
+import { dismissNotification, dismissAdminNotification } from "@/lib/actions/notifications"
 
 type AnyNotification = AppNotification | AdminNotification
 
@@ -64,12 +64,12 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
     e.preventDefault()
     e.stopPropagation()
     setLocallyDismissed((prev) => new Set([...prev, id]))
-    // Admin notifications are dismissed locally only (they're computed, not stored).
-    // Company notifications are persisted via server action so they survive page refresh.
-    if (!isAdmin && DB_DISMISSIBLE_TYPES.has(type)) {
+    if (isAdmin) {
+      await dismissAdminNotification(id)
+    } else if (DB_DISMISSIBLE_TYPES.has(type)) {
       await dismissNotification(id)
-      router.refresh()
     }
+    router.refresh()
   }, [isAdmin, router])
 
   const visible = notifications.filter((n) => !locallyDismissed.has(n.id))

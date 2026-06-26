@@ -637,6 +637,11 @@ model DismissedNotification {
   @@index([companyId])
 }
 
+model AdminDismissedNotification {
+  notificationId String   @id
+  dismissedAt    DateTime @default(now())
+}
+
 model IssueReport {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

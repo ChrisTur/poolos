@@ -203,7 +203,7 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
 export async function getAdminNotifications(): Promise<AdminNotification[]> {
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) // last 7 days
 
-  const [newCompanies, openTickets] = await Promise.all([
+  const [newCompanies, openTickets, dismissed] = await Promise.all([
     db.company.findMany({
       where: { createdAt: { gte: since } },
       orderBy: { createdAt: "desc" },
@@ -217,7 +217,10 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
         company: { select: { name: true } },
       },
     }),
+    db.adminDismissedNotification.findMany({ select: { notificationId: true } }),
   ])
+
+  const dismissedIds = new Set(dismissed.map((d) => d.notificationId))
 
   const notifications: AdminNotification[] = []
 
@@ -242,5 +245,5 @@ export async function getAdminNotifications(): Promise<AdminNotification[]> {
     })
   }
 
-  return notifications
+  return notifications.filter((n) => !dismissedIds.has(n.id))
 }
