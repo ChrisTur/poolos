@@ -66,10 +66,14 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
     e.preventDefault()
     e.stopPropagation()
     setLocallyDismissed((prev) => new Set([...prev, id]))
-    if (isAdmin) {
-      await dismissAdminNotification(id)
-    } else if (DB_DISMISSIBLE_TYPES.has(type)) {
-      await dismissNotification(id)
+    try {
+      if (isAdmin) {
+        await dismissAdminNotification(id)
+      } else if (DB_DISMISSIBLE_TYPES.has(type)) {
+        await dismissNotification(id)
+      }
+    } catch {
+      // ignore — local state already hides the notification; server sync on refresh
     }
     router.refresh()
   }, [isAdmin, router])
