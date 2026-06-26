@@ -65,6 +65,7 @@ model Company {
   dismissedNotifications DismissedNotification[]
   supportTickets         SupportTicket[]
   issueReports           IssueReport[]
+  chemicalUsages         ChemicalUsage[]
 }
 
 model User {
@@ -216,6 +217,11 @@ model ServiceVisit {
   salt       Float?
   saltwater  Boolean @default(false)
 
+  // Customer satisfaction feedback
+  feedbackToken   String? @unique  // one-time token embedded in the visit completion email
+  rating          Int?             // 1–5; null until customer submits
+  feedbackComment String?
+
   routeId    String?
   route      Route?   @relation(fields: [routeId], references: [id])
   customerId String
@@ -224,7 +230,8 @@ model ServiceVisit {
   technicianId String?
   technician   User?   @relation("VisitTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
 
-  issueReports IssueReport[]
+  issueReports    IssueReport[]
+  chemicalUsages  ChemicalUsage[]
 }
 
 model VisitChecklistItem {
@@ -666,4 +673,23 @@ model IssueReport {
 
   @@index([companyId, status])
   @@index([customerId])
+}
+
+model ChemicalUsage {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  productName String
+  quantity    Float
+  unit        String   @default("oz")   // oz | lbs | gal | tablets | bags | quarts
+  unitCost    Float    @default(0)
+  totalCost   Float    @default(0)
+
+  visitId   String
+  visit     ServiceVisit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  companyId String
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([visitId])
 }
