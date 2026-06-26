@@ -77,7 +77,7 @@ export async function replyToContact(_: unknown, formData: FormData) {
       status:    "replied",
       replyBody,
       repliedAt: new Date(),
-      repliedBy: session.user?.name ?? session.user?.email ?? "Admin",
+      repliedBy: session.name ?? session.email ?? "Admin",
     },
   })
 

@@ -1,52 +1,56 @@
-import { auth } from "@/auth"
-import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
+import { getSession, type SessionUser } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
-export async function requireSession() {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
+export type { SessionUser }
 
-  const user = session.user
+// requireSession() always redirects before returning if companyId could be null
+export type AppSession = SessionUser & { companyId: string; companyName: string }
 
-  // Super admin: check for view-as cookie to impersonate a company
-  if (user.email === process.env.SUPER_ADMIN_EMAIL) {
-    const cookieStore = await cookies()
-    const viewAs = cookieStore.get("poolos_view_as")?.value
-    if (viewAs) {
-      const company = await db.company.findUnique({ where: { id: viewAs } })
-      if (company) {
-        return { ...user, companyId: company.id, companyName: company.name, role: "owner" }
-      }
-    }
-    // Super admin with no view-as session belongs in /admin, not the app
-    redirect("/admin")
+export async function requireSession(): Promise<AppSession> {
+  const session = await getSession()
+  if (!session) redirect("/login")
+
+  // Super admin viewing as a company — swap in the company identity
+  if (session.role === "super_admin") {
+    const jar = await cookies()
+    const viewAs = jar.get("poolos_view_as")?.value
+    if (!viewAs) redirect("/admin")
+
+    const company = await db.company.findUnique({ where: { id: viewAs } })
+    if (!company) redirect("/admin")
+
+    return { ...session, companyId: company.id, companyName: company.name, role: "owner" }
   }
 
-  // Check mustChangePassword from the DB — the JWT value can be stale after
-  // a password change, so the DB is the authoritative source.
-  if (user.id) {
+  // Re-check DB for account status and forced password change on every request
+  if (session.userId) {
     const dbUser = await db.user.findUnique({
-      where: { id: user.id },
-      select: { mustChangePassword: true },
+      where:  { id: session.userId },
+      select: { mustChangePassword: true, isActive: true },
     })
+    if (!dbUser?.isActive) redirect("/login")
     if (dbUser?.mustChangePassword) redirect("/change-password")
-  } else if ((user as unknown as Record<string, unknown>).mustChangePassword) {
-    redirect("/change-password")
   }
 
-  return user
+  return session as AppSession
 }
 
-export async function requireOwner() {
+export async function requireOwner(): Promise<AppSession> {
   const user = await requireSession()
   if (user.role !== "owner") redirect("/dashboard")
   return user
 }
 
-export async function requireSuperAdmin() {
-  const session = await auth()
-  if (!session?.user) redirect("/login")
-  if (session.user.email !== process.env.SUPER_ADMIN_EMAIL) redirect("/dashboard")
+export async function requireAdmin(): Promise<AppSession> {
+  const user = await requireSession()
+  if (user.role !== "owner" && user.role !== "admin") redirect("/dashboard")
+  return user
+}
+
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  const session = await getSession()
+  if (!session || session.role !== "super_admin") redirect("/dashboard")
   return session
 }

@@ -3,6 +3,7 @@
 import { useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { logout } from "@/lib/actions/auth"
 import {
   LayoutDashboard,
   Users,
@@ -105,7 +106,7 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail }
         </div>
 
         {/* Nav links */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
           {nav.map(({ href, label, icon: Icon }) => {
             const active = pathname.startsWith(href)
             return (
@@ -184,7 +185,7 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail }
               <p className="text-sm font-medium text-white truncate">{userName ?? "Account"}</p>
               {userEmail && <p className="text-xs text-sky-400 truncate">{userEmail}</p>}
             </div>
-            <form method="post" action="/api/auth/logout">
+            <form action={logout}>
               <button
                 type="submit"
                 title="Sign out"

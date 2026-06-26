@@ -1,4 +1,4 @@
-import { auth } from "@/auth"
+import { getSession } from "@/lib/auth"
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
 import AppShell from "@/components/layout/AppShell"
@@ -9,8 +9,8 @@ import { getCompanyNotifications, type AppNotification } from "@/lib/notificatio
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   let viewAsCompany: string | undefined
 
-  const session = await auth()
-  const isAdmin = session?.user?.email === process.env.SUPER_ADMIN_EMAIL
+  const session = await getSession()
+  const isAdmin = session?.role === "super_admin"
 
   const cookieStore = await cookies()
 
@@ -22,16 +22,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
-  // Fetch plan status for the current company (skip for super admin without view-as)
   let planData = { plan: "trial", trialEndsAt: null as string | null, stripeSubStatus: null as string | null }
   let appBanner: BannerData | null = null
   let notifications: AppNotification[] = []
 
-  const companyId = session?.user?.companyId
+  const companyId = session?.companyId
   if (companyId) {
     const [company, fetchedNotifications] = await Promise.all([
       db.company.findUnique({
-        where: { id: companyId },
+        where:  { id: companyId },
         select: { plan: true, trialEndsAt: true, stripeSubStatus: true },
       }),
       getCompanyNotifications(companyId),
@@ -50,8 +49,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     }
   }
 
-  const userName = (session?.user?.name as string | undefined) ?? session?.user?.email ?? ""
-  const userEmail = (session?.user?.email as string | undefined) ?? ""
+  const userName  = session?.name  ?? session?.email ?? ""
+  const userEmail = session?.email ?? ""
 
   return (
     <AppShell viewAsCompany={viewAsCompany} planData={planData} appBanner={appBanner} userName={userName} userEmail={userEmail} notifications={notifications}>

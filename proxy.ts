@@ -1,9 +1,6 @@
-import NextAuth from "next-auth"
-import { authConfig } from "@/auth.config"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { rateLimit } from "@/lib/rate-limit"
-
-const { auth } = NextAuth(authConfig)
+import { COOKIE_NAME } from "@/lib/auth"
 
 const publicPrefixes = [
   "/login",
@@ -16,42 +13,37 @@ const publicPrefixes = [
   "/contact",
   "/chemistry",
   "/api/auth",
-  "/api/health",   // Cloud Run load balancer probe
-  "/pay/",         // public invoice payment pages
-  "/portal/",      // customer portal (token-based)
-  "/feedback/",    // customer feedback (token-based)
-  "/blog",         // public blog
-  "/features",     // public features page
-  "/waitlist",     // public waitlist page
+  "/api/health",
+  "/pay/",
+  "/portal/",
+  "/feedback/",
+  "/blog",
+  "/features",
+  "/waitlist",
 ]
 
-// Stripe sends bursts of retries — never rate-limit webhooks.
 const WEBHOOK_PATHS = [
   "/api/stripe/webhook",
   "/api/stripe/billing-webhook",
 ]
 
 // [pathPrefix, requestsAllowed, windowSeconds]
-// Note: /forgot-password is intentionally absent — the page gets RSC-prefetched by
-// Next.js on every login page render, so a page-level limit fires false 429s.
-// The actual reset action in lib/actions/auth.ts enforces 3 req/hr per email.
 const RATE_RULES: [string, number, number][] = [
-  ["/api/auth",  30,  60],   // auth endpoints — 30 req/min  (brute-force)
-  ["/register",  15, 600],   // sign-ups       — 15 per 10 min per IP
-  ["/pay/",      60,  60],   // public pay page — 60 req/min
-  ["/portal/",   60,  60],   // customer portal — 60 req/min
+  ["/api/auth",  30,  60],
+  ["/register",  15, 600],
+  ["/pay/",      60,  60],
+  ["/portal/",   60,  60],
 ]
 
-function clientIp(req: Request): string {
-  const fwd = (req.headers as Headers).get("x-forwarded-for")
+function clientIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for")
   if (fwd) return fwd.split(",")[0].trim()
-  return (req.headers as Headers).get("x-real-ip") ?? "unknown"
+  return req.headers.get("x-real-ip") ?? "unknown"
 }
 
-export default auth(async (req) => {
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Rate limiting — skip Stripe webhooks.
   if (!WEBHOOK_PATHS.some((p) => pathname.startsWith(p))) {
     const rule = RATE_RULES.find(([prefix]) => pathname.startsWith(prefix))
     if (rule) {
@@ -73,7 +65,6 @@ export default auth(async (req) => {
     }
   }
 
-  // Auth guard.
   const isPublic =
     pathname === "/" ||
     pathname === "/sitemap.xml" ||
@@ -81,18 +72,14 @@ export default auth(async (req) => {
     publicPrefixes.some((p) => pathname.startsWith(p)) ||
     WEBHOOK_PATHS.some((p) => pathname.startsWith(p))
 
-  if (!req.auth && !isPublic) {
+  const hasSession = req.cookies.has(COOKIE_NAME)
+
+  if (!hasSession && !isPublic) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  if (pathname.startsWith("/admin")) {
-    if (req.auth?.user?.email !== process.env.SUPER_ADMIN_EMAIL) {
-      return NextResponse.redirect(new URL("/dashboard", req.url))
-    }
-  }
-
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],

@@ -1,17 +1,11 @@
 "use server"
 
-import { auth } from "@/auth"
 import { db } from "@/lib/db"
+import { requireSuperAdmin } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
-
-async function requireSuperAdmin() {
-  const session = await auth()
-  if (session?.user?.email !== process.env.SUPER_ADMIN_EMAIL) redirect("/dashboard")
-  return session!
-}
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50)
