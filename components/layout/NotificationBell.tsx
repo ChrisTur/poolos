@@ -36,8 +36,8 @@ const SECTION_LABELS: Record<string, string> = {
   new_company:     "New Companies (7 days)",
 }
 
-// Which notification types can be dismissed (admin types are not dismissible here)
-const DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due"])
+// Company notification types that are persisted to DB on dismiss
+const DB_DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due"])
 
 interface Props {
   notifications: AnyNotification[]
@@ -58,13 +58,17 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
     return () => document.removeEventListener("mousedown", onClick)
   }, [open])
 
-  const handleDismiss = useCallback(async (e: React.MouseEvent, id: string) => {
+  const handleDismiss = useCallback(async (e: React.MouseEvent, id: string, type: string) => {
     e.preventDefault()
     e.stopPropagation()
     setLocallyDismissed((prev) => new Set([...prev, id]))
-    await dismissNotification(id)
-    router.refresh()
-  }, [router])
+    // Admin notifications are dismissed locally only (they're computed, not stored).
+    // Company notifications are persisted via server action so they survive page refresh.
+    if (!isAdmin && DB_DISMISSIBLE_TYPES.has(type)) {
+      await dismissNotification(id)
+      router.refresh()
+    }
+  }, [isAdmin, router])
 
   const visible = notifications.filter((n) => !locallyDismissed.has(n.id))
   const count   = visible.length
@@ -121,7 +125,7 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
                     const Icon      = ICON_MAP[n.type as keyof typeof ICON_MAP] ?? Bell
                     const severity  = "severity" in n ? n.severity : ""
                     const style     = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES[""]
-                    const canDismiss = !isAdmin && DISMISSIBLE_TYPES.has(n.type)
+                    const canDismiss = true
 
                     return (
                       <div key={n.id} className="group flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors">
@@ -140,7 +144,7 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
                         </Link>
                         {canDismiss && (
                           <button
-                            onClick={(e) => handleDismiss(e, n.id)}
+                            onClick={(e) => handleDismiss(e, n.id, n.type)}
                             className="shrink-0 mt-0.5 p-1 rounded-lg text-gray-300 hover:text-gray-500 hover:bg-gray-200 transition-all"
                             aria-label="Dismiss notification"
                             title="Dismiss"
