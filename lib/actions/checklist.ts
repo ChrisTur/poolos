@@ -2,12 +2,12 @@
 
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
-import { redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
 
 export async function addChecklistItem(formData: FormData) {
   const { companyId } = await requireSession()
   const label = (formData.get("label") as string)?.trim()
-  if (!label) redirect("/settings/checklist")
+  if (!label) return
 
   const last = await db.visitChecklistItem.findFirst({
     where: { companyId },
@@ -18,17 +18,17 @@ export async function addChecklistItem(formData: FormData) {
   await db.visitChecklistItem.create({
     data: { companyId, label, position: (last?.position ?? -1) + 1 },
   })
-  redirect("/settings/checklist")
+  revalidatePath("/settings/checklist")
 }
 
 export async function deleteChecklistItem(id: string) {
   const { companyId } = await requireSession()
   await db.visitChecklistItem.deleteMany({ where: { id, companyId } })
-  redirect("/settings/checklist")
+  revalidatePath("/settings/checklist")
 }
 
 export async function toggleChecklistItem(id: string, isActive: boolean) {
   const { companyId } = await requireSession()
   await db.visitChecklistItem.updateMany({ where: { id, companyId }, data: { isActive } })
-  redirect("/settings/checklist")
+  revalidatePath("/settings/checklist")
 }

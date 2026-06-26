@@ -41,7 +41,7 @@ const SECTION_LABELS: Record<string, string> = {
 }
 
 // Company notification types that are persisted to DB on dismiss
-const DB_DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "open_issue"])
+const DB_DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "open_issue", "low_rating"])
 
 interface Props {
   notifications: AnyNotification[]
