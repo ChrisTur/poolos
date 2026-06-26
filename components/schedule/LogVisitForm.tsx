@@ -8,7 +8,7 @@ import { runDosing, type DoseResult } from "@/lib/chemistry"
 import Button from "@/components/ui/Button"
 import {
   Camera, X, Loader2, CheckCircle2, FlaskConical,
-  ChevronDown, ChevronUp, AlertTriangle, CheckSquare, Square,
+  ChevronDown, ChevronUp, AlertTriangle, CheckSquare, Square, Plus, Beaker,
 } from "lucide-react"
 import type { Customer, Route, VisitChecklistItem } from "@/app/generated/prisma/client"
 
@@ -20,6 +20,22 @@ type ChemFields = {
 }
 
 const EMPTY_CHEM: ChemFields = { chlorine: "", ph: "", alkalinity: "", calcium: "", cya: "", salt: "" }
+
+type ChemicalUsageRow = {
+  productName: string
+  quantity: string
+  unit: string
+  unitCost: string
+}
+
+const UNITS = ["oz", "lbs", "gal", "tablets", "bags", "quarts"] as const
+
+const EMPTY_CHEMICAL_ROW: ChemicalUsageRow = {
+  productName: "",
+  quantity: "",
+  unit: "oz",
+  unitCost: "",
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -136,6 +152,8 @@ export default function LogVisitForm({
   const [submitting,    setSubmitting]    = useState(false)
   const [done,          setDone]          = useState(false)
   const [error,         setError]         = useState<string | null>(null)
+  const [chemOpen,      setChemOpen]      = useState(false)
+  const [chemicalRows,  setChemicalRows]  = useState<ChemicalUsageRow[]>([])
 
   // Derive selected customer's pool info
   const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
@@ -200,6 +218,35 @@ export default function LogVisitForm({
 
   function applyTemplate(body: string) { setNotes(body) }
 
+  function addChemicalRow() {
+    setChemicalRows((prev) => [...prev, { ...EMPTY_CHEMICAL_ROW }])
+    setChemOpen(true)
+  }
+
+  function removeChemicalRow(i: number) {
+    setChemicalRows((prev) => prev.filter((_, idx) => idx !== i))
+  }
+
+  function updateChemicalRow(i: number, field: keyof ChemicalUsageRow, value: string) {
+    setChemicalRows((prev) => prev.map((row, idx) => idx === i ? { ...row, [field]: value } : row))
+  }
+
+  function computedChemicalUsages() {
+    return chemicalRows
+      .filter((r) => r.productName.trim() && parseFloat(r.quantity) > 0)
+      .map((r) => {
+        const qty  = parseFloat(r.quantity) || 0
+        const cost = parseFloat(r.unitCost) || 0
+        return {
+          productName: r.productName.trim(),
+          quantity:    qty,
+          unit:        r.unit,
+          unitCost:    cost,
+          totalCost:   parseFloat((qty * cost).toFixed(2)),
+        }
+      })
+  }
+
   function addPhotos(files: FileList | null) {
     if (!files) return
     const next = Array.from(files)
@@ -222,6 +269,7 @@ export default function LogVisitForm({
 
     const formData = new FormData(e.currentTarget)
     formData.set("saltwater", String(saltwater))
+    formData.set("chemicalUsages", JSON.stringify(computedChemicalUsages()))
 
     for (const file of photos) {
       try {
@@ -240,6 +288,8 @@ export default function LogVisitForm({
       setStatus("completed")
       setChem(EMPTY_CHEM)
       setChecked(new Set())
+      setChemicalRows([])
+      setChemOpen(false)
       formRef.current?.reset()
       // Re-detect saltwater from customer after reset
       if (customerId) handleCustomerChange(customerId)
@@ -452,6 +502,111 @@ export default function LogVisitForm({
           placeholder="Notes or message for the customer…"
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
         />
+      </div>
+
+      {/* Chemicals Used */}
+      <div className="rounded-xl border border-gray-200 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setChemOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-4 py-3 text-left bg-white hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Beaker className="w-4 h-4 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">Chemicals Used</span>
+            {chemicalRows.length > 0 && (
+              <span className="text-xs font-medium text-sky-700 bg-sky-50 border border-sky-200 rounded-full px-2 py-0.5">
+                {chemicalRows.length} item{chemicalRows.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          {chemOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+        </button>
+
+        {chemOpen && (
+          <div className="border-t border-gray-100 px-4 pb-4 pt-3 space-y-3 bg-gray-50">
+            {chemicalRows.length === 0 && (
+              <p className="text-xs text-gray-400 text-center py-2">No chemicals added yet.</p>
+            )}
+            {chemicalRows.map((row, i) => {
+              const qty  = parseFloat(row.quantity) || 0
+              const cost = parseFloat(row.unitCost) || 0
+              const total = qty * cost
+              return (
+                <div key={i} className="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="text"
+                      placeholder="e.g. Chlorine tablets"
+                      value={row.productName}
+                      onChange={(e) => updateChemicalRow(i, "productName", e.target.value)}
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeChemicalRow(i)}
+                      className="shrink-0 text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Remove row"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Qty</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0"
+                        value={row.quantity}
+                        onChange={(e) => updateChemicalRow(i, "quantity", e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Unit</label>
+                      <select
+                        value={row.unit}
+                        onChange={(e) => updateChemicalRow(i, "unit", e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      >
+                        {UNITS.map((u) => (
+                          <option key={u} value={u}>{u}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Unit cost $</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        value={row.unitCost}
+                        onChange={(e) => updateChemicalRow(i, "unitCost", e.target.value)}
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      />
+                    </div>
+                  </div>
+                  {cost > 0 && qty > 0 && (
+                    <p className="text-xs text-gray-500 text-right">
+                      Total: <span className="font-semibold text-gray-700">${total.toFixed(2)}</span>
+                    </p>
+                  )}
+                </div>
+              )
+            })}
+            <button
+              type="button"
+              onClick={addChemicalRow}
+              className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-800 font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Chemical
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Photos */}

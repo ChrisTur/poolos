@@ -38,7 +38,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       where: { id, companyId },
       include: {
         notes: { orderBy: { createdAt: "desc" } },
-        serviceVisits: { orderBy: { visitedAt: "desc" }, take: 20 },
+        serviceVisits: { orderBy: { visitedAt: "desc" }, take: 20, include: { chemicalUsages: true } },
         invoices: {
           orderBy: { createdAt: "desc" },
           take: 10,
@@ -384,6 +384,22 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                               </span>
                             )
                           })}
+                        </div>
+                      )}
+                      {v.chemicalUsages.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs font-medium text-gray-500 mb-1">Chemicals used:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {v.chemicalUsages.map((cu) => (
+                              <span
+                                key={cu.id}
+                                className="inline-flex items-center text-xs bg-purple-50 text-purple-700 border border-purple-200 rounded-full px-2 py-0.5"
+                              >
+                                {cu.productName} {cu.quantity} {cu.unit}
+                                {cu.totalCost > 0 && ` ($${cu.totalCost.toFixed(2)})`}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>

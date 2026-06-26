@@ -10,9 +10,9 @@
 
 ### Competitive Parity — Core Operations
 - [x] ⚡ Issue reports — techs flag problems on the customer page (leak, equipment failure, safety hazard, water quality); status tracking (open/in-progress/resolved); /issues list with filters; high-priority issues surface in notification bell
-- [ ] ⚡ Customer feedback — one-click satisfaction rating in the proof-of-service email; low scores trigger a staff alert before the customer can post a public review
+- [x] ⚡ Customer feedback — 1–5 star rating in the proof-of-service email (token link); public /feedback/[token] page; low scores (1–2) surface in notification bell for 30 days
 - [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
-- [ ] ⚡ Chemical cost & usage tracking — log chemicals added + quantity per visit; cost analytics by customer, technician, and company-wide; spend vs. revenue widget on reports
+- [x] ⚡ Chemical cost & usage tracking — log chemicals (product, qty, unit, unit cost) per visit from the log-visit form; chemical cost bar chart on /reports; per-visit breakdown on customer detail page
 - [ ] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
 - [ ] Digital signatures on estimates — customer signs the approved estimate online via the portal
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history

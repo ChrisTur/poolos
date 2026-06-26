@@ -3,10 +3,15 @@ import type { NextAuthConfig } from "next-auth"
 // Lightweight config with no DB imports — safe for Edge runtime (proxy/middleware)
 export const authConfig: NextAuthConfig = {
   trustHost: true,
-  // Explicit: in production (HTTPS) use __Secure- prefixed cookies; in local HTTP dev do not,
-  // because NextAuth's URL detection can fall back to "https" even on localhost, causing
-  // browsers to silently discard the Secure-flagged cookie over plain HTTP.
-  useSecureCookies: process.env.NODE_ENV === "production",
+  // Derive from NEXT_PUBLIC_APP_URL (baked at build time) rather than NODE_ENV.
+  // NODE_ENV can be unreliable in Edge runtime and across build/runtime stages.
+  // In local dev NEXT_PUBLIC_APP_URL is http://localhost:3000 → false → no Secure flag,
+  // so cookies are accepted over plain HTTP. In production it's https://poolos.biz → true.
+  useSecureCookies: process.env.NEXT_PUBLIC_APP_URL?.startsWith("https://") ?? (process.env.NODE_ENV === "production"),
+  // Explicit: ensures the same secret is used across all auth paths (middleware + server actions).
+  // AUTH_SECRET must be set in Cloud Run env vars — without it, NextAuth generates a random
+  // secret per process and sessions are invalidated on every scale-to-zero restart.
+  secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30-day sessions
   pages: { signIn: "/login" },
   providers: [],

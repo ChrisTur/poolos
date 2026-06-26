@@ -53,6 +53,8 @@ export default async function ReportsPage({
     monthlyPaymentsRaw,
     periodExpenses,
     customersWithChemistry,
+    chemicalByProduct,
+    chemicalTotalAgg,
   ] = await Promise.all([
     // Payments received in period (revenue collected)
     db.payment.findMany({
@@ -109,12 +111,27 @@ export default async function ReportsPage({
       },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
     }),
+    // Chemical usage cost by product in period
+    db.chemicalUsage.groupBy({
+      by: ["productName"],
+      where: { companyId, createdAt: { gte: periodStart } },
+      _sum: { totalCost: true, quantity: true },
+      orderBy: { _sum: { totalCost: "desc" } },
+      take: 10,
+    }),
+    // Total chemical spend in period
+    db.chemicalUsage.aggregate({
+      where: { companyId, createdAt: { gte: periodStart } },
+      _sum: { totalCost: true },
+    }),
   ])
 
   // ── Business metrics ────────────────────────────────────────────────────────
-  const collected     = periodPayments.reduce((s, p) => s + p.amount, 0)
-  const totalExpenses = periodExpenses.reduce((s, e) => s + e.amount, 0)
-  const netProfit     = collected - totalExpenses
+  const collected          = periodPayments.reduce((s, p) => s + p.amount, 0)
+  const totalExpenses      = periodExpenses.reduce((s, e) => s + e.amount, 0)
+  const netProfit          = collected - totalExpenses
+  const totalChemicalSpend = chemicalTotalAgg._sum.totalCost ?? 0
+  const chemMaxCost        = Math.max(...chemicalByProduct.map((r) => r._sum.totalCost ?? 0), 1)
 
   const expenseByCategory = new Map<string, number>()
   for (const e of periodExpenses) {
@@ -438,6 +455,47 @@ export default async function ReportsPage({
           </Link>
         </div>
       </section>
+
+      {/* ── Chemical Costs ── */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 text-sm">
+              Chemical Costs — {PERIODS.find((p) => p.key === period)?.label}
+            </h2>
+            <span className="text-lg font-bold text-gray-900">{formatCurrency(totalChemicalSpend)}</span>
+          </div>
+        </CardHeader>
+        <CardBody>
+          {chemicalByProduct.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">No chemical usage recorded in this period.</p>
+          ) : (
+            <div className="space-y-3">
+              {chemicalByProduct.map((row) => {
+                const cost = row._sum.totalCost ?? 0
+                const qty  = row._sum.quantity ?? 0
+                return (
+                  <div key={row.productName} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 w-40 shrink-0 truncate">{row.productName}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-4 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-purple-500"
+                        style={{ width: `${(cost / chemMaxCost) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 w-20 shrink-0 text-right">
+                      {formatCurrency(cost)}
+                    </span>
+                    <span className="text-xs text-gray-400 w-20 shrink-0 text-right hidden sm:block">
+                      {qty % 1 === 0 ? qty : qty.toFixed(2)} units
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       {/* ── Chemical health ── */}
       <section>
