@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, AlertTriangle, X } from "lucide-react"
+import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, AlertTriangle, Star, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
 import { dismissNotification, dismissAdminNotification } from "@/lib/actions/notifications"
 
@@ -15,6 +15,7 @@ const ICON_MAP = {
   chemical_alert:  FlaskConical,
   equipment_due:   Wrench,
   open_issue:      AlertTriangle,
+  low_rating:      Star,
   new_company:     Building2,
   open_ticket:     LifeBuoy,
 }
@@ -34,6 +35,7 @@ const SECTION_LABELS: Record<string, string> = {
   chemical_alert:  "Chemical Alerts",
   equipment_due:   "Equipment Due",
   open_issue:      "High-Priority Issues",
+  low_rating:      "Low Ratings (30 days)",
   open_ticket:     "Open Support Tickets",
   new_company:     "New Companies (7 days)",
 }
@@ -64,10 +66,14 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
     e.preventDefault()
     e.stopPropagation()
     setLocallyDismissed((prev) => new Set([...prev, id]))
-    if (isAdmin) {
-      await dismissAdminNotification(id)
-    } else if (DB_DISMISSIBLE_TYPES.has(type)) {
-      await dismissNotification(id)
+    try {
+      if (isAdmin) {
+        await dismissAdminNotification(id)
+      } else if (DB_DISMISSIBLE_TYPES.has(type)) {
+        await dismissNotification(id)
+      }
+    } catch {
+      // ignore — local state already hides the notification; server sync on refresh
     }
     router.refresh()
   }, [isAdmin, router])
@@ -76,7 +82,7 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
   const count   = visible.length
 
   // Group by type preserving a stable order
-  const order = ["overdue_invoice", "open_issue", "portal_reply", "chemical_alert", "equipment_due", "open_ticket", "new_company"]
+  const order = ["low_rating", "overdue_invoice", "open_issue", "portal_reply", "chemical_alert", "equipment_due", "open_ticket", "new_company"]
   const grouped = order.reduce<Record<string, AnyNotification[]>>((acc, type) => {
     const items = visible.filter((n) => n.type === type)
     if (items.length) acc[type] = items

@@ -492,6 +492,7 @@ export interface VisitCompletionEmailData {
   ph?: number | null
   alkalinity?: number | null
   calcium?: number | null
+  feedbackUrl?: string | null
 }
 
 export function buildVisitCompletionHtml(data: VisitCompletionEmailData): string {
@@ -569,6 +570,27 @@ export function buildVisitCompletionHtml(data: VisitCompletionEmailData): string
       ${readings.length ? `<div>
         <strong style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:4px">Chemical Readings</strong>
         ${readingsHtml}
+      </div>` : ""}
+
+      ${data.feedbackUrl ? `
+      <div style="margin-top:24px;text-align:center">
+        <p style="font-size:13px;font-weight:600;color:#374151;margin:0 0 12px">How did we do today?</p>
+        <table role="presentation" style="margin:0 auto;border-collapse:collapse">
+          <tr>
+            ${[1,2,3,4,5].map(n => `
+            <td style="padding:0 6px">
+              <a href="${data.feedbackUrl}?rating=${n}" style="display:block;width:44px;height:44px;line-height:44px;text-align:center;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;text-decoration:none;font-size:22px">
+                ${'⭐'}
+              </a>
+            </td>`).join("")}
+          </tr>
+          <tr>
+            ${[1,2,3,4,5].map(n => `
+            <td style="padding:4px 6px;text-align:center">
+              <a href="${data.feedbackUrl}?rating=${n}" style="font-size:11px;color:#6b7280;text-decoration:none">${n}</a>
+            </td>`).join("")}
+          </tr>
+        </table>
       </div>` : ""}
 
       ${data.portalUrl ? `

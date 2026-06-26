@@ -1,5 +1,6 @@
 "use server"
 
+import crypto from "crypto"
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
@@ -167,6 +168,14 @@ export async function logVisit(formData: FormData) {
         ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${customer.portalToken}`
         : null
 
+      // Generate feedback token and attach to visit
+      let feedbackUrl: string | null = null
+      if (customer.email) {
+        const feedbackToken = crypto.randomUUID()
+        await db.serviceVisit.update({ where: { id: visit.id }, data: { feedbackToken } })
+        feedbackUrl = `${process.env.NEXT_PUBLIC_APP_URL}/feedback/${feedbackToken}`
+      }
+
       if (customer.email) {
         const html = buildVisitCompletionHtml({
           companyName: company.name,
@@ -182,6 +191,7 @@ export async function logVisit(formData: FormData) {
           ph,
           alkalinity,
           calcium,
+          feedbackUrl,
         })
 
         const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
@@ -242,6 +252,26 @@ export async function logVisit(formData: FormData) {
         companyId,
       })),
     })
+  }
+
+  // Save chemical usages if provided
+  const chemicalUsagesRaw = formData.get("chemicalUsages") as string | null
+  if (chemicalUsagesRaw) {
+    try {
+      const usages = JSON.parse(chemicalUsagesRaw) as Array<{
+        productName: string
+        quantity: number
+        unit: string
+        unitCost: number
+        totalCost: number
+      }>
+      const validUsages = usages.filter((u) => u.productName.trim() && u.quantity > 0)
+      if (validUsages.length > 0) {
+        await db.chemicalUsage.createMany({
+          data: validUsages.map((u) => ({ ...u, visitId: visit.id, companyId })),
+        })
+      }
+    } catch { /* ignore parse errors */ }
   }
 
   revalidatePath("/dashboard")

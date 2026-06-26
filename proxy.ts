@@ -19,6 +19,7 @@ const publicPrefixes = [
   "/api/health",   // Cloud Run load balancer probe
   "/pay/",         // public invoice payment pages
   "/portal/",      // customer portal (token-based)
+  "/feedback/",    // customer feedback (token-based)
   "/blog",         // public blog
   "/features",     // public features page
   "/waitlist",     // public waitlist page

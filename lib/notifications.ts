@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 
 export type AppNotification = {
   id:       string
-  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "equipment_due" | "open_issue"
+  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "equipment_due" | "open_issue" | "low_rating"
   severity: "red" | "blue" | "amber" | "orange"
   label:    string
   detail:   string
@@ -42,7 +42,7 @@ function chemIssues(v: {
 export async function getCompanyNotifications(companyId: string): Promise<AppNotification[]> {
   const now = new Date()
 
-  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues] = await Promise.all([
+  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues, lowRatingVisits] = await Promise.all([
     // 1. Overdue invoices
     db.invoice.findMany({
       where: { companyId, status: "sent", dueDate: { lt: now } },
@@ -102,6 +102,21 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
       take: 20,
       select: {
         id: true, category: true, notes: true,
+        customer: { select: { id: true, firstName: true, lastName: true } },
+      },
+    }),
+
+    // 7. Low ratings (1 or 2) in the last 30 days
+    db.serviceVisit.findMany({
+      where: {
+        customer: { companyId },
+        rating: { in: [1, 2] },
+        visitedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { visitedAt: "desc" },
+      take: 20,
+      select: {
+        id: true, rating: true, feedbackComment: true, visitedAt: true,
         customer: { select: { id: true, firstName: true, lastName: true } },
       },
     }),
@@ -193,6 +208,19 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
       label:    `${issue.customer.firstName} ${issue.customer.lastName} — ${CAT_LABELS[issue.category] ?? "Issue"}`,
       detail:   issue.notes.length > 60 ? issue.notes.slice(0, 60) + "…" : issue.notes,
       href:     `/customers/${issue.customer.id}`,
+    })
+  }
+
+  // Low ratings (1 or 2) in the last 30 days
+  for (const v of lowRatingVisits) {
+    const comment = v.feedbackComment ?? ""
+    notifications.push({
+      id:       `feedback-${v.id}`,
+      type:     "low_rating",
+      severity: "red",
+      label:    `${v.customer.firstName} ${v.customer.lastName}`,
+      detail:   `Rated ${v.rating}/5${comment ? ": " + comment.slice(0, 50) : ""}`,
+      href:     `/customers/${v.customer.id}`,
     })
   }
 
