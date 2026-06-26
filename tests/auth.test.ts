@@ -15,14 +15,27 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(),
       create:     vi.fn(),
     },
+    session: {
+      create:      vi.fn(),
+      findUnique:  vi.fn(),
+      delete:      vi.fn(),
+      deleteMany:  vi.fn(),
+    },
   },
 }))
 
-vi.mock("@/auth", () => ({
-  auth:    vi.fn(),
-  signIn:  vi.fn(),
-  signOut: vi.fn(),
-}))
+vi.mock("@/lib/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/auth")>()
+  return {
+    ...actual,
+    COOKIE_NAME:        "poolos_session",
+    getSession:         vi.fn(),
+    createSession:      vi.fn().mockResolvedValue({ token: "tok123", expiresAt: new Date(Date.now() + 1e9) }),
+    deleteSession:      vi.fn(),
+    setSessionCookie:   vi.fn(),
+    clearSessionCookie: vi.fn(),
+  }
+})
 
 vi.mock("@/lib/rate-limit", () => ({
   rateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 4, resetAt: Date.now() + 60_000 }),
@@ -51,6 +64,14 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((url: string) => { throw Object.assign(new Error("NEXT_REDIRECT"), { digest: `NEXT_REDIRECT:${url}` }) }),
 }))
 
+vi.mock("next/headers", () => ({
+  cookies: vi.fn().mockResolvedValue({
+    get:    vi.fn().mockReturnValue(undefined),
+    set:    vi.fn(),
+    getAll: vi.fn().mockReturnValue([]),
+  }),
+}))
+
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }))
 vi.mock("bcryptjs", () => ({
   default: { hash: vi.fn().mockResolvedValue("$2b$12$hashed"), compare: vi.fn().mockResolvedValue(true) },
@@ -60,11 +81,11 @@ vi.mock("crypto", () => ({ default: { randomBytes: vi.fn(() => ({ toString: () =
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getModule() {
-  const { rateLimit }      = await import("@/lib/rate-limit")
-  const { auth, signIn }   = await import("@/auth")
-  const { db }             = await import("@/lib/db")
-  const actions            = await import("@/lib/actions/auth")
-  return { rateLimit, auth, signIn, db, actions }
+  const { rateLimit }                  = await import("@/lib/rate-limit")
+  const { getSession, createSession }  = await import("@/lib/auth")
+  const { db }                         = await import("@/lib/db")
+  const actions                        = await import("@/lib/actions/auth")
+  return { rateLimit, getSession, createSession, db, actions }
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -84,9 +105,9 @@ describe("login()", () => {
     expect(result).toEqual({ error: expect.stringContaining("Too many") })
   })
 
-  it("returns error when signIn throws auth error", async () => {
-    const { signIn, actions } = await getModule()
-    vi.mocked(signIn).mockRejectedValueOnce(new Error("CredentialsSignin"))
+  it("returns error when credentials are invalid", async () => {
+    const { db, actions } = await getModule()
+    vi.mocked(db.user.findUnique).mockResolvedValueOnce(null)
 
     const fd = new FormData()
     fd.set("email", "user@example.com")
@@ -96,16 +117,31 @@ describe("login()", () => {
     expect(result).toEqual({ error: "Invalid email or password." })
   })
 
-  it("rethrows NEXT_REDIRECT so Next.js can perform the redirect", async () => {
-    const { signIn, actions } = await getModule()
-    const redirectErr = Object.assign(new Error("redirect"), { digest: "NEXT_REDIRECT:/dashboard" })
-    vi.mocked(signIn).mockRejectedValueOnce(redirectErr)
+  it("creates session and redirects on valid credentials", async () => {
+    const { db, createSession, actions } = await getModule()
+    const bcrypt = await import("bcryptjs")
+
+    vi.mocked(db.user.findUnique).mockResolvedValueOnce({
+      id:         "user-1",
+      email:      "user@example.com",
+      password:   "$2b$12$hashed",
+      firstName:  "Test",
+      lastName:   "User",
+      role:       "owner",
+      isActive:   true,
+      companyId:  "company-1",
+      mustChangePassword: false,
+      company:    { id: "company-1", name: "Test Co", isActive: true },
+    } as never)
+    vi.mocked(db.user.update).mockResolvedValueOnce({} as never)
+    vi.mocked(bcrypt.default.compare).mockResolvedValueOnce(true as never)
 
     const fd = new FormData()
     fd.set("email", "user@example.com")
     fd.set("password", "correct-password")
 
-    await expect(actions.login(fd)).rejects.toMatchObject({ digest: "NEXT_REDIRECT:/dashboard" })
+    await expect(actions.login(fd)).rejects.toMatchObject({ digest: expect.stringContaining("NEXT_REDIRECT") })
+    expect(createSession).toHaveBeenCalledWith(expect.objectContaining({ userId: "user-1", role: "owner" }))
   })
 })
 

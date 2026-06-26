@@ -2,7 +2,6 @@
 
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
-import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 // Used as a plain form action on the customer detail page (no return value needed)
@@ -13,19 +12,18 @@ export async function createIssueReport(formData: FormData) {
   const customerId = formData.get("customerId") as string
   const category   = formData.get("category")   as string
   const priority   = formData.get("priority")   as string
-  const notes      = (formData.get("notes") as string).trim()
+  const notes      = ((formData.get("notes") as string) ?? "").trim()
   const visitId    = (formData.get("visitId") as string) || null
 
-  if (!customerId || !category || !notes) return
+  if (!customerId || !category || !notes) redirect(`/customers/${customerId}`)
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
-  if (!customer) return
+  if (!customer) redirect(`/customers/${customerId}`)
 
   await db.issueReport.create({
     data: { category, priority: priority || "normal", notes, customerId, companyId, visitId, reportedById: user.id },
   })
 
-  revalidatePath(`/customers/${customerId}`)
-  revalidatePath("/issues")
+  redirect(`/customers/${customerId}`)
 }
 
 export async function createIssueFromList(_: unknown, formData: FormData) {
@@ -58,6 +56,5 @@ export async function updateIssueStatus(issueId: string, status: string) {
 
   await db.issueReport.update({ where: { id: issueId }, data: { status } })
 
-  revalidatePath("/issues")
-  revalidatePath(`/customers/${issue.customerId}`)
+  redirect(`/customers/${issue.customerId}`)
 }

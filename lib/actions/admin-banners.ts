@@ -1,6 +1,6 @@
 "use server"
 
-import { auth } from "@/auth"
+import { requireSuperAdmin } from "@/lib/session"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
@@ -8,8 +8,7 @@ import { db } from "@/lib/db"
 export type BannerFormState = { error?: string } | null
 
 async function guardSuperAdmin() {
-  const session = await auth()
-  if (session?.user?.email !== process.env.SUPER_ADMIN_EMAIL) redirect("/dashboard")
+  await requireSuperAdmin()
 }
 
 function b(val: FormDataEntryValue | null) {

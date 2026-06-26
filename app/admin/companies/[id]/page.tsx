@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import { notFound, redirect } from "next/navigation"
-import { auth } from "@/auth"
+import { getSession } from "@/lib/auth"
 import Link from "next/link"
 import { ChevronLeft, Upload, Eye, KeyRound, CheckCircle2, X, CreditCard } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
@@ -21,8 +21,8 @@ export default async function AdminCompanyDetailPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ reset?: string; resetError?: string }>
 }) {
-  const session = await auth()
-  if (session?.user?.email !== process.env.SUPER_ADMIN_EMAIL) redirect("/dashboard")
+  const session = await getSession()
+  if (session?.role !== "super_admin") redirect("/dashboard")
 
   const { id } = await params
   const { reset, resetError } = await searchParams

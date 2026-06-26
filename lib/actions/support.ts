@@ -116,7 +116,7 @@ export async function adminReplyToTicket(_: unknown, formData: FormData) {
   })
   if (!ticket) return { error: "Ticket not found." }
 
-  const adminName = session.user?.name ?? "PoolOS Support"
+  const adminName = session.name ?? "PoolOS Support"
 
   await db.$transaction([
     db.supportTicketMessage.create({
