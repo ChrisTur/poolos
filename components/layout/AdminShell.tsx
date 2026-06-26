@@ -7,6 +7,7 @@ import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCar
 import { cn } from "@/lib/utils"
 import NotificationBell from "./NotificationBell"
 import type { AdminNotification } from "@/lib/notifications"
+import { logout } from "@/lib/actions/auth"
 
 const platformNav = [
   { href: "/admin",           label: "Overview",  icon: LayoutDashboard },
@@ -80,7 +81,7 @@ function AdminSidebar({ pathname, onClose }: { pathname: string; onClose: () => 
         >
           ← Back to app
         </Link>
-        <form method="post" action="/api/auth/logout">
+        <form action={logout}>
           <button
             type="submit"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"

@@ -1,10 +1,10 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { auth, signIn } from "@/auth"
+import { getSession, createSession, deleteSession, setSessionCookie, clearSessionCookie, COOKIE_NAME } from "@/lib/auth"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
-import { cookies, headers } from "next/headers"
+import { cookies } from "next/headers"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
 import { rateLimit } from "@/lib/rate-limit"
@@ -30,11 +30,11 @@ async function uniqueSlug(base: string) {
 
 export async function registerCompany(formData: FormData) {
   const companyName = formData.get("companyName") as string
-  const firstName = formData.get("firstName") as string
-  const lastName = formData.get("lastName") as string
-  const email = (formData.get("email") as string).toLowerCase()
-  const password = formData.get("password") as string
-  const refCode = ((formData.get("ref") as string) ?? "").trim().toUpperCase()
+  const firstName   = formData.get("firstName")   as string
+  const lastName    = formData.get("lastName")     as string
+  const email       = (formData.get("email") as string).toLowerCase()
+  const password    = formData.get("password") as string
+  const refCode     = ((formData.get("ref") as string) ?? "").trim().toUpperCase()
 
   if (password.length < 8) return { error: "Password must be at least 8 characters." }
   if (await isPasswordBreached(password)) {
@@ -45,7 +45,7 @@ export async function registerCompany(formData: FormData) {
   if (existing) return { error: "An account with that email already exists." }
 
   const hashed = await bcrypt.hash(password, 12)
-  const slug = await uniqueSlug(slugify(companyName))
+  const slug   = await uniqueSlug(slugify(companyName))
 
   const company = await db.company.create({
     data: {
@@ -55,30 +55,36 @@ export async function registerCompany(formData: FormData) {
         create: { firstName, lastName, email, password: hashed, role: "owner" },
       },
     },
+    include: { users: true },
   })
 
-  // Track referral if a valid code was supplied
   if (refCode) {
     const referralCode = await db.referralCode.findUnique({
       where: { code: refCode, isActive: true },
     })
     if (referralCode) {
       await db.referral.create({
-        data: {
-          referralCodeId: referralCode.id,
-          email,
-          companyId: company.id,
-          status: "lead",
-        },
+        data: { referralCodeId: referralCode.id, email, companyId: company.id, status: "lead" },
       })
     }
   }
 
-  await signIn("credentials", { email, password, redirectTo: "/onboarding" })
+  const user = company.users[0]
+  const { token, expiresAt } = await createSession({
+    userId:             user.id,
+    role:               user.role,
+    email:              user.email,
+    name:               `${user.firstName} ${user.lastName}`,
+    companyId:          company.id,
+    companyName:        company.name,
+    mustChangePassword: false,
+  })
+  await setSessionCookie(token, expiresAt)
+  redirect("/onboarding")
 }
 
 export async function login(formData: FormData) {
-  const email = (formData.get("email") as string).toLowerCase().trim()
+  const email    = (formData.get("email") as string).toLowerCase().trim()
   const password = formData.get("password") as string
 
   const loginLimit = await rateLimit(`login:${email}`, 5, 15 * 60 * 1000)
@@ -86,62 +92,74 @@ export async function login(formData: FormData) {
     return { error: "Too many login attempts. Please try again in 15 minutes." }
   }
 
-  const redirectTo = email === process.env.SUPER_ADMIN_EMAIL?.toLowerCase() ? "/admin" : "/dashboard"
-  try {
-    await signIn("credentials", { email, password, redirectTo })
-  } catch (error: unknown) {
-    // NextAuth throws NEXT_REDIRECT on success — re-throw so Next.js can redirect
-    if ((error as { digest?: string })?.digest?.startsWith("NEXT_REDIRECT")) throw error
+  // Super admin — verify against env var hash, no DB record
+  if (email === process.env.SUPER_ADMIN_EMAIL?.toLowerCase()) {
+    const valid = await bcrypt.compare(password, process.env.SUPER_ADMIN_PASSWORD_HASH ?? "")
+    if (!valid) return { error: "Invalid email or password." }
+
+    const { token, expiresAt } = await createSession({
+      userId:      null,
+      role:        "super_admin",
+      email:       process.env.SUPER_ADMIN_EMAIL!,
+      name:        "Super Admin",
+      companyId:   null,
+      companyName: null,
+    })
+    await setSessionCookie(token, expiresAt)
+    redirect("/admin")
+  }
+
+  // Company user
+  const user = await db.user.findUnique({
+    where:   { email },
+    include: { company: true },
+  })
+
+  if (!user || !user.isActive || !user.company.isActive) {
     return { error: "Invalid email or password." }
   }
+
+  const valid = await bcrypt.compare(password, user.password)
+  if (!valid) return { error: "Invalid email or password." }
+
+  const breached = await isPasswordBreached(password)
+  await db.user.update({
+    where: { id: user.id },
+    data: {
+      lastLoginAt: new Date(),
+      ...(breached && !user.mustChangePassword ? { mustChangePassword: true } : {}),
+    },
+  })
+
+  const { token, expiresAt } = await createSession({
+    userId:             user.id,
+    role:               user.role,
+    email:              user.email,
+    name:               `${user.firstName} ${user.lastName}`,
+    companyId:          user.companyId,
+    companyName:        user.company.name,
+    mustChangePassword: user.mustChangePassword || breached,
+  })
+  await setSessionCookie(token, expiresAt)
+  redirect("/dashboard")
 }
 
 export async function logout() {
-  // NextAuth v5 signOut() doesn't reliably clear JWT cookies from a server
-  // action in Next.js 16 — clear manually instead.
-  //
-  // IMPORTANT: Match NextAuth's own useSecureCookies logic exactly:
-  //   `config.useSecureCookies ?? url.protocol === "https:"`
-  // NextAuth reads the actual request URL via trustHost (x-forwarded-proto),
-  // NOT process.env.NODE_ENV. Using NODE_ENV here caused a mismatch behind
-  // Netlify's reverse proxy, leaving the __Secure- prefixed cookie un-cleared.
-  //
-  // Also: cookies().delete() omits the Secure flag, which browsers silently
-  // reject for __Secure- / __Host- prefixed cookies. We use set(maxAge=0).
-  const [jar, hdrs] = await Promise.all([cookies(), headers()])
-
-  const proto  = hdrs.get("x-forwarded-proto") ?? "http"
-  const secure = proto === "https" || process.env.NODE_ENV === "production"
-  const p  = secure ? "__Secure-" : ""
-  const hp = secure ? "__Host-"   : ""
-
-  const base = { maxAge: 0, path: "/", httpOnly: true, sameSite: "lax" as const, secure }
-
-  // Clear session-token and any chunked variants NextAuth may have created (.0, .1, …)
-  const sessionBase = `${p}authjs.session-token`
-  for (const c of jar.getAll()) {
-    if (c.name === sessionBase || c.name.startsWith(`${sessionBase}.`)) {
-      jar.set(c.name, "", base)
-    }
-  }
-
-  jar.set(`${p}authjs.callback-url`, "", base)
-  // __Host- cookies must not have a Domain attribute — base has none
-  jar.set(`${hp}authjs.csrf-token`,  "", { ...base, secure: true })
-
+  const jar = await cookies()
+  const token = jar.get(COOKIE_NAME)?.value
+  if (token) await deleteSession(token)
+  await clearSessionCookie()
   redirect("/login")
 }
 
 export async function requestPasswordReset(formData: FormData) {
   const email = (formData.get("email") as string).toLowerCase().trim()
 
-  // Clean up all expired tokens on every reset request
   await db.user.updateMany({
     where: { passwordResetExpiry: { lt: new Date() }, passwordResetToken: { not: null } },
-    data: { passwordResetToken: null, passwordResetExpiry: null },
+    data:  { passwordResetToken: null, passwordResetExpiry: null },
   })
 
-  // Rate-limit by email: max 3 requests per hour (still return success to prevent enumeration)
   const resetLimit = await rateLimit(`reset:${email}`, 3, 60 * 60 * 1000)
   if (!resetLimit.allowed) {
     return { success: true }
@@ -149,33 +167,32 @@ export async function requestPasswordReset(formData: FormData) {
 
   const user = await db.user.findUnique({ where: { email } })
   if (user && user.isActive) {
-    const token = crypto.randomBytes(32).toString("hex")
-    const expiry = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+    const token  = crypto.randomBytes(32).toString("hex")
+    const expiry = new Date(Date.now() + 60 * 60 * 1000)
 
     await db.user.update({
       where: { id: user.id },
-      data: { passwordResetToken: token, passwordResetExpiry: expiry },
+      data:  { passwordResetToken: token, passwordResetExpiry: expiry },
     })
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password/${token}`
     await resend.emails.send({
-      from: FROM,
-      to: email,
+      from:    FROM,
+      to:      email,
       subject: "Reset your PoolOS password",
-      html: buildPasswordResetHtml(user.firstName, resetUrl),
+      html:    buildPasswordResetHtml(user.firstName, resetUrl),
     })
   }
 
-  // Always return success to avoid revealing whether the email exists
   return { success: true }
 }
 
 export async function resetPassword(token: string, formData: FormData) {
   const password = formData.get("password") as string
-  const confirm = formData.get("confirm") as string
+  const confirm  = formData.get("confirm")  as string
 
   if (password !== confirm) return { error: "Passwords don't match." }
-  if (password.length < 8) return { error: "Password must be at least 8 characters." }
+  if (password.length < 8)  return { error: "Password must be at least 8 characters." }
   if (await isPasswordBreached(password)) {
     return { error: "This password has appeared in a known data breach. Please choose a different one." }
   }
@@ -187,54 +204,48 @@ export async function resetPassword(token: string, formData: FormData) {
   }
 
   const hashed = await bcrypt.hash(password, 12)
-
   await db.user.update({
     where: { id: user.id },
-    data: { password: hashed, passwordResetToken: null, passwordResetExpiry: null },
+    data:  { password: hashed, passwordResetToken: null, passwordResetExpiry: null },
   })
 
   return { success: true }
 }
 
 export async function changePassword(formData: FormData) {
-  const session = await auth()
-  if (!session?.user) return { error: "Not authenticated." }
+  const session = await getSession()
+  if (!session) return { error: "Not authenticated." }
 
-  // Super admin passwords are controlled via environment variables, not the DB
-  if ((session.user as unknown as Record<string, unknown>).role === "super_admin") {
+  if (session.role === "super_admin") {
     return { error: "Super admin passwords are managed via the SUPER_ADMIN_PASSWORD_HASH environment variable." }
   }
 
   const password = formData.get("password") as string
-  const confirm = formData.get("confirm") as string
+  const confirm  = formData.get("confirm")  as string
 
   if (password !== confirm) return { error: "Passwords don't match." }
-  if (password.length < 8) return { error: "Password must be at least 8 characters." }
+  if (password.length < 8)  return { error: "Password must be at least 8 characters." }
   if (await isPasswordBreached(password)) {
     return { error: "This password has appeared in a known data breach. Please choose a different one." }
   }
 
-  const userId = session.user.id
-  const userEmail = session.user.email
+  const userId    = session.userId
+  const userEmail = session.email
 
-  // Try id first, then email — both independently so a bad id doesn't block the email path
   let dbUser = userId ? await db.user.findUnique({ where: { id: userId } }) : null
   if (!dbUser && userEmail) {
     dbUser = await db.user.findUnique({ where: { email: userEmail } })
   }
   if (!dbUser) {
-    const u = session.user as unknown as Record<string, unknown>
-    authLog.error({ userId: userId ?? null, userEmail: userEmail ?? null, role: u.role, companyId: u.companyId }, "changePassword: user not found in DB")
+    authLog.error({ userId, userEmail, role: session.role, companyId: session.companyId }, "changePassword: user not found in DB")
     return { error: "Account not found. Please sign out and sign back in." }
   }
 
   const hashed = await bcrypt.hash(password, 12)
   await db.user.update({
     where: { id: dbUser.id },
-    data: { password: hashed, mustChangePassword: false },
+    data:  { password: hashed, mustChangePassword: false },
   })
 
-  // requireSession() now checks mustChangePassword from the DB directly,
-  // so no sign-out is needed — just redirect to the app.
   redirect("/dashboard")
 }

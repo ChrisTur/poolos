@@ -1,16 +1,11 @@
 "use server"
 
-import { auth } from "@/auth"
+import { requireSuperAdmin } from "@/lib/session"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { upsertPlanConfig } from "@/lib/plans-db"
 import { PLANS, PLAN_IDS, type PlanId } from "@/lib/plans"
 import { db } from "@/lib/db"
-
-async function requireSuperAdmin() {
-  const session = await auth()
-  if (session?.user?.email !== process.env.SUPER_ADMIN_EMAIL) redirect("/dashboard")
-}
 
 function bool(val: FormDataEntryValue | null): boolean {
   return val === "on" || val === "true" || val === "1"

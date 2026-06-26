@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { auth } from "@/auth"
+import { getSession } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import {
@@ -115,8 +115,8 @@ const jsonLd = {
 }
 
 export default async function HomePage() {
-  const session = await auth()
-  if (session?.user) redirect("/dashboard")
+  const session = await getSession()
+  if (session) redirect("/dashboard")
 
   const [allPlans, banner, siteConfigs] = await Promise.all([
     getPlansFromDb(),

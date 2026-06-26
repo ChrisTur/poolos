@@ -88,11 +88,30 @@ model User {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
+  sessions          Session[]
   assignedRoutes    Route[]             @relation("RouteAssignee")
   serviceVisits     ServiceVisit[]      @relation("VisitTechnician")
   equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
   submittedTickets  SupportTicket[]     @relation("TicketSubmitter")
   reportedIssues    IssueReport[]       @relation("IssueReporter")
+}
+
+model Session {
+  id                 String   @id @default(cuid())
+  token              String   @unique
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role               String
+  email              String
+  name               String
+  companyId          String?
+  companyName        String?
+  mustChangePassword Boolean  @default(false)
+  expiresAt          DateTime
+  createdAt          DateTime @default(now())
+
+  @@index([token])
+  @@map("sessions")
 }
 
 model Customer {
