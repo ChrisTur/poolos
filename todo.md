@@ -9,7 +9,7 @@
 *Web features, no infrastructure blockers, ranked by impact.*
 
 ### Competitive Parity — Core Operations
-- [ ] ⚡ Issue reports — techs flag problems mid-visit (leak, equipment failure, safety hazard) with category, notes, and photos; visible to all staff and linked to the visit record
+- [x] ⚡ Issue reports — techs flag problems on the customer page (leak, equipment failure, safety hazard, water quality); status tracking (open/in-progress/resolved); /issues list with filters; high-priority issues surface in notification bell
 - [ ] ⚡ Customer feedback — one-click satisfaction rating in the proof-of-service email; low scores trigger a staff alert before the customer can post a public review
 - [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
 - [ ] ⚡ Chemical cost & usage tracking — log chemicals added + quantity per visit; cost analytics by customer, technician, and company-wide; spend vs. revenue widget on reports

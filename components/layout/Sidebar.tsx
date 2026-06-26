@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Mail,
   LifeBuoy,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -34,6 +35,7 @@ const nav = [
   { href: "/invoices", label: "Invoices", icon: FileText },
   { href: "/estimates", label: "Estimates", icon: FileEdit },
   { href: "/expenses",  label: "Expenses",  icon: Receipt },
+  { href: "/issues",    label: "Issues",    icon: AlertTriangle },
   { href: "/reports",   label: "Reports",   icon: BarChart2 },
   { href: "/support",   label: "Support",   icon: LifeBuoy },
 ]

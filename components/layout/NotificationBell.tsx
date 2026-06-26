@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, X } from "lucide-react"
+import { Bell, FileText, MessageSquare, FlaskConical, Building2, Wrench, LifeBuoy, AlertTriangle, X } from "lucide-react"
 import type { AppNotification, AdminNotification } from "@/lib/notifications"
-import { dismissNotification } from "@/lib/actions/notifications"
+import { dismissNotification, dismissAdminNotification } from "@/lib/actions/notifications"
 
 type AnyNotification = AppNotification | AdminNotification
 
@@ -14,6 +14,7 @@ const ICON_MAP = {
   portal_reply:    MessageSquare,
   chemical_alert:  FlaskConical,
   equipment_due:   Wrench,
+  open_issue:      AlertTriangle,
   new_company:     Building2,
   open_ticket:     LifeBuoy,
 }
@@ -32,12 +33,13 @@ const SECTION_LABELS: Record<string, string> = {
   portal_reply:    "Unread Replies",
   chemical_alert:  "Chemical Alerts",
   equipment_due:   "Equipment Due",
+  open_issue:      "High-Priority Issues",
   open_ticket:     "Open Support Tickets",
   new_company:     "New Companies (7 days)",
 }
 
 // Company notification types that are persisted to DB on dismiss
-const DB_DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due"])
+const DB_DISMISSIBLE_TYPES = new Set(["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "open_issue"])
 
 interface Props {
   notifications: AnyNotification[]
@@ -62,19 +64,19 @@ export default function NotificationBell({ notifications, isAdmin }: Props) {
     e.preventDefault()
     e.stopPropagation()
     setLocallyDismissed((prev) => new Set([...prev, id]))
-    // Admin notifications are dismissed locally only (they're computed, not stored).
-    // Company notifications are persisted via server action so they survive page refresh.
-    if (!isAdmin && DB_DISMISSIBLE_TYPES.has(type)) {
+    if (isAdmin) {
+      await dismissAdminNotification(id)
+    } else if (DB_DISMISSIBLE_TYPES.has(type)) {
       await dismissNotification(id)
-      router.refresh()
     }
+    router.refresh()
   }, [isAdmin, router])
 
   const visible = notifications.filter((n) => !locallyDismissed.has(n.id))
   const count   = visible.length
 
   // Group by type preserving a stable order
-  const order = ["overdue_invoice", "portal_reply", "chemical_alert", "equipment_due", "open_ticket", "new_company"]
+  const order = ["overdue_invoice", "open_issue", "portal_reply", "chemical_alert", "equipment_due", "open_ticket", "new_company"]
   const grouped = order.reduce<Record<string, AnyNotification[]>>((acc, type) => {
     const items = visible.filter((n) => n.type === type)
     if (items.length) acc[type] = items
