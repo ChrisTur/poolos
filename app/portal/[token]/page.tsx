@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
-import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle } from "lucide-react"
+import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle, FileText } from "lucide-react"
 import PortalReplyForm from "@/components/portal/PortalReplyForm"
 
 export const dynamic = "force-dynamic"
@@ -33,6 +33,11 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
       },
       messages: {
         orderBy: { createdAt: "asc" },
+      },
+      estimates: {
+        where:   { status: "sent" },
+        include: { items: true },
+        orderBy: { createdAt: "desc" },
       },
     },
   })
@@ -82,6 +87,42 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Your account with {customer.company.name}</p>
         </div>
+
+        {/* Pending estimates */}
+        {customer.estimates.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Estimates to Review
+            </h2>
+            <div className="space-y-3">
+              {customer.estimates.map((est) => {
+                const estTotal = est.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+                const expired  = est.validUntil && est.validUntil < new Date()
+                return (
+                  <div key={est.id} className="bg-white border border-amber-200 rounded-xl overflow-hidden">
+                    <div className="px-5 py-4 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-xs text-amber-700 font-medium">{est.estimateNumber}</p>
+                        <p className="text-lg font-bold text-gray-900 mt-0.5">{formatCurrency(estTotal)}</p>
+                        {est.validUntil && (
+                          <p className={`text-xs mt-0.5 ${expired ? "text-red-500" : "text-gray-400"}`}>
+                            {expired ? "Expired" : `Valid until ${formatDate(est.validUntil)}`}
+                          </p>
+                        )}
+                      </div>
+                      <Link
+                        href={`/portal/${token}/estimates/${est.id}`}
+                        className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                      >
+                        Review
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Balance summary */}
         {totalOwed > 0 && (

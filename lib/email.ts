@@ -355,6 +355,7 @@ export interface EstimateEmailData {
   total: number
   notes?: string | null
   customMessage?: string | null
+  portalUrl?: string | null
 }
 
 export function buildEstimateHtml(inv: EstimateEmailData): string {
@@ -459,14 +460,17 @@ export function buildEstimateHtml(inv: EstimateEmailData): string {
 
       <!-- CTA — amber for estimates -->
       <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:16px;text-align:center;margin-top:8px">
-        <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:4px;word-break:break-word">Estimate Total: ${fmt(inv.total)}</div>
-        <div style="font-size:13px;color:#b45309">${
-          inv.companyReplyTo
-            ? `Reply to this email to approve, ask questions, or request changes.`
-            : inv.companyPhone
-              ? `Call us at <strong>${inv.companyPhone}</strong> to approve or request changes.`
-              : `Contact us to approve or request any changes.`
-        }</div>
+        <div style="font-size:14px;font-weight:600;color:#92400e;margin-bottom:8px;word-break:break-word">Estimate Total: ${fmt(inv.total)}</div>
+        ${inv.portalUrl
+          ? `<a href="${inv.portalUrl}" style="display:inline-block;background:#92400e;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;margin-bottom:8px">Review &amp; Approve Estimate →</a>
+        <div style="font-size:12px;color:#b45309;margin-top:6px">Click the button above to sign and approve online, or reply to this email with questions.</div>`
+          : `<div style="font-size:13px;color:#b45309">${
+              inv.companyReplyTo
+                ? `Reply to this email to approve, ask questions, or request changes.`
+                : inv.companyPhone
+                  ? `Call us at <strong>${inv.companyPhone}</strong> to approve or request changes.`
+                  : `Contact us to approve or request any changes.`
+            }</div>`}
       </div>
     </div>
 
