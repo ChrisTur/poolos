@@ -2,12 +2,13 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, AlertTriangle } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote, disableAutoPay } from "@/lib/actions/customers"
+import { createIssueReport, updateIssueStatus } from "@/lib/actions/issues"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
 import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
@@ -32,7 +33,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [customer, emailLogs, messages, companyTags, companyUsers] = await Promise.all([
+  const [customer, emailLogs, messages, companyTags, companyUsers, openIssues] = await Promise.all([
     db.customer.findFirst({
       where: { id, companyId },
       include: {
@@ -70,6 +71,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     }),
     db.tag.findMany({ where: { companyId }, orderBy: { name: "asc" } }),
     db.user.findMany({ where: { companyId, isActive: true }, orderBy: { firstName: "asc" }, select: { id: true, firstName: true, lastName: true } }),
+    db.issueReport.findMany({
+      where: { customerId: id, companyId },
+      orderBy: { createdAt: "desc" },
+      include: { reportedBy: { select: { firstName: true, lastName: true } } },
+    }),
   ])
 
   if (!customer) notFound()
@@ -104,6 +110,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const deleteAction         = deleteCustomer.bind(null, id)
   const addNoteAction        = addCustomerNote.bind(null, id)
   const disableAutoPayAction = disableAutoPay.bind(null, id)
+  const reportIssueAction    = createIssueReport
   const appUrl               = process.env.NEXT_PUBLIC_APP_URL ?? ""
   const portalUrl            = `${appUrl}/portal/${customer.portalToken}`
 
@@ -418,6 +425,110 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 customerId={id}
                 attachments={customer.attachments}
               />
+            </CardBody>
+          </Card>
+
+          {/* Issue Reports */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Issue Reports
+                  {openIssues.filter(i => i.status !== "resolved").length > 0 && (
+                    <span className="ml-1 text-xs font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
+                      {openIssues.filter(i => i.status !== "resolved").length} open
+                    </span>
+                  )}
+                </h2>
+                <Link href="/issues" className="text-xs text-sky-600 hover:underline">View all</Link>
+              </div>
+            </CardHeader>
+            <CardBody className="space-y-4">
+              {/* Existing issues */}
+              {openIssues.length > 0 && (
+                <div className="space-y-2">
+                  {openIssues.map((issue) => {
+                    const statusStyles: Record<string, string> = {
+                      open: "bg-red-100 text-red-700", in_progress: "bg-amber-100 text-amber-700", resolved: "bg-green-100 text-green-700"
+                    }
+                    const statusLabels: Record<string, string> = { open: "Open", in_progress: "In Progress", resolved: "Resolved" }
+                    const catLabels: Record<string, string> = {
+                      leak: "Leak", equipment_failure: "Equipment Failure",
+                      safety_hazard: "Safety Hazard", water_quality: "Water Quality", other: "Other",
+                    }
+                    const resolveAction = updateIssueStatus.bind(null, issue.id, "resolved")
+                    const reopenAction  = updateIssueStatus.bind(null, issue.id, "open")
+                    return (
+                      <div key={issue.id} className="flex items-start gap-3 bg-gray-50 rounded-lg px-3 py-2.5">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                            <span className={`text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${statusStyles[issue.status] ?? statusStyles.open}`}>
+                              {statusLabels[issue.status] ?? issue.status}
+                            </span>
+                            <span className="text-[11px] text-gray-500">{catLabels[issue.category] ?? issue.category}</span>
+                          </div>
+                          <p className="text-sm text-gray-700 leading-snug">{issue.notes}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {issue.reportedBy ? `${issue.reportedBy.firstName} ${issue.reportedBy.lastName} · ` : ""}
+                            {formatDate(issue.createdAt)}
+                          </p>
+                        </div>
+                        {issue.status !== "resolved" ? (
+                          <form action={resolveAction}>
+                            <button type="submit" className="shrink-0 text-xs text-green-700 hover:text-green-800 font-medium mt-0.5">Resolve</button>
+                          </form>
+                        ) : (
+                          <form action={reopenAction}>
+                            <button type="submit" className="shrink-0 text-xs text-gray-400 hover:text-gray-600 mt-0.5">Reopen</button>
+                          </form>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+              {/* Report new issue */}
+              <form action={reportIssueAction} className="space-y-2.5 border-t border-gray-100 pt-3">
+                <input type="hidden" name="customerId" value={id} />
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    name="category"
+                    required
+                    className="rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    <option value="">Category…</option>
+                    <option value="leak">Leak</option>
+                    <option value="equipment_failure">Equipment Failure</option>
+                    <option value="safety_hazard">Safety Hazard</option>
+                    <option value="water_quality">Water Quality</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <select
+                    name="priority"
+                    defaultValue="normal"
+                    className="rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    <option value="low">Low priority</option>
+                    <option value="normal">Normal priority</option>
+                    <option value="high">High priority</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <textarea
+                    name="notes"
+                    required
+                    rows={2}
+                    placeholder="Describe the issue…"
+                    className="flex-1 rounded-lg border border-gray-300 px-2.5 py-1.5 text-xs text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+                  />
+                  <button
+                    type="submit"
+                    className="shrink-0 self-end px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-medium hover:bg-amber-600 transition-colors"
+                  >
+                    Report
+                  </button>
+                </div>
+              </form>
             </CardBody>
           </Card>
 

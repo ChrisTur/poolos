@@ -64,6 +64,7 @@ model Company {
   visitChecklist    VisitChecklistItem[]
   dismissedNotifications DismissedNotification[]
   supportTickets         SupportTicket[]
+  issueReports           IssueReport[]
 }
 
 model User {
@@ -90,6 +91,7 @@ model User {
   serviceVisits     ServiceVisit[]      @relation("VisitTechnician")
   equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
   submittedTickets  SupportTicket[]     @relation("TicketSubmitter")
+  reportedIssues    IssueReport[]       @relation("IssueReporter")
 }
 
 model Customer {
@@ -136,6 +138,7 @@ model Customer {
   alerts        CustomerAlert[]
   tags          CustomerTag[]
   attachments   Attachment[]
+  issueReports  IssueReport[]
 }
 
 model CustomerNote {
@@ -220,6 +223,8 @@ model ServiceVisit {
 
   technicianId String?
   technician   User?   @relation("VisitTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
+
+  issueReports IssueReport[]
 }
 
 model VisitChecklistItem {
@@ -630,4 +635,30 @@ model DismissedNotification {
 
   @@id([companyId, notificationId])
   @@index([companyId])
+}
+
+model IssueReport {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category String  // leak | equipment_failure | safety_hazard | water_quality | other
+  priority String  @default("normal") // low | normal | high
+  status   String  @default("open")   // open | in_progress | resolved
+  notes    String
+
+  visitId  String?
+  visit    ServiceVisit? @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  reportedById String?
+  reportedBy   User?    @relation("IssueReporter", fields: [reportedById], references: [id], onDelete: SetNull)
+
+  @@index([companyId, status])
+  @@index([customerId])
 }
