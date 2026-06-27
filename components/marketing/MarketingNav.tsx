@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation"
 import { Waves, ChevronRight, Menu, X } from "lucide-react"
 
 const NAV_LINKS = [
-  { href: "/#features",     label: "Features"     },
-  { href: "/#how-it-works", label: "How it works" },
-  { href: "/pricing",       label: "Pricing"      },
+  { href: "/features",      label: "Features"        },
+  { href: "/why",           label: "Why PoolOS"      },
+  { href: "/pricing",       label: "Pricing"         },
   { href: "/chemistry",     label: "Chem Calculator" },
 ]
 
@@ -30,7 +30,7 @@ export default function MarketingNav() {
         {/* Desktop nav links */}
         <nav className="hidden md:flex items-center gap-7">
           {NAV_LINKS.map((l) => {
-            const active = !l.href.startsWith("/#") && pathname === l.href
+            const active = pathname === l.href
             return (
               <Link
                 key={l.href}
