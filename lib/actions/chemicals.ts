@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
 export async function saveChemicalUsages(
@@ -15,7 +15,7 @@ export async function saveChemicalUsages(
     totalCost: number
   }>
 ) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("schedule.log")
 
   // Verify visit belongs to this company
   const visit = await db.serviceVisit.findFirst({

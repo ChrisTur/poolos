@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireOwner } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { getPlan } from "@/lib/plans"
@@ -24,7 +24,7 @@ export default async function BillingPage({
 }: {
   searchParams: Promise<{ upgraded?: string; canceled?: string }>
 }) {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.billing")
   const sp = await searchParams
 
   const [allPlans, company] = await Promise.all([

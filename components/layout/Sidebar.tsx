@@ -27,34 +27,34 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type NavItem = { href: string; label: string; icon: React.ElementType }
+type NavItem = { href: string; label: string; icon: React.ElementType; permission?: string }
 
 const operationsNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/messages",  label: "Messages",  icon: Mail },
-  { href: "/routes",    label: "Routes",    icon: MapPin },
-  { href: "/schedule",  label: "Schedule",  icon: CalendarDays },
-  { href: "/issues",    label: "Issues",    icon: AlertTriangle },
-  { href: "/support",   label: "Support",   icon: LifeBuoy },
+  { href: "/customers", label: "Customers", icon: Users,          permission: "customers.view" },
+  { href: "/messages",  label: "Messages",  icon: Mail,           permission: "messages.view" },
+  { href: "/routes",    label: "Routes",    icon: MapPin,         permission: "routes.view" },
+  { href: "/schedule",  label: "Schedule",  icon: CalendarDays,   permission: "schedule.view" },
+  { href: "/issues",    label: "Issues",    icon: AlertTriangle,  permission: "issues.view" },
 ]
 
 const billingNav: NavItem[] = [
-  { href: "/invoices",  label: "Invoices",  icon: FileText },
-  { href: "/estimates", label: "Estimates", icon: FileEdit },
-  { href: "/expenses",  label: "Expenses",  icon: Receipt },
-  { href: "/reports",   label: "Reports",   icon: BarChart2 },
+  { href: "/invoices",  label: "Invoices",  icon: FileText,  permission: "invoices.view" },
+  { href: "/estimates", label: "Estimates", icon: FileEdit,  permission: "estimates.view" },
+  { href: "/expenses",  label: "Expenses",  icon: Receipt,   permission: "expenses.view" },
+  { href: "/reports",   label: "Reports",   icon: BarChart2, permission: "reports.view" },
 ]
 
 // Equipment Management routes — add new items here as they're built
 const equipmentNav: NavItem[] = []
 
 const settingsNav: NavItem[] = [
-  { href: "/settings/company",   label: "Company",   icon: Settings },
-  { href: "/settings/checklist", label: "Checklist", icon: ClipboardList },
-  { href: "/settings/payments",  label: "Payments",  icon: CreditCard },
-  { href: "/settings/users",     label: "Team",      icon: UserCog },
-  { href: "/settings/billing",   label: "Billing",   icon: Receipt },
+  { href: "/settings/company",   label: "Company",   icon: Settings,     permission: "settings.company" },
+  { href: "/settings/checklist", label: "Checklist", icon: ClipboardList,permission: "settings.checklist" },
+  { href: "/settings/payments",  label: "Payments",  icon: CreditCard,   permission: "settings.payments" },
+  { href: "/settings/users",     label: "Team",      icon: UserCog,      permission: "settings.team" },
+  { href: "/settings/billing",   label: "Billing",   icon: Receipt,      permission: "settings.billing" },
+  { href: "/support",            label: "Support",   icon: LifeBuoy,     permission: "support.view" },
 ]
 
 const ALL_GROUPS = [
@@ -70,9 +70,11 @@ interface SidebarProps {
   userName?: string
   userEmail?: string
   userRole?: string
+  userPermissions?: string[]
 }
 
-export default function Sidebar({ open, onClose, planData, userName, userEmail, userRole }: SidebarProps) {
+export default function Sidebar({ open, onClose, planData, userName, userEmail, userRole, userPermissions = [] }: SidebarProps) {
+  const permSet = new Set(userPermissions)
   const firstName = userName?.split(" ")[0] ?? ""
   const initials = userName
     ? userName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
@@ -88,12 +90,18 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail, 
   }, [trialEndsAt])
 
   // Technicians lead with Operations; owners/supervisors lead with Billing
+  // Filter items within each group based on permissions
   const groups = useMemo(() => {
     const ordered = userRole === "technician"
       ? ALL_GROUPS
       : [ALL_GROUPS[1], ALL_GROUPS[0], ALL_GROUPS[2]]
-    return ordered.filter((g) => g.items.length > 0)
-  }, [userRole])
+    return ordered
+      .map((g) => ({
+        ...g,
+        items: g.items.filter((item) => !item.permission || permSet.has(item.permission)),
+      }))
+      .filter((g) => g.items.length > 0)
+  }, [userRole, permSet])
 
   return (
     <>
@@ -191,7 +199,7 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail, 
         <div className="px-3 pb-2 border-t border-sky-800 pt-3">
           <p className="px-3 pb-2 text-xs font-semibold text-sky-400 uppercase tracking-wider">Settings</p>
           <div className="space-y-0.5">
-            {settingsNav.map(({ href, label, icon: Icon }) => {
+            {settingsNav.filter((item) => !item.permission || permSet.has(item.permission)).map(({ href, label, icon: Icon }) => {
               const active = pathname.startsWith(href)
               return (
                 <Link

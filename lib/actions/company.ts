@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession, requireOwner } from "@/lib/session"
+import { requireSession, requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
@@ -27,7 +27,7 @@ export async function completeOnboarding(formData: FormData) {
 }
 
 export async function updateCompany(formData: FormData) {
-  const user = await requireOwner()
+  const user = await requirePermission("settings.company")
 
   await db.company.update({
     where: { id: user.companyId },
@@ -55,7 +55,7 @@ export async function updateCompany(formData: FormData) {
 }
 
 export async function inviteUser(formData: FormData) {
-  const owner = await requireOwner()
+  const owner = await requirePermission("settings.team")
 
   const email = (formData.get("email") as string).toLowerCase()
   const existing = await db.user.findUnique({ where: { email } })
@@ -88,7 +88,7 @@ export async function inviteUser(formData: FormData) {
 }
 
 export async function deactivateUser(userId: string) {
-  const owner = await requireOwner()
+  const owner = await requirePermission("settings.team")
   const target = await db.user.findUnique({ where: { id: userId } })
   if (!target || target.companyId !== owner.companyId) return
   await db.user.update({ where: { id: userId }, data: { isActive: false } })
@@ -96,7 +96,7 @@ export async function deactivateUser(userId: string) {
 }
 
 export async function updatePaymentLinks(formData: FormData) {
-  const user = await requireOwner()
+  const user = await requirePermission("settings.payments")
 
   await db.company.update({
     where: { id: user.companyId },
@@ -113,7 +113,7 @@ export async function updatePaymentLinks(formData: FormData) {
 }
 
 export async function uploadLogo(formData: FormData) {
-  const user = await requireOwner()
+  const user = await requirePermission("settings.company")
   const file = formData.get("logo") as File
   if (!file || file.size === 0) return
   if (file.size > 2 * 1024 * 1024) return // 2MB limit
@@ -140,7 +140,7 @@ export async function uploadLogo(formData: FormData) {
 }
 
 export async function resetUserPassword(userId: string) {
-  const owner = await requireOwner()
+  const owner = await requirePermission("settings.team")
   const target = await db.user.findUnique({ where: { id: userId } })
   if (!target || target.companyId !== owner.companyId) return
 

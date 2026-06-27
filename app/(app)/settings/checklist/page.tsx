@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireOwner } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import {
   addChecklistItem,
@@ -14,7 +14,7 @@ import ConfirmButton from "@/components/ui/ConfirmButton"
 export const dynamic = "force-dynamic"
 
 export default async function ChecklistSettingsPage() {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.checklist")
 
   const [globalItems, customerItems, customers] = await Promise.all([
     db.visitChecklistItem.findMany({

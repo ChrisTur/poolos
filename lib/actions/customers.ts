@@ -1,13 +1,13 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildCustomerMessageHtml } from "@/lib/email"
 
 export async function createCustomer(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
 
   const customer = await db.customer.create({
     data: {
@@ -33,7 +33,7 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const customer = await db.customer.findFirst({ where: { id, companyId } })
   if (!customer) return
 
@@ -63,7 +63,7 @@ export async function updateCustomer(id: string, formData: FormData) {
 }
 
 export async function deleteCustomer(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const customer = await db.customer.findFirst({ where: { id, companyId } })
   if (!customer) redirect("/customers")
 
@@ -81,7 +81,7 @@ export async function deleteCustomer(id: string) {
 }
 
 export async function addCustomerNote(customerId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
   const body = formData.get("body") as string
@@ -91,7 +91,7 @@ export async function addCustomerNote(customerId: string, formData: FormData) {
 }
 
 export async function deleteCustomerNote(id: string, customerId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const note = await db.customerNote.findFirst({
     where: { id, customer: { id: customerId, companyId } },
   })
@@ -101,7 +101,7 @@ export async function deleteCustomerNote(id: string, customerId: string) {
 }
 
 export async function disableAutoPay(customerId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   await db.customer.updateMany({
     where: { id: customerId, companyId },
     data: { autoPayEnabled: false, autoPayMethodId: null },
@@ -114,7 +114,7 @@ export async function broadcastMessage(
   subject: string,
   body: string,
 ): Promise<{ sent: number; skipped: number; error?: string }> {
-  const { companyId, name: senderName } = await requireSession()
+  const { companyId, name: senderName } = await requirePermission("messages.send")
 
   if (!subject.trim() || !body.trim()) return { sent: 0, skipped: 0, error: "Subject and message are required." }
 
@@ -189,7 +189,7 @@ export async function broadcastMessage(
 }
 
 export async function sendMessage(_: unknown, formData: FormData) {
-  const { companyId, name: senderName } = await requireSession()
+  const { companyId, name: senderName } = await requirePermission("messages.send")
 
   const customerId = formData.get("customerId") as string
   const body = (formData.get("body") as string | null)?.trim()

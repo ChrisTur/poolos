@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireOwner } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { updateCompany, uploadLogo } from "@/lib/actions/company"
 import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
@@ -9,7 +9,7 @@ import { Upload } from "lucide-react"
 export const dynamic = "force-dynamic"
 
 export default async function CompanySettingsPage() {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.company")
   const company = await db.company.findUnique({ where: { id: companyId } })
   if (!company) return null
 

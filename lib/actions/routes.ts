@@ -2,14 +2,14 @@
 
 import crypto from "crypto"
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildVisitCompletionHtml } from "@/lib/email"
 import { geocodeAddress, nearestNeighborOrder } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
 
   const route = await db.route.create({
     data: {
@@ -24,7 +24,7 @@ export async function createRoute(formData: FormData) {
 }
 
 export async function updateRoute(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
   const route = await db.route.findFirst({ where: { id, companyId } })
   if (!route) return
 
@@ -44,14 +44,14 @@ export async function updateRoute(id: string, formData: FormData) {
 }
 
 export async function deleteRoute(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
   await db.route.deleteMany({ where: { id, companyId } })
   revalidatePath("/routes")
   redirect("/routes")
 }
 
 export async function addStopToRoute(routeId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
   const route = await db.route.findFirst({ where: { id: routeId, companyId } })
   if (!route) return
 
@@ -75,7 +75,7 @@ export async function addStopToRoute(routeId: string, formData: FormData) {
 }
 
 export async function removeStopFromRoute(stopId: string, routeId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
   const route = await db.route.findFirst({ where: { id: routeId, companyId } })
   if (!route) return
   await db.routeStop.delete({ where: { id: stopId } })
@@ -90,7 +90,7 @@ export async function removeStopFromRoute(stopId: string, routeId: string) {
 }
 
 export async function reorderStops(routeId: string, orderedStopIds: string[]) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
   const route = await db.route.findFirst({ where: { id: routeId, companyId } })
   if (!route) return
   for (let i = 0; i < orderedStopIds.length; i++) {
@@ -103,7 +103,7 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
 }
 
 export async function logVisit(formData: FormData) {
-  const session = await requireSession()
+  const session = await requirePermission("schedule.log")
   const { companyId } = session
 
   const customerId       = formData.get("customerId") as string
@@ -279,7 +279,7 @@ export async function logVisit(formData: FormData) {
 }
 
 export async function optimizeRoute(routeId: string): Promise<{ optimized: boolean; message: string }> {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("routes.manage")
 
   const route = await db.route.findFirst({
     where: { id: routeId, companyId },
