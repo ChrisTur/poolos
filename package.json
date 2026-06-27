@@ -20,7 +20,7 @@
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@react-pdf/renderer": "^4.5.1",
-    "@sentry/nextjs": "^10.60.0",
+    "@sentry/nextjs": "^10.62.0",
     "@stripe/react-stripe-js": "^6.6.0",
     "@stripe/stripe-js": "^9.8.0",
     "@types/file-saver": "^2.0.7",
