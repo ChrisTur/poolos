@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 
 export type AppNotification = {
   id:       string
-  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "equipment_due" | "open_issue" | "low_rating"
+  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "chemical_trend" | "equipment_due" | "open_issue" | "low_rating"
   severity: "red" | "blue" | "amber" | "orange"
   label:    string
   detail:   string
@@ -209,6 +209,45 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
       detail:   issue.notes.length > 60 ? issue.notes.slice(0, 60) + "…" : issue.notes,
       href:     `/customers/${issue.customer.id}`,
     })
+  }
+
+  // Chemical trend alerts — same reading out of range on 3+ consecutive visits
+  const visitsByCustomer = new Map<string, typeof recentVisits>()
+  for (const v of recentVisits) {
+    const list = visitsByCustomer.get(v.customer.id)
+    if (list) list.push(v)
+    else visitsByCustomer.set(v.customer.id, [v])
+  }
+  const TREND_CHEMS = [
+    { key: "chlorine"   as const, ...RANGES.chlorine },
+    { key: "ph"         as const, ...RANGES.ph },
+    { key: "alkalinity" as const, ...RANGES.alkalinity },
+    { key: "calcium"    as const, ...RANGES.calcium },
+    { key: "cya"        as const, ...RANGES.cya },
+  ]
+  for (const [, visits] of visitsByCustomer) {
+    const trendFlags: string[] = []
+    for (const chem of TREND_CHEMS) {
+      const vals = visits
+        .map((v) => v[chem.key])
+        .filter((val): val is number => val != null)
+      if (vals.length < 3) continue
+      const last3 = vals.slice(0, 3)
+      const allLow  = last3.every((val) => val < chem.min)
+      const allHigh = last3.every((val) => val > chem.max)
+      if (allLow || allHigh) trendFlags.push(`${chem.label} ${allLow ? "low" : "high"}`)
+    }
+    if (trendFlags.length > 0) {
+      const customer = visits[0].customer
+      notifications.push({
+        id:       `trend-${customer.id}`,
+        type:     "chemical_trend",
+        severity: "amber",
+        label:    `${customer.firstName} ${customer.lastName}`,
+        detail:   `Persistent ${trendFlags.join(", ")} — 3 visits`,
+        href:     `/reports/chemicals/${customer.id}`,
+      })
+    }
   }
 
   // Low ratings (1 or 2) in the last 30 days
