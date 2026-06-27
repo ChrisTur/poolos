@@ -5,7 +5,7 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { chemStatus, CHEM_RANGES, STATUS_BG, visitNeedsAttention } from "@/lib/chemistry"
-import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle, Clock, MapPin } from "lucide-react"
+import { DollarSign, Users, CalendarDays, TrendingUp, FlaskConical, ChevronRight, AlertTriangle, Clock, MapPin, Users2 } from "lucide-react"
 import PaymentDonut, { type PaymentSlice } from "@/components/reports/PaymentDonut"
 
 export const dynamic = "force-dynamic"
@@ -347,18 +347,28 @@ export default async function ReportsPage({
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Monthly Revenue (last 6 months)</h2></CardHeader>
           <CardBody>
             <div className="space-y-2">
-              {chartData.map((d) => (
-                <div key={d.key} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-12 shrink-0 text-right">{d.label}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-                    <div
-                      className="h-full bg-sky-500 rounded-full transition-all"
-                      style={{ width: `${(d.amount / chartMax) * 100}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-medium text-gray-700 w-16 shrink-0">{formatCurrency(d.amount)}</span>
-                </div>
-              ))}
+              {chartData.map((d) => {
+                const [y, m] = d.key.split("-").map(Number)
+                const from = `${d.key}-01`
+                const lastDay = new Date(y, m, 0).getDate()
+                const to = `${d.key}-${String(lastDay).padStart(2, "0")}`
+                return (
+                  <Link
+                    key={d.key}
+                    href={d.amount > 0 ? `/invoices?from=${from}&to=${to}` : "#"}
+                    className="flex items-center gap-3 rounded-lg hover:bg-gray-50 transition-colors -mx-1 px-1 py-0.5 group"
+                  >
+                    <span className="text-xs text-gray-500 w-12 shrink-0 text-right">{d.label}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                      <div
+                        className="h-full bg-sky-500 group-hover:bg-sky-600 rounded-full transition-all"
+                        style={{ width: `${(d.amount / chartMax) * 100}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 w-16 shrink-0">{formatCurrency(d.amount)}</span>
+                  </Link>
+                )
+              })}
             </div>
           </CardBody>
         </Card>
@@ -367,13 +377,13 @@ export default async function ReportsPage({
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Invoice Breakdown ({PERIODS.find(p => p.key === period)?.label})</h2></CardHeader>
           <div className="divide-y divide-gray-50">
             {breakdown.filter((b) => b.count > 0).map((b) => (
-              <div key={b.status} className="px-5 py-3 flex items-center justify-between">
+              <Link key={b.status} href={`/invoices?status=${b.status}`} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
                 <div className="flex items-center gap-3">
                   {statusBadge(b.status)}
                   <span className="text-sm text-gray-500">{b.count} invoice{b.count !== 1 ? "s" : ""}</span>
                 </div>
                 <span className="text-sm font-semibold text-gray-900">{formatCurrency(b.amount)}</span>
-              </div>
+              </Link>
             ))}
             {breakdown.every((b) => b.count === 0) && (
               <div className="px-5 py-8 text-center text-sm text-gray-400">No invoices in this period.</div>
@@ -395,18 +405,22 @@ export default async function ReportsPage({
           ) : (
             <div className="space-y-3">
               {serviceTypeData.map((d) => (
-                <div key={d.type} className="flex items-center gap-3">
+                <Link
+                  key={d.type}
+                  href={`/invoices?serviceType=${encodeURIComponent(d.type)}`}
+                  className="flex items-center gap-3 rounded-lg hover:bg-gray-50 transition-colors -mx-1 px-1 py-0.5 group"
+                >
                   <span className="text-xs text-gray-500 w-40 shrink-0 truncate">{d.label}</span>
                   <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-sky-500"
+                      className="h-full rounded-full bg-sky-500 group-hover:bg-sky-600 transition-colors"
                       style={{ width: `${(d.amount / serviceTypeMax) * 100}%` }}
                     />
                   </div>
                   <span className="text-xs font-medium text-gray-700 w-20 shrink-0 text-right">
                     {formatCurrency(d.amount)}
                   </span>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -449,6 +463,18 @@ export default async function ReportsPage({
               <div>
                 <p className="font-semibold text-gray-900 text-sm">Revenue by Route</p>
                 <p className="text-xs text-gray-500 mt-0.5">Invoiced and collected per service route</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
+            </Card>
+          </Link>
+          <Link href="/reports/technicians">
+            <Card className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <span className="bg-purple-50 text-purple-600 p-2.5 rounded-lg shrink-0">
+                <Users2 className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Technician Scorecards</p>
+                <p className="text-xs text-gray-500 mt-0.5">Visits, ratings, chem spend per tech</p>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
             </Card>

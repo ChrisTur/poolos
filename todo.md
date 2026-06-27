@@ -13,10 +13,10 @@
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
 
 ### Competitive Parity — Analytics & Management
-- [ ] ⚡ Technician scorecards — per-tech dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, open alert trends
+- [x] ⚡ Technician scorecards — per-tech dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, open alert trends
 - [ ] ⚡ Drag-and-drop route scheduling — rearrange stops within a route and move stops between routes/days via drag-and-drop; unscheduled queue for pending jobs
-- [ ] ⚡ Interactive report charts — clickable bars and data points on all report charts that drill down to the underlying invoices, visits, or customers
-- [ ] Chemical trend alerts — flag customers whose readings have been consistently out of range across 3+ visits
+- [x] ⚡ Interactive report charts — clickable bars and data points on all report charts that drill down to the underlying invoices, visits, or customers
+- [x] Chemical trend alerts — flag customers whose readings have been consistently out of range across 3+ visits
 
 ### Payments & Billing
 - [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and the customer portal; lower fees than card; daily retry logic on declines
