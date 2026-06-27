@@ -155,7 +155,7 @@ export function buildInvoiceHtml(inv: InvoiceEmailData, isReminder = false): str
       <tr>
         <td class="inv-header-left" style="padding:20px 16px 20px 24px;vertical-align:middle;width:55%">
           ${inv.companyLogoUrl
-            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:48px;max-width:160px;width:auto;display:block" />`
+            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:64px;max-width:220px;width:auto;height:auto;display:block" />`
             : `<span style="font-size:18px;font-weight:700;color:#0c4a6e;word-break:break-word">${inv.companyName}</span>`}
         </td>
         <td class="inv-header-right" style="padding:20px 24px 20px 8px;text-align:right;vertical-align:middle;width:45%">
@@ -282,7 +282,7 @@ export function buildReceiptHtml(data: ReceiptEmailData): string {
       <tr>
         <td class="receipt-header-left" style="padding:20px 16px 20px 24px;vertical-align:middle;width:55%">
           ${data.companyLogoUrl
-            ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:48px;max-width:160px;width:auto;display:block" />`
+            ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:64px;max-width:220px;width:auto;height:auto;display:block" />`
             : `<span style="font-size:18px;font-weight:700;color:#16a34a;word-break:break-word">${data.companyName}</span>`}
         </td>
         <td class="receipt-header-right" style="padding:20px 24px 20px 8px;text-align:right;vertical-align:middle;width:45%">
@@ -396,7 +396,7 @@ export function buildEstimateHtml(inv: EstimateEmailData): string {
       <tr>
         <td class="est-header-left" style="padding:20px 16px 20px 24px;vertical-align:middle;width:55%">
           ${inv.companyLogoUrl
-            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:48px;max-width:160px;width:auto;display:block" />`
+            ? `<img src="${inv.companyLogoUrl}" alt="${inv.companyName}" style="max-height:64px;max-width:220px;width:auto;height:auto;display:block" />`
             : `<span style="font-size:18px;font-weight:700;color:#92400e;word-break:break-word">${inv.companyName}</span>`}
         </td>
         <td class="est-header-right" style="padding:20px 24px 20px 8px;text-align:right;vertical-align:middle;width:45%">
@@ -552,10 +552,7 @@ export function buildVisitCompletionHtml(data: VisitCompletionEmailData): string
     <!-- Header -->
     <div style="background:#0c4a6e;padding:20px 24px">
       ${data.companyLogoUrl
-        ? `<div style="display:inline-block;background:#ffffff;padding:6px 12px;border-radius:8px;margin-bottom:10px">
-             <img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:40px;max-width:140px;width:auto;display:block" />
-           </div>
-           <div style="font-size:14px;font-weight:600;color:#ffffff">${data.companyName}</div>`
+        ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:56px;max-width:200px;width:auto;height:auto;display:block;margin-bottom:10px" />`
         : `<span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>`}
       <div style="font-size:13px;color:#bae6fd;margin-top:4px">Service Completed${data.technicianName ? ` · ${data.technicianName}` : ""}</div>
     </div>
@@ -638,10 +635,7 @@ export function buildCustomerMessageHtml(data: {
   <div style="max-width:600px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
     <div style="background:#0c4a6e;padding:20px 24px">
       ${data.companyLogoUrl
-        ? `<div style="display:inline-block;background:#ffffff;padding:6px 12px;border-radius:8px;margin-bottom:10px">
-             <img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:40px;max-width:140px;width:auto;display:block" />
-           </div>
-           <div style="font-size:14px;font-weight:600;color:#ffffff">${data.companyName}</div>`
+        ? `<img src="${data.companyLogoUrl}" alt="${data.companyName}" style="max-height:56px;max-width:200px;width:auto;height:auto;display:block;margin-bottom:10px" />`
         : `<span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>`}
       <div style="font-size:13px;color:#bae6fd;margin-top:4px">Message from ${data.companyName}</div>
     </div>
