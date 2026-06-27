@@ -126,7 +126,7 @@ export default function AdminShell({ children, notifications = [] }: { children:
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
         {/* Desktop notification bar */}
         <div className="hidden lg:flex items-center justify-end px-8 pt-5 pb-0 shrink-0">
-          <NotificationBell notifications={notifications} />
+          <NotificationBell notifications={notifications} isAdmin />
         </div>
 
         {/* Mobile header */}
@@ -143,7 +143,7 @@ export default function AdminShell({ children, notifications = [] }: { children:
             <span className="font-bold text-sm">PoolOS</span>
             <span className="text-gray-400 text-xs">Admin</span>
           </div>
-          <NotificationBell notifications={notifications} />
+          <NotificationBell notifications={notifications} isAdmin />
         </header>
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
