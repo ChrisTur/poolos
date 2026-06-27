@@ -14,20 +14,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const isAdmin = session?.role === "super_admin"
 
   const cookieStore = await cookies()
+  const viewAsId = isAdmin ? (cookieStore.get("poolos_view_as")?.value ?? null) : null
 
-  if (isAdmin) {
-    const viewAs = cookieStore.get("poolos_view_as")?.value
-    if (viewAs) {
-      const company = await db.company.findUnique({ where: { id: viewAs }, select: { name: true } })
-      viewAsCompany = company?.name
-    }
+  if (viewAsId) {
+    const company = await db.company.findUnique({ where: { id: viewAsId }, select: { name: true } })
+    viewAsCompany = company?.name
   }
 
   let planData = { plan: "trial", trialEndsAt: null as string | null, stripeSubStatus: null as string | null }
   let appBanner: BannerData | null = null
   let notifications: AppNotification[] = []
 
-  const companyId = session?.companyId
+  // For super admin in view-as mode, use the viewed company's ID; otherwise use the session's own companyId
+  const companyId = viewAsId ?? session?.companyId ?? null
   if (companyId) {
     const [company, fetchedNotifications] = await Promise.all([
       db.company.findUnique({
