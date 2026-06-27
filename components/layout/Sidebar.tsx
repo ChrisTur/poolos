@@ -27,26 +27,40 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const nav = [
+type NavItem = { href: string; label: string; icon: React.ElementType }
+
+const operationsNav: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/messages",  label: "Messages",  icon: Mail },
-  { href: "/routes", label: "Routes", icon: MapPin },
-  { href: "/schedule", label: "Schedule", icon: CalendarDays },
-  { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/estimates", label: "Estimates", icon: FileEdit },
-  { href: "/expenses",  label: "Expenses",  icon: Receipt },
+  { href: "/routes",    label: "Routes",    icon: MapPin },
+  { href: "/schedule",  label: "Schedule",  icon: CalendarDays },
   { href: "/issues",    label: "Issues",    icon: AlertTriangle },
-  { href: "/reports",   label: "Reports",   icon: BarChart2 },
   { href: "/support",   label: "Support",   icon: LifeBuoy },
 ]
 
-const settingsNav = [
+const billingNav: NavItem[] = [
+  { href: "/invoices",  label: "Invoices",  icon: FileText },
+  { href: "/estimates", label: "Estimates", icon: FileEdit },
+  { href: "/expenses",  label: "Expenses",  icon: Receipt },
+  { href: "/reports",   label: "Reports",   icon: BarChart2 },
+]
+
+// Equipment Management routes — add new items here as they're built
+const equipmentNav: NavItem[] = []
+
+const settingsNav: NavItem[] = [
   { href: "/settings/company",   label: "Company",   icon: Settings },
   { href: "/settings/checklist", label: "Checklist", icon: ClipboardList },
   { href: "/settings/payments",  label: "Payments",  icon: CreditCard },
   { href: "/settings/users",     label: "Team",      icon: UserCog },
   { href: "/settings/billing",   label: "Billing",   icon: Receipt },
+]
+
+const ALL_GROUPS = [
+  { label: "Operations",           items: operationsNav },
+  { label: "Billing",              items: billingNav },
+  { label: "Equipment Management", items: equipmentNav },
 ]
 
 interface SidebarProps {
@@ -55,9 +69,10 @@ interface SidebarProps {
   planData?: { plan: string; trialEndsAt: string | null }
   userName?: string
   userEmail?: string
+  userRole?: string
 }
 
-export default function Sidebar({ open, onClose, planData, userName, userEmail }: SidebarProps) {
+export default function Sidebar({ open, onClose, planData, userName, userEmail, userRole }: SidebarProps) {
   const firstName = userName?.split(" ")[0] ?? ""
   const initials = userName
     ? userName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
@@ -71,6 +86,14 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail }
     // eslint-disable-next-line react-hooks/purity
     return Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
   }, [trialEndsAt])
+
+  // Technicians lead with Operations; owners/supervisors lead with Billing
+  const groups = useMemo(() => {
+    const ordered = userRole === "technician"
+      ? ALL_GROUPS
+      : [ALL_GROUPS[1], ALL_GROUPS[0], ALL_GROUPS[2]]
+    return ordered.filter((g) => g.items.length > 0)
+  }, [userRole])
 
   return (
     <>
@@ -105,27 +128,39 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail }
           )}
         </div>
 
-        {/* Nav links */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
-          {nav.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sky-700 text-white"
-                    : "text-sky-200 hover:bg-sky-800 hover:text-white"
-                )}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                {label}
-              </Link>
-            )
-          })}
+        {/* Grouped nav */}
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4">
+          {groups.map((group, i) => (
+            <div key={group.label}>
+              <p className={cn(
+                "px-3 pb-2 text-xs font-semibold text-sky-400 uppercase tracking-wider",
+                i === 0 ? "pt-0" : "pt-5"
+              )}>
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map(({ href, label, icon: Icon }) => {
+                  const active = pathname.startsWith(href)
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                        active
+                          ? "bg-sky-700 text-white"
+                          : "text-sky-200 hover:bg-sky-800 hover:text-white"
+                      )}
+                    >
+                      <Icon className="w-5 h-5 shrink-0" />
+                      {label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Trial upgrade CTA */}
@@ -153,26 +188,29 @@ export default function Sidebar({ open, onClose, planData, userName, userEmail }
         )}
 
         {/* Settings nav */}
-        <div className="px-3 pb-2 space-y-1 border-t border-sky-800 pt-3">
-          {settingsNav.map(({ href, label, icon: Icon }) => {
-            const active = pathname.startsWith(href)
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={onClose}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                  active
-                    ? "bg-sky-700 text-white"
-                    : "text-sky-300 hover:bg-sky-800 hover:text-white"
-                )}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {label}
-              </Link>
-            )
-          })}
+        <div className="px-3 pb-2 border-t border-sky-800 pt-3">
+          <p className="px-3 pb-2 text-xs font-semibold text-sky-400 uppercase tracking-wider">Settings</p>
+          <div className="space-y-0.5">
+            {settingsNav.map(({ href, label, icon: Icon }) => {
+              const active = pathname.startsWith(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={onClose}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    active
+                      ? "bg-sky-700 text-white"
+                      : "text-sky-300 hover:bg-sky-800 hover:text-white"
+                  )}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
 
         {/* User profile + sign out */}

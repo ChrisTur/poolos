@@ -147,18 +147,19 @@ model Customer {
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  routeStops    RouteStop[]
-  serviceVisits ServiceVisit[]
-  invoices      Invoice[]
-  estimates     Estimate[]
-  equipment     Equipment[]
-  notes         CustomerNote[]
-  emailLogs     EmailLog[]
-  messages      CustomerMessage[]
-  alerts        CustomerAlert[]
-  tags          CustomerTag[]
-  attachments   Attachment[]
-  issueReports  IssueReport[]
+  routeStops      RouteStop[]
+  serviceVisits   ServiceVisit[]
+  invoices        Invoice[]
+  estimates       Estimate[]
+  equipment       Equipment[]
+  notes           CustomerNote[]
+  emailLogs       EmailLog[]
+  messages        CustomerMessage[]
+  alerts          CustomerAlert[]
+  tags            CustomerTag[]
+  attachments     Attachment[]
+  issueReports    IssueReport[]
+  checklistItems  VisitChecklistItem[]
 }
 
 model CustomerNote {
@@ -254,13 +255,15 @@ model ServiceVisit {
 }
 
 model VisitChecklistItem {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  label     String
-  position  Int      @default(0)
-  isActive  Boolean  @default(true)
-  companyId String
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  id         String    @id @default(cuid())
+  createdAt  DateTime  @default(now())
+  label      String
+  position   Int       @default(0)
+  isActive   Boolean   @default(true)
+  companyId  String
+  customerId String?
+  company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model Invoice {

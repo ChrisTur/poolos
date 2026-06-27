@@ -2,12 +2,13 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, AlertTriangle } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, AlertTriangle, ClipboardList, ToggleLeft, ToggleRight } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote, disableAutoPay } from "@/lib/actions/customers"
+import { addCustomerChecklistItem, deleteChecklistItem, toggleChecklistItem } from "@/lib/actions/checklist"
 import { createIssueReport, updateIssueStatus } from "@/lib/actions/issues"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import { chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
@@ -57,6 +58,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         alerts: { orderBy: { createdAt: "desc" } },
         tags: { include: { tag: true } },
         attachments: { orderBy: { createdAt: "desc" } },
+        checklistItems: { orderBy: { position: "asc" } },
       },
     }),
     db.emailLog.findMany({
@@ -248,6 +250,49 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                 equipment={customer.equipment}
                 users={companyUsers}
               />
+            </CardBody>
+          </Card>
+
+          {/* Customer-specific checklist */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <ClipboardList className="w-3.5 h-3.5 text-gray-400" /> Visit Checklist
+              </h2>
+              <p className="text-xs text-gray-400">Items added here appear only on this customer&apos;s visits</p>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              {customer.checklistItems.length > 0 && (
+                <ul className="divide-y divide-gray-100">
+                  {customer.checklistItems.map((item) => {
+                    const deleteAction = deleteChecklistItem.bind(null, item.id)
+                    const toggleAction = toggleChecklistItem.bind(null, item.id, !item.isActive)
+                    return (
+                      <li key={item.id} className={`flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 ${!item.isActive ? "opacity-50" : ""}`}>
+                        <span className="flex-1 text-sm text-gray-800">{item.label}</span>
+                        <form action={toggleAction}>
+                          <button type="submit" title={item.isActive ? "Disable" : "Enable"} className="text-gray-400 hover:text-sky-600 transition-colors">
+                            {item.isActive ? <ToggleRight className="w-5 h-5 text-sky-600" /> : <ToggleLeft className="w-5 h-5" />}
+                          </button>
+                        </form>
+                        <ConfirmButton action={deleteAction} confirm={`Delete "${item.label}"?`} variant="ghost" size="sm" className="text-gray-300 hover:text-red-500 !px-1 !py-1">
+                          <Trash2 className="w-4 h-4" />
+                        </ConfirmButton>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              <form action={addCustomerChecklistItem} className="flex gap-2 pt-1 border-t border-gray-100">
+                <input type="hidden" name="customerId" value={id} />
+                <input
+                  name="label"
+                  required
+                  placeholder="e.g. Check back gate latch"
+                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <Button type="submit" size="sm"><Plus className="w-4 h-4" /> Add</Button>
+              </form>
             </CardBody>
           </Card>
 
