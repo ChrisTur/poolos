@@ -4,7 +4,7 @@ import {
   CalendarDays, MapPin, ClipboardList, FlaskConical, Wrench, AlertTriangle,
   FileText, FileEdit, CreditCard, Receipt, BarChart2, TrendingUp, Clock,
   Users, Globe, MessageSquare, Mail, Bell, Star,
-  Shield, UserCog, Download, LifeBuoy, Building2, ChevronRight,
+  Shield, UserCog, Download, LifeBuoy, ChevronRight,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
 import MarketingFooter from "@/components/marketing/MarketingFooter"
@@ -280,11 +280,6 @@ const SECTIONS: Section[] = [
         icon: Globe,
         title: "Customer Import",
         description: "Bulk import existing customers via CSV. Downloadable template with field mapping included.",
-      },
-      {
-        icon: Building2,
-        title: "Multi-Location Ready",
-        description: "Each company account is fully isolated. Platform-level super admin with view-as mode for managing multiple companies.",
       },
     ],
   },
