@@ -198,6 +198,16 @@ export default async function HomePage() {
                   </span>
                 ))}
               </div>
+
+              <div className="mt-5">
+                <Link
+                  href="/why"
+                  className="inline-flex items-center gap-1 text-sm text-sky-600 hover:text-sky-800 font-medium transition-colors"
+                >
+                  Why we built PoolOS
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
 
             {/* Dashboard mockup — desktop only (lg+) */}

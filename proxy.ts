@@ -14,11 +14,14 @@ const publicPrefixes = [
   "/chemistry",
   "/api/auth",
   "/api/health",
+  "/monitoring",
+  "/opengraph-image",
   "/pay/",
   "/portal/",
   "/feedback/",
   "/blog",
   "/features",
+  "/why",
   "/waitlist",
 ]
 
