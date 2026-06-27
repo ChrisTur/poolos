@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { getPlanFromDb } from "@/lib/plans-db"
 
 // ── CSV parser ──────────────────────────────────────────────────────────────
@@ -89,7 +89,7 @@ export async function importCustomersFromCSV(
   _: unknown,
   formData: FormData,
 ): Promise<ImportResult> {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
 
   const file = formData.get("file") as File | null
   if (!file || file.size === 0) {

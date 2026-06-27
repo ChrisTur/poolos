@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireOwner } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { inviteUser, deactivateUser, resetUserPassword } from "@/lib/actions/company"
 import { cookies } from "next/headers"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
@@ -12,7 +12,7 @@ import ConfirmButton from "@/components/ui/ConfirmButton"
 export const dynamic = "force-dynamic"
 
 export default async function UsersPage({ searchParams }: { searchParams: Promise<{ inviteError?: string }> }) {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.team")
   const cookieStore = await cookies()
   const flashRaw = cookieStore.get("_flash_cred")?.value
   let flash: { password: string; email: string; type: string } | null = null

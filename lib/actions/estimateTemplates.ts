@@ -1,12 +1,12 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function createTemplate(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
 
   const name        = formData.get("name") as string
   const description = (formData.get("description") as string) || null
@@ -34,7 +34,7 @@ export async function createTemplate(formData: FormData) {
 }
 
 export async function updateTemplate(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
   const tpl = await db.estimateTemplate.findFirst({ where: { id, companyId } })
   if (!tpl) return
 
@@ -65,7 +65,7 @@ export async function updateTemplate(id: string, formData: FormData) {
 }
 
 export async function deleteTemplate(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
   const tpl = await db.estimateTemplate.findFirst({ where: { id, companyId } })
   if (!tpl) return
   await db.estimateTemplate.delete({ where: { id } })

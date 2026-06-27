@@ -1,7 +1,7 @@
 "use server"
 
 import { stripe } from "@/lib/stripe"
-import { requireOwner } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
 
@@ -30,7 +30,7 @@ const PRICE_IDS: Record<string, Record<string, string | undefined>> = {
 const TRIAL_DAYS = 14
 
 export async function createCheckoutSession(formData: FormData) {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.billing")
   const planId = formData.get("planId") as string
   const period = (formData.get("period") as string) === "annual" ? "annual" : "monthly"
 
@@ -74,7 +74,7 @@ export async function createCheckoutSession(formData: FormData) {
 }
 
 export async function createPortalSession() {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.billing")
 
   const company = await db.company.findUnique({
     where: { id: companyId },

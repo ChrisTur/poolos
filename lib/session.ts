@@ -2,6 +2,8 @@ import { getSession, type SessionUser } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
+import { cache } from "react"
+import type { Permission } from "@/lib/permissions"
 
 export type { SessionUser }
 
@@ -41,6 +43,23 @@ export async function requireOwner(): Promise<AppSession> {
   const user = await requireSession()
   if (user.role !== "owner") redirect("/dashboard")
   return user
+}
+
+// Cache role permissions per request to avoid N+1 DB hits
+const fetchRolePermissions = cache(async (roleName: string): Promise<Set<string>> => {
+  const role = await db.role.findUnique({
+    where: { name: roleName },
+    select: { permissions: true },
+  })
+  return new Set(role?.permissions ?? [])
+})
+
+export async function requirePermission(permission: Permission): Promise<AppSession> {
+  const session = await requireSession()
+  // requireSession() swaps super_admin view-as to role:"owner" which has all permissions
+  const permissions = await fetchRolePermissions(session.role)
+  if (!permissions.has(permission)) redirect("/dashboard")
+  return session
 }
 
 export async function requireAdmin(): Promise<AppSession> {

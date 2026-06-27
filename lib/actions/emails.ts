@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildInvoiceHtml, buildReceiptHtml } from "@/lib/email"
 
@@ -66,7 +66,7 @@ function buildSendParams(invoice: NonNullable<Awaited<ReturnType<typeof fetchInv
 }
 
 export async function sendInvoiceEmail(invoiceId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const customMessage = (formData.get("message") as string) || null
 
   const invoice = await fetchInvoiceForEmail(invoiceId, companyId)
@@ -107,7 +107,7 @@ export async function sendInvoiceEmail(invoiceId: string, formData: FormData) {
 }
 
 export async function sendReminderEmail(invoiceId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const customMessage = (formData.get("message") as string) || null
 
   const invoice = await fetchInvoiceForEmail(invoiceId, companyId)
@@ -148,7 +148,7 @@ export async function sendReminderEmail(invoiceId: string, formData: FormData) {
 }
 
 export async function sendReceiptEmail(invoiceId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
 
   const invoice = await db.invoice.findFirst({
     where: { id: invoiceId, companyId },
@@ -196,7 +196,7 @@ export async function sendReceiptEmail(invoiceId: string) {
 }
 
 export async function sendBulkOverdueReminders(_formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
 
   const invoices = await db.invoice.findMany({
     where: {
@@ -253,7 +253,7 @@ export async function sendBulkOverdueReminders(_formData: FormData) {
 }
 
 export async function sendBulkInvoiceEmails(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const month = parseInt(formData.get("month") as string)
   const year = parseInt(formData.get("year") as string)
 

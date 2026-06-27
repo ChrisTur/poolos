@@ -1,11 +1,11 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
 export async function addEquipment(customerId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("equipment.manage")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
 
@@ -31,7 +31,7 @@ export async function addEquipment(customerId: string, formData: FormData) {
 }
 
 export async function deleteEquipment(equipmentId: string, customerId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("equipment.manage")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
   await db.equipment.delete({ where: { id: equipmentId } })
@@ -39,7 +39,7 @@ export async function deleteEquipment(equipmentId: string, customerId: string) {
 }
 
 export async function updateEquipment(equipmentId: string, customerId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("equipment.manage")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
 
@@ -65,7 +65,7 @@ export async function updateEquipment(equipmentId: string, customerId: string, f
 }
 
 export async function addServiceRecord(equipmentId: string, customerId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("equipment.manage")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
 
@@ -98,7 +98,7 @@ export async function addServiceRecord(equipmentId: string, customerId: string, 
 }
 
 export async function deleteServiceRecord(recordId: string, customerId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("equipment.manage")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
 

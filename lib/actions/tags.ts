@@ -1,11 +1,11 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
 export async function addTagToCustomer(customerId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
 
@@ -33,7 +33,7 @@ export async function addTagToCustomer(customerId: string, formData: FormData) {
 }
 
 export async function removeTagFromCustomer(customerId: string, tagId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const customer = await db.customer.findFirst({ where: { id: customerId, companyId } })
   if (!customer) return
 

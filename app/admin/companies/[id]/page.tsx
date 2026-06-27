@@ -19,13 +19,13 @@ export default async function AdminCompanyDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ reset?: string; resetError?: string }>
+  searchParams: Promise<{ reset?: string; resetError?: string; planSaved?: string }>
 }) {
   const session = await getSession()
   if (session?.role !== "super_admin") redirect("/dashboard")
 
   const { id } = await params
-  const { reset, resetError } = await searchParams
+  const { reset, resetError, planSaved } = await searchParams
 
   const company = await db.company.findUnique({
     where: { id },
@@ -162,6 +162,11 @@ export default async function AdminCompanyDetailPage({
         <CardBody className="space-y-5">
 
           {/* Plan picker form */}
+          {planSaved && (
+            <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800">
+              Plan updated to <strong>{getPlan(company.plan).label}</strong> and saved.
+            </div>
+          )}
           <form action={planAction} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>

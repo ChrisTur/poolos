@@ -1,12 +1,12 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { redirect } from "next/navigation"
 
 // Used as a plain form action on the customer detail page (no return value needed)
 export async function createIssueReport(formData: FormData) {
-  const user = await requireSession()
+  const user = await requirePermission("issues.manage")
   const companyId = user.companyId as string
 
   const customerId = formData.get("customerId") as string
@@ -27,7 +27,7 @@ export async function createIssueReport(formData: FormData) {
 }
 
 export async function createIssueFromList(_: unknown, formData: FormData) {
-  const user = await requireSession()
+  const user = await requirePermission("issues.manage")
   const companyId = user.companyId as string
 
   const customerId = formData.get("customerId") as string
@@ -48,7 +48,7 @@ export async function createIssueFromList(_: unknown, formData: FormData) {
 }
 
 export async function updateIssueStatus(issueId: string, status: string) {
-  const user = await requireSession()
+  const user = await requirePermission("issues.manage")
   const companyId = user.companyId as string
 
   const issue = await db.issueReport.findFirst({ where: { id: issueId, companyId } })

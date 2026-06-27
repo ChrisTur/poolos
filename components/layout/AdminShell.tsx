@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 import NotificationBell from "./NotificationBell"
 import type { AdminNotification } from "@/lib/notifications"
@@ -13,6 +13,7 @@ const platformNav = [
   { href: "/admin",           label: "Overview",  icon: LayoutDashboard },
   { href: "/admin/companies", label: "Companies", icon: Building2 },
   { href: "/admin/users",     label: "Users",     icon: Users },
+  { href: "/admin/roles",     label: "Roles",     icon: Shield },
   { href: "/admin/plans",     label: "Plans",     icon: CreditCard },
   { href: "/admin/support",   label: "Support",   icon: LifeBuoy },
   { href: "/admin/contact",   label: "Inbox",     icon: Inbox },

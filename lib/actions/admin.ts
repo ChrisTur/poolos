@@ -109,6 +109,7 @@ export async function adminUpdatePlan(id: string, formData: FormData) {
   })
   revalidatePath(`/admin/companies/${id}`)
   revalidatePath("/admin/companies")
+  redirect(`/admin/companies/${id}?planSaved=1`)
 }
 
 export async function adminCreateCompany(formData: FormData) {
@@ -126,14 +127,14 @@ export async function adminCreateCompany(formData: FormData) {
   const hashed = await bcrypt.hash(password, 12)
   const slug = await uniqueSlug(slugify(companyName))
 
-  const trialEndsAt = new Date()
-  trialEndsAt.setDate(trialEndsAt.getDate() + 14)
+  const plan = (formData.get("plan") as string) || "trial"
+  const trialEndsAt = plan === "trial" ? (() => { const d = new Date(); d.setDate(d.getDate() + 14); return d })() : null
 
   await db.company.create({
     data: {
       name: companyName,
       slug,
-      plan: "trial",
+      plan,
       trialEndsAt,
       users: {
         create: { firstName, lastName, email, password: hashed, role: "owner" },
