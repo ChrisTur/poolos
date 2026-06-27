@@ -52,7 +52,7 @@ const TEMPLATES = [
   { label: "No access",        body: "Unable to access pool today. Please ensure gate is unlocked for the next scheduled visit." },
 ]
 
-const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
 
 // ── Dosing summary (compact inline display) ───────────────────────────────────
 
@@ -376,7 +376,7 @@ export default function LogVisitForm({
               key={s.value}
               type="button"
               onClick={() => setStatus(s.value)}
-              className={`flex-1 py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
+              className={`flex-1 py-3 px-3 rounded-lg border text-sm font-medium transition-all ${
                 status === s.value
                   ? `${s.color} ring-2`
                   : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
@@ -398,14 +398,14 @@ export default function LogVisitForm({
         </div>
 
         {/* Saltwater toggle */}
-        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+        <label className="flex items-center gap-3 mb-3 cursor-pointer select-none rounded-lg px-1 py-2 -mx-1 hover:bg-gray-50 active:bg-gray-100 transition-colors">
           <input
             type="checkbox"
             checked={saltwater}
             onChange={(e) => setSaltwater(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+            className="w-5 h-5 rounded border-gray-300 text-sky-600 focus:ring-sky-500 shrink-0 cursor-pointer"
           />
-          <span className="text-sm text-gray-700">Saltwater pool</span>
+          <span className="text-sm text-gray-700 flex-1">Saltwater pool</span>
           {inferredSaltwater && !saltwater && (
             <span className="text-xs text-amber-600">(detected from pool type)</span>
           )}
@@ -427,6 +427,7 @@ export default function LogVisitForm({
               <input
                 name={f.name}
                 type="number"
+                inputMode="decimal"
                 step={f.step}
                 min="0"
                 placeholder="—"
@@ -458,21 +459,31 @@ export default function LogVisitForm({
             {activeChecklist.map((item) => {
               const isChecked = checked.has(item.id)
               return (
-                <label
+                <div
                   key={item.id}
-                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${isChecked ? "bg-green-50" : "bg-white hover:bg-gray-50"}`}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                  tabIndex={0}
+                  onClick={() => toggleCheck(item.id)}
+                  onKeyDown={(e) => (e.key === " " || e.key === "Enter") && toggleCheck(item.id)}
+                  className={`flex items-center gap-3 px-4 py-4 cursor-pointer select-none transition-colors active:opacity-70 ${
+                    isChecked ? "bg-green-50" : "bg-white hover:bg-gray-50 active:bg-gray-100"
+                  }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => toggleCheck(item.id)}
-                    className={`shrink-0 transition-colors ${isChecked ? "text-green-600" : "text-gray-300"}`}
-                  >
+                  <div className={`shrink-0 transition-colors ${isChecked ? "text-green-500" : "text-gray-300"}`}>
                     {isChecked
-                      ? <CheckSquare className="w-5 h-5" />
-                      : <Square className="w-5 h-5" />}
-                  </button>
-                  <span className={`text-sm ${isChecked ? "text-green-800" : "text-gray-700"}`}>{item.label}</span>
-                </label>
+                      ? <CheckSquare className="w-6 h-6" />
+                      : <Square className="w-6 h-6" />}
+                  </div>
+                  <span className={`text-sm font-medium flex-1 leading-snug ${isChecked ? "text-green-800" : "text-gray-700"}`}>
+                    {item.label}
+                  </span>
+                  {isChecked && (
+                    <span className="shrink-0 text-xs font-semibold text-green-600 bg-green-100 rounded-full px-2 py-0.5">
+                      Done
+                    </span>
+                  )}
+                </div>
               )
             })}
           </div>
@@ -542,7 +553,7 @@ export default function LogVisitForm({
                       placeholder="e.g. Chlorine tablets"
                       value={row.productName}
                       onChange={(e) => updateChemicalRow(i, "productName", e.target.value)}
-                      className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
                     />
                     <button
                       type="button"
@@ -558,12 +569,13 @@ export default function LogVisitForm({
                       <label className="block text-xs text-gray-500 mb-1">Qty</label>
                       <input
                         type="number"
+                        inputMode="decimal"
                         min="0"
                         step="0.01"
                         placeholder="0"
                         value={row.quantity}
                         onChange={(e) => updateChemicalRow(i, "quantity", e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                       />
                     </div>
                     <div>
@@ -571,7 +583,7 @@ export default function LogVisitForm({
                       <select
                         value={row.unit}
                         onChange={(e) => updateChemicalRow(i, "unit", e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                       >
                         {UNITS.map((u) => (
                           <option key={u} value={u}>{u}</option>
@@ -582,12 +594,13 @@ export default function LogVisitForm({
                       <label className="block text-xs text-gray-500 mb-1">Unit cost $</label>
                       <input
                         type="number"
+                        inputMode="decimal"
                         min="0"
                         step="0.01"
                         placeholder="0.00"
                         value={row.unitCost}
                         onChange={(e) => updateChemicalRow(i, "unitCost", e.target.value)}
-                        className="w-full rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="w-full rounded-lg border border-gray-300 px-2.5 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                       />
                     </div>
                   </div>
@@ -602,7 +615,7 @@ export default function LogVisitForm({
             <button
               type="button"
               onClick={addChemicalRow}
-              className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-800 font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-sky-300 text-sm font-medium text-sky-600 hover:bg-sky-50 active:bg-sky-100 transition-colors"
             >
               <Plus className="w-4 h-4" />
               Add Chemical
@@ -642,10 +655,10 @@ export default function LogVisitForm({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-sky-600 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-gray-300 text-sm font-medium text-gray-500 hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 active:bg-sky-100 transition-colors"
         >
-          <Camera className="w-4 h-4" />
-          {photos.length === 0 ? "Add photos" : `${photos.length} photo${photos.length !== 1 ? "s" : ""} — add more`}
+          <Camera className="w-5 h-5" />
+          {photos.length === 0 ? "Add photos" : `${photos.length} photo${photos.length !== 1 ? "s" : ""} · tap to add more`}
         </button>
       </div>
 
