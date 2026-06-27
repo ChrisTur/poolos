@@ -10,13 +10,35 @@ export async function addChecklistItem(formData: FormData) {
   if (!label) return
 
   const last = await db.visitChecklistItem.findFirst({
-    where: { companyId },
+    where: { companyId, customerId: null },
     orderBy: { position: "desc" },
     select: { position: true },
   })
 
   await db.visitChecklistItem.create({
-    data: { companyId, label, position: (last?.position ?? -1) + 1 },
+    data: { companyId, customerId: null, label, position: (last?.position ?? -1) + 1 },
+  })
+  refresh()
+}
+
+export async function addCustomerChecklistItem(formData: FormData) {
+  const { companyId } = await requireSession()
+  const customerId = (formData.get("customerId") as string)?.trim()
+  const label      = (formData.get("label") as string)?.trim()
+  if (!customerId || !label) return
+
+  // Verify customer belongs to this company
+  const customer = await db.customer.findFirst({ where: { id: customerId, companyId }, select: { id: true } })
+  if (!customer) return
+
+  const last = await db.visitChecklistItem.findFirst({
+    where: { companyId, customerId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  })
+
+  await db.visitChecklistItem.create({
+    data: { companyId, customerId, label, position: (last?.position ?? -1) + 1 },
   })
   refresh()
 }
