@@ -204,8 +204,10 @@ export default function LogVisitForm({
     })
   }, [chem, saltwater, poolVolume])
 
-  // Checklist: only required on "completed" visits
-  const activeChecklist = status === "completed" ? checklistItems : []
+  // Checklist: global items + items specific to the selected customer
+  const activeChecklist = status === "completed"
+    ? checklistItems.filter((item) => !item.customerId || item.customerId === customerId)
+    : []
   const checklistComplete = activeChecklist.every((item) => checked.has(item.id))
 
   function toggleCheck(id: string) {

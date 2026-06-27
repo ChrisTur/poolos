@@ -16,10 +16,11 @@ interface Props {
   appBanner?: BannerData | null
   userName?: string
   userEmail?: string
+  userRole?: string
   notifications?: AppNotification[]
 }
 
-export default function AppShell({ children, viewAsCompany, planData, appBanner, userName, userEmail, notifications = [] }: Props) {
+export default function AppShell({ children, viewAsCompany, planData, appBanner, userName, userEmail, userRole, notifications = [] }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const firstName = userName?.split(" ")[0] ?? ""
@@ -29,7 +30,7 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner,
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-gray-50">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} planData={planData} userName={userName} userEmail={userEmail} />
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} planData={planData} userName={userName} userEmail={userEmail} userRole={userRole} />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-auto">
         {/* Promo banner for trial users */}
