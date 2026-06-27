@@ -6,7 +6,7 @@ import Button from "@/components/ui/Button"
 import { Building2, Plus, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import ConfirmButton from "@/components/ui/ConfirmButton"
-import { getPlan } from "@/lib/plans"
+import { getPlan, PLAN_IDS, PLANS } from "@/lib/plans"
 
 export const dynamic = "force-dynamic"
 
@@ -72,6 +72,14 @@ export default async function AdminCompaniesPage({
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Temporary Password</label>
               <input name="password" type="text" required placeholder="Set a temporary password for the owner" className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+              <select name="plan" defaultValue="trial" className={inputCls}>
+                {PLAN_IDS.map((pid) => (
+                  <option key={pid} value={pid}>{PLANS[pid].label}</option>
+                ))}
+              </select>
             </div>
             <Button type="submit">
               <Building2 className="w-4 h-4" /> Create Company

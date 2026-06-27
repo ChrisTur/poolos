@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { requireOwner } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { updatePaymentLinks } from "@/lib/actions/company"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
@@ -12,7 +12,7 @@ export default async function PaymentLinksPage({
 }: {
   searchParams: Promise<{ stripeConnected?: string; stripeError?: string }>
 }) {
-  const { companyId } = await requireOwner()
+  const { companyId } = await requirePermission("settings.payments")
   const { stripeConnected, stripeError } = await searchParams
 
   const company = await db.company.findUnique({

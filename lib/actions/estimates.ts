@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildEstimateHtml } from "@/lib/email"
@@ -21,7 +21,7 @@ function estimateNum(n: number) {
 }
 
 export async function createEstimate(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
 
   const customerId  = formData.get("customerId") as string
   const validUntil  = formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : null
@@ -56,7 +56,7 @@ export async function createEstimate(formData: FormData) {
 }
 
 export async function updateEstimate(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
   const est = await db.estimate.findFirst({ where: { id, companyId } })
   if (!est) return
 
@@ -90,7 +90,7 @@ export async function updateEstimate(id: string, formData: FormData) {
 }
 
 export async function updateEstimateStatus(id: string, status: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
   const est = await db.estimate.findFirst({ where: { id, companyId } })
   if (!est) return
   await db.estimate.update({ where: { id }, data: { status } })
@@ -98,7 +98,7 @@ export async function updateEstimateStatus(id: string, status: string) {
 }
 
 export async function deleteEstimate(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
   const est = await db.estimate.findFirst({ where: { id, companyId } })
   if (!est) return
   await db.estimate.delete({ where: { id } })
@@ -107,7 +107,7 @@ export async function deleteEstimate(id: string) {
 }
 
 export async function sendEstimateEmail(estimateId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
   const customMessage = (formData.get("message") as string) || null
 
   const estimate = await db.estimate.findFirst({
@@ -183,7 +183,7 @@ export async function sendEstimateEmail(estimateId: string, formData: FormData) 
 }
 
 export async function convertEstimateToInvoice(estimateId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("estimates.manage")
 
   const estimate = await db.estimate.findFirst({
     where: { id: estimateId, companyId },

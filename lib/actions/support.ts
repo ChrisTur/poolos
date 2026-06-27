@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession, requireSuperAdmin } from "@/lib/session"
+import { requirePermission, requireSuperAdmin } from "@/lib/session"
 import { resend, FROM } from "@/lib/email"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
@@ -10,7 +10,7 @@ const ADMIN_EMAIL = "hello@poolos.biz"
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export async function submitTicket(_: unknown, formData: FormData) {
-  const user = await requireSession()
+  const user = await requirePermission("support.view")
   const companyId = user.companyId as string
 
   const subject  = (formData.get("subject")  as string | null)?.trim()
@@ -60,7 +60,7 @@ export async function submitTicket(_: unknown, formData: FormData) {
 }
 
 export async function replyToTicket(_: unknown, formData: FormData) {
-  const user = await requireSession()
+  const user = await requirePermission("support.view")
   const ticketId = formData.get("ticketId") as string
   const body     = (formData.get("body") as string | null)?.trim()
 

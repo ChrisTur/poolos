@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { sendReceiptEmail } from "@/lib/actions/emails"
@@ -22,7 +22,7 @@ function invoiceNum(n: number) {
 }
 
 export async function createInvoice(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
 
   const customerId   = formData.get("customerId") as string
   const dueDate      = new Date(formData.get("dueDate") as string)
@@ -58,7 +58,7 @@ export async function createInvoice(formData: FormData) {
 }
 
 export async function updateInvoiceStatus(id: string, status: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const inv = await db.invoice.findFirst({ where: { id, companyId } })
   if (!inv) return
   await db.invoice.update({ where: { id }, data: { status } })
@@ -68,7 +68,7 @@ export async function updateInvoiceStatus(id: string, status: string) {
 }
 
 export async function markInvoicePaid(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const inv = await db.invoice.findFirst({
     where: { id, companyId },
     include: { items: true, payments: true, customer: true },
@@ -99,7 +99,7 @@ export async function markInvoicePaid(id: string, formData: FormData) {
 }
 
 export async function addPayment(invoiceId: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const inv = await db.invoice.findFirst({ where: { id: invoiceId, companyId } })
   if (!inv) return
 
@@ -137,7 +137,7 @@ export async function addPayment(invoiceId: string, formData: FormData) {
 }
 
 export async function updateInvoice(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const inv = await db.invoice.findFirst({ where: { id, companyId } })
   if (!inv) return
 
@@ -171,7 +171,7 @@ export async function updateInvoice(id: string, formData: FormData) {
 }
 
 export async function deletePayment(paymentId: string, invoiceId: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   const inv = await db.invoice.findFirst({ where: { id: invoiceId, companyId } })
   if (!inv) return
 
@@ -237,14 +237,14 @@ export async function markOverdueInvoices(companyId: string) {
 }
 
 export async function deleteInvoice(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
   await db.invoice.deleteMany({ where: { id, companyId } })
   revalidatePath("/invoices")
   redirect("/invoices")
 }
 
 export async function generateMonthlyInvoices(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("invoices.manage")
 
   const month = parseInt(formData.get("month") as string) // 1–12
   const year = parseInt(formData.get("year") as string)

@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
@@ -12,7 +12,7 @@ function parseDate(raw: string): Date {
 }
 
 export async function createExpense(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("expenses.manage")
 
   await db.expense.create({
     data: {
@@ -32,7 +32,7 @@ export async function createExpense(formData: FormData) {
 }
 
 export async function updateExpense(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("expenses.manage")
   const exp = await db.expense.findFirst({ where: { id, companyId } })
   if (!exp) return
 
@@ -54,7 +54,7 @@ export async function updateExpense(id: string, formData: FormData) {
 }
 
 export async function deleteExpense(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("expenses.manage")
   const exp = await db.expense.findFirst({ where: { id, companyId } })
   if (!exp) return
   await db.expense.delete({ where: { id } })

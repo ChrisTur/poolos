@@ -254,6 +254,17 @@ model ServiceVisit {
   chemicalUsages  ChemicalUsage[]
 }
 
+model Role {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String   @unique
+  label       String
+  description String?
+  isBuiltIn   Boolean  @default(false)
+  permissions String[]
+}
+
 model VisitChecklistItem {
   id         String    @id @default(cuid())
   createdAt  DateTime  @default(now())

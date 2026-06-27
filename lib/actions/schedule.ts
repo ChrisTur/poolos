@@ -1,10 +1,10 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 
 export async function getMonthVisits(year: number, month: number) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("schedule.view")
   const start = new Date(year, month, 1)
   const end   = new Date(year, month + 1, 0, 23, 59, 59, 999)
 

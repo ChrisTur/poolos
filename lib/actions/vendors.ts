@@ -1,12 +1,12 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 
 export async function createVendor(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("expenses.manage")
 
   await db.vendor.create({
     data: {
@@ -21,7 +21,7 @@ export async function createVendor(formData: FormData) {
 }
 
 export async function updateVendor(id: string, formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("expenses.manage")
   const v = await db.vendor.findFirst({ where: { id, companyId } })
   if (!v) return
 
@@ -39,7 +39,7 @@ export async function updateVendor(id: string, formData: FormData) {
 }
 
 export async function deleteVendor(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("expenses.manage")
   const v = await db.vendor.findFirst({ where: { id, companyId } })
   if (!v) return
   await db.vendor.delete({ where: { id } })

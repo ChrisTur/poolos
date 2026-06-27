@@ -1,11 +1,11 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { refresh } from "next/cache"
 
 export async function addChecklistItem(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("settings.checklist")
   const label = (formData.get("label") as string)?.trim()
   if (!label) return
 
@@ -22,7 +22,7 @@ export async function addChecklistItem(formData: FormData) {
 }
 
 export async function addCustomerChecklistItem(formData: FormData) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("settings.checklist")
   const customerId = (formData.get("customerId") as string)?.trim()
   const label      = (formData.get("label") as string)?.trim()
   if (!customerId || !label) return
@@ -44,13 +44,13 @@ export async function addCustomerChecklistItem(formData: FormData) {
 }
 
 export async function deleteChecklistItem(id: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("settings.checklist")
   await db.visitChecklistItem.deleteMany({ where: { id, companyId } })
   refresh()
 }
 
 export async function toggleChecklistItem(id: string, isActive: boolean) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("settings.checklist")
   await db.visitChecklistItem.updateMany({ where: { id, companyId }, data: { isActive } })
   refresh()
 }

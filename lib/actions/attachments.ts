@@ -2,11 +2,11 @@
 
 import { bucket, publicUrl } from "@/lib/gcs"
 import { db } from "@/lib/db"
-import { requireSession } from "@/lib/session"
+import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
 export async function getUploadUrl(filename: string, mimeType: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
   const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, "_")
   const key = `${companyId}/${Date.now()}-${safeFilename}`
 
@@ -35,7 +35,7 @@ export async function saveAttachment({
   customerId?: string
   serviceVisitId?: string
 }) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
 
   await db.attachment.create({
     data: { key, filename, mimeType, size, customerId: customerId ?? null, serviceVisitId: serviceVisitId ?? null, companyId },
@@ -45,7 +45,7 @@ export async function saveAttachment({
 }
 
 export async function deleteAttachment(id: string, customerId?: string) {
-  const { companyId } = await requireSession()
+  const { companyId } = await requirePermission("customers.edit")
 
   const attachment = await db.attachment.findFirst({ where: { id, companyId } })
   if (!attachment) return
@@ -61,7 +61,7 @@ export async function deleteAttachment(id: string, customerId?: string) {
 }
 
 export async function getAttachmentUrl(key: string) {
-  const { companyId: _ } = await requireSession() // auth gate
+  const { companyId: _ } = await requirePermission("customers.edit") // auth gate
 
   // Signed read URL valid for 1 hour
   const [url] = await bucket().file(key).getSignedUrl({
