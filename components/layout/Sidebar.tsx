@@ -24,6 +24,7 @@ import {
   Mail,
   LifeBuoy,
   AlertTriangle,
+  Download,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -54,6 +55,7 @@ const settingsNav: NavItem[] = [
   { href: "/settings/payments",  label: "Payments",  icon: CreditCard,   permission: "settings.payments" },
   { href: "/settings/users",     label: "Team",      icon: UserCog,      permission: "settings.team" },
   { href: "/settings/billing",   label: "Billing",   icon: Receipt,      permission: "settings.billing" },
+  { href: "/settings/export",    label: "Export Data",icon: Download,     permission: "data.export" },
   { href: "/support",            label: "Support",   icon: LifeBuoy,     permission: "support.view" },
 ]
 

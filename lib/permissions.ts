@@ -31,6 +31,9 @@ export const PERMISSIONS = {
 
   // Support
   "support.view":       "Access support",
+
+  // Data
+  "data.export":        "Download full data export",
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
@@ -67,6 +70,10 @@ export const PERMISSION_GROUPS: { label: string; keys: Permission[] }[] = [
   {
     label: "Support",
     keys: ["support.view"],
+  },
+  {
+    label: "Data",
+    keys: ["data.export"],
   },
 ]
 
