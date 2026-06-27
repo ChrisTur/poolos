@@ -13,8 +13,8 @@
 - [x] ⚡ Customer feedback — 1–5 star rating in the proof-of-service email (token link); public /feedback/[token] page; low scores (1–2) surface in notification bell for 30 days
 - [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
 - [x] ⚡ Chemical cost & usage tracking — log chemicals (product, qty, unit, unit cost) per visit from the log-visit form; chemical cost bar chart on /reports; per-visit breakdown on customer detail page
-- [ ] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
-- [ ] Digital signatures on estimates — customer signs the approved estimate online via the portal
+- [x] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
+- [x] Digital signatures on estimates — customer signs the approved estimate online via the portal
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
 
 ### Competitive Parity — Analytics & Management

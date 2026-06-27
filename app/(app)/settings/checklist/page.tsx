@@ -2,8 +2,9 @@ import { db } from "@/lib/db"
 import { requireOwner } from "@/lib/session"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { addChecklistItem, deleteChecklistItem, toggleChecklistItem } from "@/lib/actions/checklist"
-import { Trash2, Plus, ToggleLeft, ToggleRight, ClipboardList } from "lucide-react"
+import { Plus, ToggleLeft, ToggleRight, ClipboardList, Trash2 } from "lucide-react"
 import Button from "@/components/ui/Button"
+import ConfirmButton from "@/components/ui/ConfirmButton"
 
 export const dynamic = "force-dynamic"
 
@@ -56,13 +57,15 @@ export default async function ChecklistSettingsPage() {
                           : <ToggleLeft className="w-5 h-5" />}
                       </button>
                     </form>
-                    <form action={deleteAction} onSubmit={(e) => {
-                      if (!confirm(`Delete "${item.label}"?`)) e.preventDefault()
-                    }}>
-                      <button type="submit" className="text-gray-300 hover:text-red-500 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </form>
+                    <ConfirmButton
+                      action={deleteAction}
+                      confirm={`Delete "${item.label}"?`}
+                      variant="ghost"
+                      size="sm"
+                      className="text-gray-300 hover:text-red-500 !px-1 !py-1"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </ConfirmButton>
                   </li>
                 )
               })}
