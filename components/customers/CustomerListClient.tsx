@@ -119,14 +119,14 @@ export default function CustomerListClient({ customers, allCustomers }: Props) {
                 </Link>
                 <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
               </div>
-              <div className="flex items-center gap-1 border-t border-gray-100 px-3 py-1.5">
-                <Link href={`/customers/${c.id}/edit`}>
-                  <button className="p-1.5 rounded-lg text-gray-400 hover:text-sky-600 hover:bg-sky-50 transition-colors">
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
+              <div className="flex items-center border-t border-gray-100">
+                <Link href={`/customers/${c.id}/edit`} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-gray-500 hover:text-sky-600 hover:bg-sky-50 active:bg-sky-100 transition-colors border-r border-gray-100">
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
                 </Link>
-                <ConfirmButton action={deleteAction} confirm={`Delete ${c.firstName} ${c.lastName}?`} variant="danger" size="sm" className="p-1.5">
+                <ConfirmButton action={deleteAction} confirm={`Delete ${c.firstName} ${c.lastName}?`} variant="danger" size="sm" className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium !rounded-none">
                   <Trash2 className="w-3.5 h-3.5" />
+                  Delete
                 </ConfirmButton>
               </div>
             </Card>
