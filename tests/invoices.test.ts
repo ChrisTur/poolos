@@ -19,14 +19,17 @@ vi.mock("@/lib/db", () => ({
   },
 }))
 
+const mockSession = {
+  id: "user-1",
+  companyId: "company-1",
+  companyName: "Test Pool Co",
+  role: "owner",
+  email: "owner@testpool.com",
+}
+
 vi.mock("@/lib/session", () => ({
-  requireSession: vi.fn().mockResolvedValue({
-    id: "user-1",
-    companyId: "company-1",
-    companyName: "Test Pool Co",
-    role: "owner",
-    email: "owner@testpool.com",
-  }),
+  requireSession:    vi.fn().mockResolvedValue(mockSession),
+  requirePermission: vi.fn().mockResolvedValue(mockSession),
 }))
 
 vi.mock("@/lib/stripe", () => ({
