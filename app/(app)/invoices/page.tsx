@@ -14,14 +14,24 @@ export const dynamic = "force-dynamic"
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; generated?: string; reminded?: string; failed?: string }>
+  searchParams: Promise<{ status?: string; from?: string; to?: string; serviceType?: string; generated?: string; reminded?: string; failed?: string }>
 }) {
   const { companyId } = await requireSession()
   await markOverdueInvoices(companyId)
-  const { status, generated, reminded, failed: reminderFailed } = await searchParams
+  const { status, from, to, serviceType, generated, reminded, failed: reminderFailed } = await searchParams
 
   const invoices = await db.invoice.findMany({
-    where: status && status !== "all" ? { companyId, status } : { companyId },
+    where: {
+      companyId,
+      ...(status && status !== "all" ? { status } : {}),
+      ...(serviceType ? { serviceType } : {}),
+      ...(from || to ? {
+        issuedAt: {
+          ...(from ? { gte: new Date(from) } : {}),
+          ...(to   ? { lte: new Date(to + "T23:59:59") } : {}),
+        },
+      } : {}),
+    },
     orderBy: status === "overdue" ? { dueDate: "asc" } : { createdAt: "desc" },
     include: {
       customer: true,
@@ -69,6 +79,18 @@ export default async function InvoicesPage({
           {reminderFailed && parseInt(reminderFailed) > 0 && (
             <span className="text-red-700"> {reminderFailed} failed — check individual invoices.</span>
           )}
+        </div>
+      )}
+
+      {(from || to || serviceType) && (
+        <div className="rounded-lg bg-sky-50 border border-sky-200 px-4 py-2.5 text-sm text-sky-800 flex items-center justify-between gap-2">
+          <span>
+            Filtered
+            {serviceType ? ` · Service type: ${serviceType}` : ""}
+            {from ? ` · From ${from}` : ""}
+            {to   ? ` · To ${to}` : ""}
+          </span>
+          <Link href="/invoices" className="text-sky-600 hover:text-sky-900 font-medium whitespace-nowrap">Clear ×</Link>
         </div>
       )}
 
