@@ -29,13 +29,16 @@ async function uniqueSlug(base: string) {
 }
 
 export async function registerCompany(formData: FormData) {
-  const companyName = formData.get("companyName") as string
-  const firstName   = formData.get("firstName")   as string
-  const lastName    = formData.get("lastName")     as string
-  const email       = (formData.get("email") as string).toLowerCase()
-  const password    = formData.get("password") as string
-  const refCode     = ((formData.get("ref") as string) ?? "").trim().toUpperCase()
+  const companyName    = formData.get("companyName")    as string
+  const firstName      = formData.get("firstName")      as string
+  const lastName       = formData.get("lastName")       as string
+  const email          = (formData.get("email") as string).toLowerCase()
+  const password       = formData.get("password")       as string
+  const refCode        = ((formData.get("ref") as string) ?? "").trim().toUpperCase()
+  const tcAccepted     = formData.get("tcAccepted")     === "on"
+  const marketingOptIn = formData.get("marketingOptIn") === "on"
 
+  if (!tcAccepted) return { error: "You must accept the Terms of Service and Privacy Policy to continue." }
   if (password.length < 8) return { error: "Password must be at least 8 characters." }
   if (await isPasswordBreached(password)) {
     return { error: "This password has appeared in a known data breach. Please choose a different one." }
@@ -51,6 +54,8 @@ export async function registerCompany(formData: FormData) {
     data: {
       name: companyName,
       slug,
+      tcAcceptedAt:   new Date(),
+      marketingOptIn,
       users: {
         create: { firstName, lastName, email, password: hashed, role: "owner" },
       },

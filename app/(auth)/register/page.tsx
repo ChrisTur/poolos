@@ -80,6 +80,37 @@ function RegisterForm() {
           />
         </div>
 
+        {/* T&C — required */}
+        <div className="flex items-start gap-3 pt-1">
+          <input
+            id="tcAccepted"
+            name="tcAccepted"
+            type="checkbox"
+            required
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 shrink-0 cursor-pointer"
+          />
+          <label htmlFor="tcAccepted" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
+            I agree to the PoolOS{" "}
+            <Link href="/terms" target="_blank" className="text-sky-600 hover:underline font-medium">Terms of Service</Link>
+            {" "}and{" "}
+            <Link href="/privacy" target="_blank" className="text-sky-600 hover:underline font-medium">Privacy Policy</Link>. *
+          </label>
+        </div>
+
+        {/* Marketing opt-in — optional */}
+        <div className="flex items-start gap-3">
+          <input
+            id="marketingOptIn"
+            name="marketingOptIn"
+            type="checkbox"
+            defaultChecked
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 shrink-0 cursor-pointer"
+          />
+          <label htmlFor="marketingOptIn" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
+            Send me product updates, tips, and occasional news from PoolOS. You can unsubscribe at any time.
+          </label>
+        </div>
+
         {state?.error && (
           <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{state.error}</p>
         )}
@@ -88,10 +119,6 @@ function RegisterForm() {
           {pending ? "Creating account…" : "Create Account"}
         </Button>
       </form>
-
-      <p className="text-center text-xs text-gray-400 mt-4">
-        By signing up you agree to our terms of service.
-      </p>
 
       <p className="text-center text-sm text-gray-500 mt-3">
         Already have an account?{" "}
