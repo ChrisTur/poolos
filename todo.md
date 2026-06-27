@@ -9,12 +9,7 @@
 *Web features, no infrastructure blockers, ranked by impact.*
 
 ### Competitive Parity — Core Operations
-- [x] ⚡ Issue reports — techs flag problems on the customer page (leak, equipment failure, safety hazard, water quality); status tracking (open/in-progress/resolved); /issues list with filters; high-priority issues surface in notification bell
-- [x] ⚡ Customer feedback — 1–5 star rating in the proof-of-service email (token link); public /feedback/[token] page; low scores (1–2) surface in notification bell for 30 days
 - [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
-- [x] ⚡ Chemical cost & usage tracking — log chemicals (product, qty, unit, unit cost) per visit from the log-visit form; chemical cost bar chart on /reports; per-visit breakdown on customer detail page
-- [x] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
-- [x] Digital signatures on estimates — customer signs the approved estimate online via the portal
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
 
 ### Competitive Parity — Analytics & Management
@@ -28,7 +23,6 @@
 - [ ] ⚡ Technician payroll calculations — automated pay based on jobs completed; configurable rates per employee, property, body of water, and service type
 
 ### Compliance & Reliability
-- [ ] Data export — companies can download all their data as CSV/ZIP (GDPR requirement)
 - [ ] Sentry error alerting — configure alert rules so critical errors page on-call (already integrated, just needs rules)
 
 ### Integrations (External Services — No GCP Dependency)
@@ -36,7 +30,6 @@
 - [ ] SMS notifications — Twilio integration for visit reminders and alerts; start A2P 10DLC carrier registration now (takes 2–4 weeks)
 
 ### Support
-- [x] In-app support tickets — companies submit tickets from /support; admin manages at /admin/support with threaded replies, status controls (open/in-progress/resolved/closed), and email notifications both ways
 - [ ] In-app support chat — add Crisp or Intercom once companies are paying
 
 ---
@@ -83,7 +76,7 @@
 
 ### App Features
 - [x] In-app dosing calculator — live recommendations on the visit form using existing chemistry engine
-- [x] Required visit checklist — configurable items techs must confirm before logging a completed visit
+- [x] Required visit checklist — configurable items techs must confirm before logging a completed visit; global + per-customer items
 - [x] Broadcast email — bulk message to all or filtered customers (price changes, weather closures, etc.)
 - [x] Route optimization — auto-sort stops by shortest drive distance (nearest-neighbor, no API cost)
 - [x] Calendar view — visual weekly/monthly calendar showing routes and scheduled visits
@@ -92,6 +85,14 @@
 - [x] In-app notification center — bell icon for overdue invoices, portal replies, chemical alerts; admin gets new company alerts
 - [x] Equipment lifecycle management — registry (pump/filter/heater/salt cell/etc. with model, serial, install date, warranty); service history per piece (date, work, parts, cost, technician); auto-scheduling via configurable service interval with overdue badges + notification bell alerts
 - [x] Admin revenue dashboard — /admin/companies now shows KPI summary (total customers, customer MRR, platform MRR, Stripe 30d volume), plan breakdown by tier, and per-company columns for customer count, customer MRR, Stripe 30d, and subscription status
+- [x] ⚡ Issue reports — techs flag problems on the customer page (leak, equipment failure, safety hazard, water quality); status tracking (open/in-progress/resolved); /issues list with filters; high-priority issues surface in notification bell
+- [x] ⚡ Customer feedback — 1–5 star rating in the proof-of-service email (token link); public /feedback/[token] page; low scores (1–2) surface in notification bell for 30 days
+- [x] ⚡ Chemical cost & usage tracking — log chemicals (product, qty, unit, unit cost) per visit from the log-visit form; chemical cost bar chart on /reports; per-visit breakdown on customer detail page
+- [x] ⚡ Estimate approval workflow — customers approve or deny estimates from the portal; approved estimates auto-convert to a scheduled job; denial prompts a reply thread
+- [x] Digital signatures on estimates — customer signs the approved estimate online via the portal
+- [x] In-app support tickets — companies submit tickets from /support; admin manages at /admin/support with threaded replies, status controls (open/in-progress/resolved/closed), and email notifications both ways
+- [x] Role & permission management — super admin creates and edits roles with granular permissions; enforced on sidebar, all server actions, and settings pages
+- [x] Data export — companies download all their data as a ZIP of 17 CSV files (GDPR); owner-only
 
 ### Marketing & SEO
 - [x] Add a demo / walkthrough video to the hero — admin sets YouTube/Vimeo URL via /admin/site-config
