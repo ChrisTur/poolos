@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildVisitCompletionHtml } from "@/lib/email"
-import { geocodeAddress, nearestNeighborOrder } from "@/lib/geocode"
+import { geocodeAddress, nearestNeighborOrder, nearestNeighborOrderFromStart } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
   const { companyId } = await requirePermission("routes.manage")
@@ -388,36 +388,52 @@ export async function logVisit(formData: FormData) {
   revalidatePath("/schedule")
 }
 
-export async function optimizeRoute(routeId: string): Promise<{ optimized: boolean; message: string }> {
+export async function optimizeRoute(
+  routeId: string,
+  startAddress?: string,
+): Promise<{ optimized: boolean; message: string }> {
   const { companyId } = await requirePermission("routes.manage")
 
-  const route = await db.route.findFirst({
-    where: { id: routeId, companyId },
-    include: {
-      stops: {
-        orderBy: { position: "asc" },
-        include: { customer: true },
+  const [route, company] = await Promise.all([
+    db.route.findFirst({
+      where: { id: routeId, companyId },
+      include: {
+        stops: { orderBy: { position: "asc" }, include: { customer: true } },
+        assignedUser: { select: { defaultStartAddress: true } },
       },
-    },
-  })
+    }),
+    db.company.findUnique({
+      where: { id: companyId },
+      select: { address: true, city: true, state: true, zip: true },
+    }),
+  ])
 
   if (!route) return { optimized: false, message: "Route not found." }
   if (route.stops.length < 3) return { optimized: false, message: "Need at least 3 stops to optimize." }
 
-  const coords = await Promise.all(
+  const stopCoords = await Promise.all(
     route.stops.map((stop) =>
-      geocodeAddress(
-        `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`,
-      ),
+      geocodeAddress(`${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`)
     ),
   )
 
-  if (coords.some((c) => c === null)) {
+  if (stopCoords.some((c) => c === null)) {
     return { optimized: false, message: "Could not geocode all addresses — check that every stop has a full address." }
   }
 
-  const order = nearestNeighborOrder(coords as Array<{ lat: number; lng: number }>)
-  const orderedIds = order.map((i) => route.stops[i].id)
+  // Resolve start address: ad-hoc > tech default > company address
+  const resolvedStart =
+    startAddress?.trim() ||
+    route.assignedUser?.defaultStartAddress ||
+    (company?.address ? `${company.address}, ${company.city}, ${company.state} ${company.zip}` : null)
+
+  const startCoord = resolvedStart ? await geocodeAddress(resolvedStart) : null
+
+  const orderedIndices = startCoord
+    ? nearestNeighborOrderFromStart(stopCoords as Array<{ lat: number; lng: number }>, startCoord)
+    : nearestNeighborOrder(stopCoords as Array<{ lat: number; lng: number }>)
+
+  const orderedIds = orderedIndices.map((i) => route.stops[i].id)
 
   for (let i = 0; i < orderedIds.length; i++) {
     await db.routeStop.update({ where: { id: orderedIds[i] }, data: { position: i } })

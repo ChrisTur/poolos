@@ -51,7 +51,19 @@ export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
       if (cancelled || !mapRef.current) return
 
       type GMapsMap = { fitBounds: (bounds: unknown) => void }
-      type GMaps = { maps: { Map: new (...args: unknown[]) => GMapsMap; LatLngBounds: new () => { extend: (pos: unknown) => void }; Marker: new (...args: unknown[]) => void; Polyline: new (...args: unknown[]) => void } }
+      type GMaps = {
+        maps: {
+          Map: new (...args: unknown[]) => GMapsMap
+          LatLngBounds: new () => { extend: (pos: unknown) => void }
+          Marker: new (...args: unknown[]) => void
+          Polyline: new (...args: unknown[]) => void
+          DirectionsService: new () => {
+            route: (request: unknown, callback: (result: unknown, status: string) => void) => void
+          }
+          DirectionsRenderer: new (opts?: unknown) => { setDirections: (result: unknown) => void }
+          TravelMode: { DRIVING: string }
+        }
+      }
       const google = (window as unknown as { google: GMaps }).google
       const map = new google.maps.Map(mapRef.current, {
         zoom: 12,
@@ -77,14 +89,33 @@ export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
       })
 
       if (validMarkers.length > 1) {
-        new google.maps.Polyline({
-          path,
-          map,
-          strokeColor: "#0ea5e9",
-          strokeWeight: 3,
-          strokeOpacity: 0.7,
-        })
         map.fitBounds(bounds)
+
+        const ds = new google.maps.DirectionsService()
+        const dr = new google.maps.DirectionsRenderer({ map, suppressMarkers: true })
+
+        ds.route(
+          {
+            origin: { lat: validMarkers[0].lat!, lng: validMarkers[0].lng! },
+            destination: {
+              lat: validMarkers[validMarkers.length - 1].lat!,
+              lng: validMarkers[validMarkers.length - 1].lng!,
+            },
+            waypoints: validMarkers.slice(1, -1).map((m) => ({
+              location: { lat: m.lat!, lng: m.lng! },
+              stopover: true,
+            })),
+            travelMode: google.maps.TravelMode.DRIVING,
+            optimizeWaypoints: false,
+          },
+          (result, status) => {
+            if (status === "OK") {
+              dr.setDirections(result)
+            } else {
+              new google.maps.Polyline({ path, map, strokeColor: "#0ea5e9", strokeWeight: 3, strokeOpacity: 0.7 })
+            }
+          },
+        )
       }
     }).catch(() => {
       // Maps failed to load — the "no key" fallback will show on next render

@@ -139,6 +139,14 @@ export async function uploadLogo(formData: FormData) {
   revalidatePath("/settings/company")
 }
 
+export async function updateUserStartAddress(formData: FormData) {
+  const { companyId } = await requirePermission("settings.team")
+  const userId = formData.get("userId") as string
+  const address = (formData.get("defaultStartAddress") as string)?.trim() || null
+  await db.user.updateMany({ where: { id: userId, companyId }, data: { defaultStartAddress: address } })
+  revalidatePath("/settings/users")
+}
+
 export async function resetUserPassword(userId: string) {
   const owner = await requirePermission("settings.team")
   const target = await db.user.findUnique({ where: { id: userId } })

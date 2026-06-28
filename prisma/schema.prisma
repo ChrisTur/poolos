@@ -89,6 +89,8 @@ model User {
   mustChangePassword  Boolean   @default(false)
   lastLoginAt         DateTime?
 
+  defaultStartAddress String?
+
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 

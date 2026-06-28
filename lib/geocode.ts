@@ -31,8 +31,7 @@ export function haversineKm(
   return 2 * R * Math.atan2(Math.sqrt(val), Math.sqrt(1 - val))
 }
 
-// Nearest-neighbor TSP heuristic. Fixes the first stop in place and greedily
-// visits the closest remaining stop at each step.
+// Nearest-neighbor TSP heuristic starting from index 0.
 export function nearestNeighborOrder(coords: Array<{ lat: number; lng: number }>): number[] {
   const n = coords.length
   if (n <= 2) return coords.map((_, i) => i)
@@ -55,4 +54,17 @@ export function nearestNeighborOrder(coords: Array<{ lat: number; lng: number }>
   }
 
   return order
+}
+
+// Like nearestNeighborOrder but starts from an external origin (not one of the stops).
+// Returns ordered indices into the original `stops` array.
+export function nearestNeighborOrderFromStart(
+  stops: Array<{ lat: number; lng: number }>,
+  start: { lat: number; lng: number },
+): number[] {
+  if (stops.length === 0) return []
+  if (stops.length === 1) return [0]
+  // Prepend the start as a virtual index-0; run TSP; strip it from the result.
+  const extended = nearestNeighborOrder([start, ...stops])
+  return extended.slice(1).map((i) => i - 1)
 }
