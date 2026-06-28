@@ -50,8 +50,8 @@ next-env.d.ts
 # debug scripts
 /scripts/
 
-# Claude Code worktrees
-.claude/worktrees/
+# Claude Code
+.claude/
 
 # Sentry Config File
 .env.sentry-build-plugin
