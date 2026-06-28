@@ -51,7 +51,7 @@ export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
       if (cancelled || !mapRef.current) return
 
       type GMapsMap = { fitBounds: (bounds: unknown) => void }
-      type GMaps = { maps: { Map: new (...args: unknown[]) => GMapsMap; LatLngBounds: new () => { extend: (pos: unknown) => void }; Marker: new (...args: unknown[]) => void } }
+      type GMaps = { maps: { Map: new (...args: unknown[]) => GMapsMap; LatLngBounds: new () => { extend: (pos: unknown) => void }; Marker: new (...args: unknown[]) => void; Polyline: new (...args: unknown[]) => void } }
       const google = (window as unknown as { google: GMaps }).google
       const map = new google.maps.Map(mapRef.current, {
         zoom: 12,
@@ -62,10 +62,12 @@ export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
       })
 
       const bounds = new google.maps.LatLngBounds()
+      const path: { lat: number; lng: number }[] = []
 
       validMarkers.forEach((m) => {
         const pos = { lat: m.lat!, lng: m.lng! }
         bounds.extend(pos)
+        path.push(pos)
         new google.maps.Marker({
           position: pos,
           map,
@@ -75,6 +77,13 @@ export default function RouteMap({ markers }: { markers: RouteMarker[] }) {
       })
 
       if (validMarkers.length > 1) {
+        new google.maps.Polyline({
+          path,
+          map,
+          strokeColor: "#0ea5e9",
+          strokeWeight: 3,
+          strokeOpacity: 0.7,
+        })
         map.fitBounds(bounds)
       }
     }).catch(() => {
