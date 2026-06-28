@@ -20,7 +20,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [route, allCustomers, companyUsers] = await Promise.all([
+  const [route, allCustomers, companyUsers, company] = await Promise.all([
     db.route.findFirst({
       where: { id, companyId },
       include: {
@@ -28,7 +28,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
           orderBy: { position: "asc" },
           include: { customer: true },
         },
-        assignedUser: { select: { id: true, firstName: true, lastName: true } },
+        assignedUser: { select: { id: true, firstName: true, lastName: true, defaultStartAddress: true } },
       },
     }),
     db.customer.findMany({
@@ -40,9 +40,17 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
       orderBy: [{ firstName: "asc" }],
       select: { id: true, firstName: true, lastName: true },
     }),
+    db.company.findUnique({
+      where: { id: companyId },
+      select: { address: true, city: true, state: true, zip: true },
+    }),
   ])
 
   if (!route) notFound()
+
+  const defaultStart =
+    route.assignedUser?.defaultStartAddress ||
+    (company?.address ? `${company.address}, ${company.city}, ${company.state} ${company.zip}` : "")
 
   const deleteAction = deleteRoute.bind(null, id)
   const updateAction = updateRoute.bind(null, id)
@@ -89,7 +97,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
             <CardHeader className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">Stops</h2>
               <div className="flex items-center gap-3">
-                <OptimizeButton routeId={id} stopCount={route.stops.length} />
+                <OptimizeButton routeId={id} stopCount={route.stops.length} defaultStart={defaultStart} />
                 <p className="text-xs text-gray-400">Drag to reorder</p>
               </div>
             </CardHeader>

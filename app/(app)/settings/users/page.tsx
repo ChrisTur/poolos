@@ -1,11 +1,10 @@
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
-import { inviteUser, deactivateUser, resetUserPassword } from "@/lib/actions/company"
+import { inviteUser, deactivateUser, resetUserPassword, updateUserStartAddress } from "@/lib/actions/company"
 import { cookies } from "next/headers"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
-import { formatDate } from "@/lib/utils"
 import { UserPlus } from "lucide-react"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 
@@ -61,36 +60,49 @@ export default async function UsersPage({ searchParams }: { searchParams: Promis
             const deactivateAction = deactivateUser.bind(null, user.id)
             const resetAction = resetUserPassword.bind(null, user.id)
             return (
-              <div key={user.id} className="flex items-center justify-between px-5 py-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    {user.firstName} {user.lastName}
-                  </p>
-                  <p className="text-xs text-gray-400">{user.email}</p>
+              <div key={user.id} className="px-5 py-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {user.firstName} {user.lastName}
+                    </p>
+                    <p className="text-xs text-gray-400">{user.email}</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 capitalize">{user.role}</span>
+                    {statusBadge(user.isActive ? "active" : "inactive")}
+                    {user.role !== "owner" && (
+                      <div className="flex gap-1">
+                        <form action={resetAction}>
+                          <Button type="submit" size="sm" variant="ghost"
+                            title="Reset password">↺</Button>
+                        </form>
+                        {user.isActive && (
+                          <ConfirmButton
+                            action={deactivateAction}
+                            confirm="Deactivate this user?"
+                            size="sm"
+                            variant="ghost"
+                            className="text-red-400 hover:text-red-600"
+                          >
+                            ✕
+                          </ConfirmButton>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 capitalize">{user.role}</span>
-                  {statusBadge(user.isActive ? "active" : "inactive")}
-                  {user.role !== "owner" && (
-                    <div className="flex gap-1">
-                      <form action={resetAction}>
-                        <Button type="submit" size="sm" variant="ghost"
-                          title="Reset password">↺</Button>
-                      </form>
-                      {user.isActive && (
-                        <ConfirmButton
-                          action={deactivateAction}
-                          confirm="Deactivate this user?"
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-400 hover:text-red-600"
-                        >
-                          ✕
-                        </ConfirmButton>
-                      )}
-                    </div>
-                  )}
-                </div>
+                {/* Default start address for route optimization */}
+                <form action={updateUserStartAddress} className="mt-2 flex items-center gap-2">
+                  <input type="hidden" name="userId" value={user.id} />
+                  <input
+                    name="defaultStartAddress"
+                    defaultValue={user.defaultStartAddress ?? ""}
+                    placeholder="Default route start address (overrides company address)"
+                    className="flex-1 text-xs rounded-lg border border-gray-200 px-2.5 py-1.5 text-gray-600 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                  />
+                  <Button type="submit" size="sm" variant="ghost">Save</Button>
+                </form>
               </div>
             )
           })}
