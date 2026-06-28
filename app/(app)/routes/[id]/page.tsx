@@ -94,7 +94,11 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
               </div>
             </CardHeader>
             <CardBody>
-              <RouteStopList stops={route.stops} routeId={id} />
+              <RouteStopList
+                key={route.stops.map((s) => s.id).join(",")}
+                stops={route.stops}
+                routeId={id}
+              />
             </CardBody>
           </Card>
 

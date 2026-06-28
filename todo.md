@@ -11,6 +11,26 @@
 ### Competitive Parity — Core Operations
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
 
+### Field — Differentiators
+- [ ] 🌟 Customer access notes — pool gate codes, access instructions, dog warnings, key location; pinned prominently on the visit form when a customer is selected and on route stop cards; never buried in general notes
+- [ ] 🌟 Water test history on visit form — show last 3 chemical readings inline when a customer is selected so techs can spot trends without leaving the form
+- [ ] 🌟 Before/after photo comparison — visit detail page shows photos side-by-side across the two most recent visits for a customer; makes progress visible to management and customers
+- [ ] 🌟 GPS visit verification — optionally capture lat/lng on visit submit; flag visits logged far from the customer's address; surface in technician scorecards
+- [ ] 🌟 Chemical inventory tracking — log your on-hand stock of each chemical; auto-decrement when logged on a visit; low-stock alerts in the notification bell
+
+### Management — Differentiators
+- [ ] 🌟 Price increase wizard — select customers by route, tag, or "no increase in X months"; set a new rate; preview changes; send a pre-written rate-increase email to all affected customers in one click
+- [ ] 🌟 Customer profitability view — per-customer card showing monthly rate vs. avg chemical cost + visit count; sorts by least-profitable customers first so you know who to re-price or drop
+- [ ] 🌟 Service contract / season pass — sell a pre-paid block of visits (e.g. "Pool Opening Package — 3 visits"); tracked against usage; shows remaining balance on customer page and portal
+- [ ] 🌟 Recurring expense automation — mark expenses as recurring (weekly/monthly/annual); auto-create on schedule; shows up in P&L without manual entry every period
+- [ ] 🌟 Rate change audit log — full history of every monthly rate change per customer with date, old rate, new rate, and who changed it; visible on customer profile
+
+### Customer / Marketing — Differentiators
+- [ ] 🌟 Review request automation — after a configurable number of completed visits, auto-send a review request email with a direct Google Maps review link; configurable in company settings
+- [ ] 🌟 Customer portal: full service history — customers can see all past visit dates, chemical readings, and photos (not just invoices/estimates); builds trust and reduces "what did you do today?" calls
+- [ ] 🌟 Seasonal upsell campaigns — one-click email campaign targeting customers who don't have a pool opening or closing visit booked; uses job template names to detect; sends templated upsell email
+- [ ] 🌟 Customer self-scheduling (portal) — customers request an additional visit or service through the portal; creates a pending visit in the schedule for the owner to confirm or decline
+
 ### Payments & Billing
 - [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and the customer portal; lower fees than card; daily retry logic on declines
 - [ ] ⚡ Technician payroll calculations — automated pay based on jobs completed; configurable rates per employee, property, body of water, and service type
