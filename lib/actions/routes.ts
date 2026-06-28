@@ -102,6 +102,116 @@ export async function reorderStops(routeId: string, orderedStopIds: string[]) {
   revalidatePath(`/routes/${routeId}`)
 }
 
+// Move a stop to a different route (or reorder within same route).
+// toRouteId = null means remove from all routes (back to unscheduled).
+// customerId + toRouteId used when dragging an unscheduled customer onto a route.
+export async function moveStopToRoute({
+  stopId,
+  customerId,
+  fromRouteId,
+  toRouteId,
+  toPosition,
+}: {
+  stopId?: string
+  customerId?: string
+  fromRouteId?: string
+  toRouteId: string | null
+  toPosition: number
+}) {
+  const { companyId } = await requirePermission("routes.manage")
+
+  // Dropping onto unscheduled — remove the stop
+  if (!toRouteId) {
+    if (!stopId) return
+    const stop = await db.routeStop.findFirst({
+      where: { id: stopId, route: { companyId } },
+    })
+    if (!stop) return
+    await db.routeStop.delete({ where: { id: stopId } })
+    // Compact positions on the source route
+    const remaining = await db.routeStop.findMany({
+      where: { routeId: stop.routeId },
+      orderBy: { position: "asc" },
+    })
+    for (let i = 0; i < remaining.length; i++) {
+      await db.routeStop.update({ where: { id: remaining[i].id }, data: { position: i } })
+    }
+    revalidatePath("/routes")
+    if (fromRouteId) revalidatePath(`/routes/${fromRouteId}`)
+    return
+  }
+
+  // Verify target route belongs to company
+  const targetRoute = await db.route.findFirst({ where: { id: toRouteId, companyId } })
+  if (!targetRoute) return
+
+  // Dragging an unscheduled customer onto a route — create new stop
+  if (!stopId && customerId) {
+    const exists = await db.routeStop.findFirst({ where: { routeId: toRouteId, customerId } })
+    if (exists) return
+    // Make room at toPosition
+    await db.routeStop.updateMany({
+      where: { routeId: toRouteId, position: { gte: toPosition } },
+      data: { position: { increment: 1 } },
+    })
+    await db.routeStop.create({ data: { routeId: toRouteId, customerId, position: toPosition } })
+    revalidatePath("/routes")
+    revalidatePath(`/routes/${toRouteId}`)
+    return
+  }
+
+  if (!stopId) return
+  const stop = await db.routeStop.findFirst({
+    where: { id: stopId, route: { companyId } },
+  })
+  if (!stop) return
+
+  const sameRoute = stop.routeId === toRouteId
+
+  if (sameRoute) {
+    // Reorder within same route
+    const stops = await db.routeStop.findMany({
+      where: { routeId: toRouteId },
+      orderBy: { position: "asc" },
+    })
+    const reordered = stops.filter((s) => s.id !== stopId)
+    reordered.splice(toPosition, 0, stop)
+    for (let i = 0; i < reordered.length; i++) {
+      await db.routeStop.update({ where: { id: reordered[i].id }, data: { position: i } })
+    }
+    revalidatePath(`/routes/${toRouteId}`)
+  } else {
+    // Move to different route — check unique constraint first
+    const alreadyOnTarget = await db.routeStop.findFirst({
+      where: { routeId: toRouteId, customerId: stop.customerId },
+    })
+    if (alreadyOnTarget) return
+
+    // Remove from source and compact
+    await db.routeStop.delete({ where: { id: stopId } })
+    const sourceRemaining = await db.routeStop.findMany({
+      where: { routeId: stop.routeId },
+      orderBy: { position: "asc" },
+    })
+    for (let i = 0; i < sourceRemaining.length; i++) {
+      await db.routeStop.update({ where: { id: sourceRemaining[i].id }, data: { position: i } })
+    }
+
+    // Insert at position in target route
+    await db.routeStop.updateMany({
+      where: { routeId: toRouteId, position: { gte: toPosition } },
+      data: { position: { increment: 1 } },
+    })
+    await db.routeStop.create({
+      data: { routeId: toRouteId, customerId: stop.customerId, position: toPosition },
+    })
+
+    revalidatePath("/routes")
+    revalidatePath(`/routes/${stop.routeId}`)
+    revalidatePath(`/routes/${toRouteId}`)
+  }
+}
+
 export async function logVisit(formData: FormData) {
   const session = await requirePermission("schedule.log")
   const { companyId } = session

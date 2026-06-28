@@ -5,17 +5,40 @@ import Card from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { DAY_NAMES } from "@/lib/utils"
 import NewRouteForm from "@/components/routes/NewRouteForm"
+import RouteBoard from "@/components/routes/RouteBoard"
+import RouteBoardMobile from "@/components/routes/RouteBoardMobile"
 import { ChevronRight } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function RoutesPage() {
   const { companyId } = await requireSession()
-  const routes = await db.route.findMany({
-    where: { companyId },
-    orderBy: [{ dayOfWeek: "asc" }, { name: "asc" }],
-    include: { _count: { select: { stops: true } } },
-  })
+
+  const [routes, allActiveCustomers] = await Promise.all([
+    db.route.findMany({
+      where: { companyId },
+      orderBy: [{ dayOfWeek: "asc" }, { name: "asc" }],
+      include: {
+        _count: { select: { stops: true } },
+        stops: {
+          orderBy: { position: "asc" },
+          include: { customer: true },
+        },
+      },
+    }),
+    db.customer.findMany({
+      where: { companyId, status: "active" },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    }),
+  ])
+
+  // Customers that appear on at least one route stop
+  const scheduledCustomerIds = new Set(
+    routes.flatMap((r) => r.stops.map((s) => s.customerId))
+  )
+  const unscheduledCustomers = allActiveCustomers.filter(
+    (c) => !scheduledCustomerIds.has(c.id)
+  )
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -24,7 +47,7 @@ export default async function RoutesPage() {
         <p className="text-sm text-gray-500 mt-0.5">{routes.length} routes</p>
       </div>
 
-      {/* Mobile: form first, then list */}
+      {/* Mobile: new route form + board */}
       <div className="lg:hidden space-y-4">
         <Card>
           <div className="px-4 py-3 border-b border-gray-100">
@@ -35,65 +58,34 @@ export default async function RoutesPage() {
           </div>
         </Card>
 
-        <Card>
-          {routes.length === 0 ? (
+        {routes.length === 0 ? (
+          <Card>
             <div className="py-12 text-center">
               <p className="text-gray-400 text-sm">No routes yet. Create your first route above.</p>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-100">
-              {routes.map((route) => (
-                <Link
-                  key={route.id}
-                  href={`/routes/${route.id}`}
-                  className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                >
-                  <div className="min-w-0">
-                    <p className="font-medium text-gray-900 truncate">{route.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {route.dayOfWeek != null ? DAY_NAMES[route.dayOfWeek] : "No schedule"}
-                      {" · "}{route._count.stops} stops
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0 ml-3">
-                    {statusBadge(route.isActive ? "active" : "inactive")}
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </Card>
+          </Card>
+        ) : (
+          <RouteBoardMobile routes={routes} unscheduledCustomers={unscheduledCustomers} />
+        )}
       </div>
 
-      {/* Desktop: list left, form right */}
-      <div className="hidden lg:grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      {/* Desktop: board view + new route form */}
+      <div className="hidden lg:grid lg:grid-cols-4 gap-6 items-start">
+        <div className="lg:col-span-3">
           <Card>
-            {routes.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="text-gray-400 text-sm">No routes yet. Create your first route.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {routes.map((route) => (
-                  <Link
-                    key={route.id}
-                    href={`/routes/${route.id}`}
-                    className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">{route.name}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {route.dayOfWeek != null ? DAY_NAMES[route.dayOfWeek] : "No schedule"}
-                        {" · "}{route._count.stops} stops
-                      </p>
-                    </div>
-                    {statusBadge(route.isActive ? "active" : "inactive")}
-                  </Link>
-                ))}
-              </div>
-            )}
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="font-semibold text-gray-900 text-sm">Route Board</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Drag stops between routes or to/from the unscheduled queue</p>
+            </div>
+            <div className="px-5 py-4">
+              {routes.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-gray-400 text-sm">No routes yet. Create your first route to the right.</p>
+                </div>
+              ) : (
+                <RouteBoard routes={routes} unscheduledCustomers={unscheduledCustomers} />
+              )}
+            </div>
           </Card>
         </div>
 
@@ -106,6 +98,29 @@ export default async function RoutesPage() {
               <NewRouteForm />
             </div>
           </Card>
+
+          {/* Route list for quick nav */}
+          {routes.length > 0 && (
+            <Card className="mt-4">
+              <div className="divide-y divide-gray-50">
+                {routes.map((route) => (
+                  <Link
+                    key={route.id}
+                    href={`/routes/${route.id}`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{route.name}</p>
+                      <p className="text-xs text-gray-400">
+                        {route.dayOfWeek != null ? DAY_NAMES[route.dayOfWeek] : "No day"} · {route._count.stops} stops
+                      </p>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </Card>
+          )}
         </div>
       </div>
     </div>

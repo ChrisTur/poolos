@@ -65,6 +65,7 @@ model Company {
   tags              Tag[]
   attachments       Attachment[]
   visitChecklist    VisitChecklistItem[]
+  jobTemplates      JobTemplate[]
   dismissedNotifications DismissedNotification[]
   supportTickets         SupportTicket[]
   issueReports           IssueReport[]
@@ -278,6 +279,32 @@ model VisitChecklistItem {
   customerId String?
   company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model JobTemplate {
+  id               String            @id @default(cuid())
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  name             String
+  description      String?
+  defaultNotes     String?
+  estimatedMinutes Int?
+  isActive         Boolean           @default(true)
+  companyId        String
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  steps            JobTemplateStep[]
+
+  @@index([companyId])
+}
+
+model JobTemplateStep {
+  id         String      @id @default(cuid())
+  label      String
+  position   Int         @default(0)
+  templateId String
+  template   JobTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId, position])
 }
 
 model Invoice {
