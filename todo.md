@@ -9,14 +9,7 @@
 *Web features, no infrastructure blockers, ranked by impact.*
 
 ### Competitive Parity — Core Operations
-- [ ] ⚡ Job templates — one-click pre-built workflows for pool opening, closing, filter clean, acid wash, pump prime; reduces setup time for common jobs
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
-
-### Competitive Parity — Analytics & Management
-- [x] ⚡ Technician scorecards — per-tech dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, open alert trends
-- [ ] ⚡ Drag-and-drop route scheduling — rearrange stops within a route and move stops between routes/days via drag-and-drop; unscheduled queue for pending jobs
-- [x] ⚡ Interactive report charts — clickable bars and data points on all report charts that drill down to the underlying invoices, visits, or customers
-- [x] Chemical trend alerts — flag customers whose readings have been consistently out of range across 3+ visits
 
 ### Payments & Billing
 - [ ] ⚡ ACH / bank transfer payments — Stripe ACH option on invoices and the customer portal; lower fees than card; daily retry logic on declines
@@ -75,6 +68,11 @@
 ## Completed
 
 ### App Features
+- [x] ⚡ Job templates — one-click workflows for pool opening, closing, filter clean, acid wash, pump prime; settings page + 5 built-in presets + visit form integration with per-template step checklist
+- [x] ⚡ Drag-and-drop route scheduling — kanban board on desktop (cross-route drag, unscheduled queue); stacked accordion on mobile (touch drag to reorder, move-to-route picker per stop)
+- [x] ⚡ Technician scorecards — per-tech dashboard: visits completed, avg chemical spend per stop, customer satisfaction scores, open alert trends
+- [x] ⚡ Interactive report charts — clickable bars and data points on all report charts that drill down to the underlying invoices, visits, or customers
+- [x] Chemical trend alerts — flag customers whose readings have been consistently out of range across 3+ visits
 - [x] In-app dosing calculator — live recommendations on the visit form using existing chemistry engine
 - [x] Required visit checklist — configurable items techs must confirm before logging a completed visit; global + per-customer items
 - [x] Broadcast email — bulk message to all or filtered customers (price changes, weather closures, etc.)

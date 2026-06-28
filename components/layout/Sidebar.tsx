@@ -25,6 +25,7 @@ import {
   LifeBuoy,
   AlertTriangle,
   Download,
+  Layers,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -50,13 +51,14 @@ const billingNav: NavItem[] = [
 const equipmentNav: NavItem[] = []
 
 const settingsNav: NavItem[] = [
-  { href: "/settings/company",   label: "Company",   icon: Settings,     permission: "settings.company" },
-  { href: "/settings/checklist", label: "Checklist", icon: ClipboardList,permission: "settings.checklist" },
-  { href: "/settings/payments",  label: "Payments",  icon: CreditCard,   permission: "settings.payments" },
-  { href: "/settings/users",     label: "Team",      icon: UserCog,      permission: "settings.team" },
-  { href: "/settings/billing",   label: "Billing",   icon: Receipt,      permission: "settings.billing" },
-  { href: "/settings/export",    label: "Export Data",icon: Download,     permission: "data.export" },
-  { href: "/support",            label: "Support",   icon: LifeBuoy,     permission: "support.view" },
+  { href: "/settings/company",       label: "Company",       icon: Settings,     permission: "settings.company" },
+  { href: "/settings/checklist",     label: "Checklist",     icon: ClipboardList,permission: "settings.checklist" },
+  { href: "/settings/job-templates", label: "Job Templates", icon: Layers,       permission: "settings.templates" },
+  { href: "/settings/payments",      label: "Payments",      icon: CreditCard,   permission: "settings.payments" },
+  { href: "/settings/users",         label: "Team",          icon: UserCog,      permission: "settings.team" },
+  { href: "/settings/billing",       label: "Billing",       icon: Receipt,      permission: "settings.billing" },
+  { href: "/settings/export",        label: "Export Data",   icon: Download,     permission: "data.export" },
+  { href: "/support",                label: "Support",       icon: LifeBuoy,     permission: "support.view" },
 ]
 
 const ALL_GROUPS = [

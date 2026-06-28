@@ -25,6 +25,7 @@ export const PERMISSIONS = {
   // Settings
   "settings.company":   "Edit company profile",
   "settings.checklist": "Manage visit checklists",
+  "settings.templates": "Manage job templates",
   "settings.payments":  "Manage payment settings",
   "settings.team":      "Manage team members",
   "settings.billing":   "Manage subscription",
@@ -63,8 +64,8 @@ export const PERMISSION_GROUPS: { label: string; keys: Permission[] }[] = [
     label: "Settings",
     keys: [
       "settings.company", "settings.checklist",
-      "settings.payments", "settings.team",
-      "settings.billing",
+      "settings.templates", "settings.payments",
+      "settings.team", "settings.billing",
     ],
   },
   {
@@ -82,7 +83,7 @@ const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[]
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   owner: ALL_PERMISSIONS,
   supervisor: ALL_PERMISSIONS.filter(
-    (p) => p !== "settings.billing" && p !== "settings.team"
+    (p) => p !== "settings.billing" && p !== "settings.team" && p !== "settings.templates"
   ),
   technician: [
     "customers.view",
