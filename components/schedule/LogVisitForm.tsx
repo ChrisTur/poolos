@@ -8,9 +8,9 @@ import { runDosing, type DoseResult } from "@/lib/chemistry"
 import Button from "@/components/ui/Button"
 import {
   Camera, X, Loader2, CheckCircle2, FlaskConical,
-  ChevronDown, ChevronUp, AlertTriangle, CheckSquare, Square, Plus, Beaker,
+  ChevronDown, ChevronUp, AlertTriangle, CheckSquare, Square, Plus, Beaker, Layers,
 } from "lucide-react"
-import type { Customer, Route, VisitChecklistItem } from "@/app/generated/prisma/client"
+import type { Customer, Route, VisitChecklistItem, JobTemplate, JobTemplateStep } from "@/app/generated/prisma/client"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -123,17 +123,20 @@ function DosingPanel({ results }: { results: DoseResult[] }) {
 type RouteWithAssignment = Route & { assignedUserId?: string | null }
 type UserOption = { id: string; firstName: string; lastName: string }
 type CustomerWithEquipment = Customer & { equipment?: { type: string }[] }
+type TemplateWithSteps = JobTemplate & { steps: JobTemplateStep[] }
 
 export default function LogVisitForm({
   customers,
   routes,
   checklistItems = [],
   users = [],
+  jobTemplates = [],
 }: {
   customers: CustomerWithEquipment[]
   routes: RouteWithAssignment[]
   checklistItems?: VisitChecklistItem[]
   users?: UserOption[]
+  jobTemplates?: TemplateWithSteps[]
 }) {
   const router  = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
@@ -152,8 +155,10 @@ export default function LogVisitForm({
   const [submitting,    setSubmitting]    = useState(false)
   const [done,          setDone]          = useState(false)
   const [error,         setError]         = useState<string | null>(null)
-  const [chemOpen,      setChemOpen]      = useState(false)
-  const [chemicalRows,  setChemicalRows]  = useState<ChemicalUsageRow[]>([])
+  const [chemOpen,        setChemOpen]        = useState(false)
+  const [chemicalRows,    setChemicalRows]    = useState<ChemicalUsageRow[]>([])
+  const [templateId,      setTemplateId]      = useState("")
+  const [templateChecked, setTemplateChecked] = useState<Set<string>>(new Set())
 
   // Derive selected customer's pool info
   const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
@@ -210,8 +215,33 @@ export default function LogVisitForm({
     : []
   const checklistComplete = activeChecklist.every((item) => checked.has(item.id))
 
+  // Job template
+  const selectedTemplate = jobTemplates.find((t) => t.id === templateId) ?? null
+  const templateStepsComplete = !selectedTemplate || selectedTemplate.steps.every((s) => templateChecked.has(s.id))
+  const allComplete = checklistComplete && templateStepsComplete
+
+  function selectJobTemplate(id: string) {
+    setTemplateId(id)
+    setTemplateChecked(new Set())
+    const t = jobTemplates.find((tmpl) => tmpl.id === id)
+    if (t?.defaultNotes && !notes.trim()) setNotes(t.defaultNotes)
+  }
+
+  function clearTemplate() {
+    setTemplateId("")
+    setTemplateChecked(new Set())
+  }
+
   function toggleCheck(id: string) {
     setChecked((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleTemplateCheck(id: string) {
+    setTemplateChecked((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
       return next
@@ -265,7 +295,7 @@ export default function LogVisitForm({
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!checklistComplete) return
+    if (!allComplete) return
     setSubmitting(true)
     setError(null)
 
@@ -290,6 +320,8 @@ export default function LogVisitForm({
       setStatus("completed")
       setChem(EMPTY_CHEM)
       setChecked(new Set())
+      setTemplateId("")
+      setTemplateChecked(new Set())
       setChemicalRows([])
       setChemOpen(false)
       formRef.current?.reset()
@@ -329,6 +361,48 @@ export default function LogVisitForm({
           </p>
         )}
       </div>
+
+      {/* Job type / template picker */}
+      {jobTemplates.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Job type</label>
+          {selectedTemplate ? (
+            <div className="flex items-center gap-2 rounded-lg border border-sky-300 bg-sky-50 px-3 py-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-sky-900">{selectedTemplate.name}</p>
+                {selectedTemplate.description && (
+                  <p className="text-xs text-sky-600 mt-0.5">{selectedTemplate.description}</p>
+                )}
+                {selectedTemplate.estimatedMinutes && (
+                  <p className="text-xs text-sky-500 mt-0.5">~{selectedTemplate.estimatedMinutes} min</p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={clearTemplate}
+                className="shrink-0 text-sky-400 hover:text-sky-700 transition-colors"
+                aria-label="Clear template"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {jobTemplates.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => selectJobTemplate(t.id)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:border-sky-400 hover:bg-sky-50 hover:text-sky-700 active:bg-sky-100 transition-colors"
+                >
+                  <Layers className="w-3.5 h-3.5 text-gray-400" />
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Route */}
       {routes.length > 0 && (
@@ -480,6 +554,54 @@ export default function LogVisitForm({
                   </span>
                   {isChecked && (
                     <span className="shrink-0 text-xs font-semibold text-green-600 bg-green-100 rounded-full px-2 py-0.5">
+                      Done
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      {/* Template job steps */}
+      {selectedTemplate && selectedTemplate.steps.length > 0 && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-gray-700 flex items-center gap-2">
+            <Layers className="w-4 h-4 text-sky-500" />
+            {selectedTemplate.name} steps
+            {!templateStepsComplete && (
+              <span className="text-xs font-normal text-amber-600 flex items-center gap-1">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Required before submitting
+              </span>
+            )}
+          </legend>
+          <div className="rounded-xl border border-sky-200 divide-y divide-sky-100 overflow-hidden">
+            {selectedTemplate.steps.map((step) => {
+              const isChecked = templateChecked.has(step.id)
+              return (
+                <div
+                  key={step.id}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                  tabIndex={0}
+                  onClick={() => toggleTemplateCheck(step.id)}
+                  onKeyDown={(e) => (e.key === " " || e.key === "Enter") && toggleTemplateCheck(step.id)}
+                  className={`flex items-center gap-3 px-4 py-4 cursor-pointer select-none transition-colors active:opacity-70 ${
+                    isChecked ? "bg-sky-50" : "bg-white hover:bg-gray-50 active:bg-gray-100"
+                  }`}
+                >
+                  <div className={`shrink-0 transition-colors ${isChecked ? "text-sky-500" : "text-gray-300"}`}>
+                    {isChecked
+                      ? <CheckSquare className="w-6 h-6" />
+                      : <Square className="w-6 h-6" />}
+                  </div>
+                  <span className={`text-sm font-medium flex-1 leading-snug ${isChecked ? "text-sky-800" : "text-gray-700"}`}>
+                    {step.label}
+                  </span>
+                  {isChecked && (
+                    <span className="shrink-0 text-xs font-semibold text-sky-600 bg-sky-100 rounded-full px-2 py-0.5">
                       Done
                     </span>
                   )}
@@ -664,16 +786,20 @@ export default function LogVisitForm({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      {/* Submit — disabled until checklist complete */}
-      {activeChecklist.length > 0 && !checklistComplete && (
+      {/* Submit — disabled until all steps complete */}
+      {!allComplete && (activeChecklist.length > 0 || (selectedTemplate && selectedTemplate.steps.length > 0)) && (
         <p className="text-xs text-center text-amber-600">
-          Check off all {activeChecklist.length} items above to submit
+          {!checklistComplete && !templateStepsComplete
+            ? "Complete the checklist and job steps above to submit"
+            : !checklistComplete
+            ? `Check off all ${activeChecklist.length} checklist items to submit`
+            : "Complete all job steps above to submit"}
         </p>
       )}
 
       <Button
         type="submit"
-        disabled={submitting || !checklistComplete}
+        disabled={submitting || !allComplete}
         className="w-full"
       >
         {submitting ? (

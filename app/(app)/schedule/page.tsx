@@ -34,7 +34,7 @@ export default async function SchedulePage() {
   const monthStart = new Date(thisYear, thisMonth, 1)
   const monthEnd   = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
 
-  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits, companyUsers] = await Promise.all([
+  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits, companyUsers, jobTemplates] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -82,6 +82,11 @@ export default async function SchedulePage() {
       where: { companyId, isActive: true },
       orderBy: [{ firstName: "asc" }],
       select: { id: true, firstName: true, lastName: true },
+    }),
+    db.jobTemplate.findMany({
+      where: { companyId, isActive: true },
+      orderBy: { createdAt: "asc" },
+      include: { steps: { orderBy: { position: "asc" } } },
     }),
   ])
 
@@ -176,7 +181,7 @@ export default async function SchedulePage() {
         <Card>
           <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
           <CardBody>
-            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} />
+            <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} jobTemplates={jobTemplates} />
           </CardBody>
         </Card>
       </div>
@@ -296,7 +301,7 @@ export default async function SchedulePage() {
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Log a Visit</h2></CardHeader>
             <CardBody>
-              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} />
+              <LogVisitForm customers={customers} routes={routes} checklistItems={checklistItems} users={companyUsers} jobTemplates={jobTemplates} />
             </CardBody>
           </Card>
         </div>
