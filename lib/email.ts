@@ -814,29 +814,21 @@ export interface TrialConversionEmailData {
 export function buildTrialConversionHtml(data: TrialConversionEmailData): string {
   const { firstName, companyName, trialEndsAt, daysLeft, customerCount, visitCount, upgradeUrl } = data
 
-  const trialBannerColor = daysLeft !== null && daysLeft <= 3 ? "#dc2626" : daysLeft !== null ? "#d97706" : "#6b7280"
-  const trialBannerBg   = daysLeft !== null && daysLeft <= 3 ? "#fef2f2" : daysLeft !== null ? "#fffbeb" : "#f9fafb"
-  const trialBannerBdr  = daysLeft !== null && daysLeft <= 3 ? "#fecaca" : daysLeft !== null ? "#fde68a" : "#e5e7eb"
-
-  const trialStatusLine = daysLeft === null
-    ? "Your free trial has ended."
+  // Deadline line — short, factual, placed mid-email not at the top
+  const deadlineText = daysLeft === null
+    ? "Your trial has ended, but your account is still here — nothing has been deleted."
     : daysLeft === 0
-    ? "Your free trial ends <strong>today</strong>."
+    ? "Your trial ends <strong>tonight</strong>. After that, your account is paused — but everything below is saved and waiting."
     : daysLeft === 1
-    ? "Your free trial ends <strong>tomorrow</strong>."
-    : `Your free trial ends in <strong>${daysLeft} days</strong>${trialEndsAt ? ` (${fmtDate(trialEndsAt)})` : ""}.`
+    ? "Your trial ends <strong>tomorrow</strong>. Your account will pause, but nothing gets deleted."
+    : `Your trial ends in <strong>${daysLeft} days</strong>${trialEndsAt ? ` — ${fmtDate(trialEndsAt)}` : ""}. Upgrade anytime before then to keep going without a break.`
 
-  const usageLine = [
-    customerCount > 0 ? `${customerCount} customer${customerCount !== 1 ? "s" : ""} added` : null,
-    visitCount > 0    ? `${visitCount} visit${visitCount !== 1 ? "s" : ""} logged` : null,
-  ].filter(Boolean).join(" · ")
-
-  const features = [
-    { icon: "📋", label: "All your customers & history — nothing lost on upgrade" },
-    { icon: "🗺️", label: "Route scheduling, drag-and-drop, and auto-optimization" },
-    { icon: "📱", label: "Customer portal, invoicing, and online payments" },
-    { icon: "📊", label: "Chemical tracking, reports, and visit notifications" },
-  ]
+  // Snapshot stats — show as achievements, not metrics
+  const snapshotRows: { label: string; value: string }[] = []
+  if (customerCount > 0) snapshotRows.push({ value: String(customerCount), label: `pool${customerCount !== 1 ? "s" : ""} in your system` })
+  if (visitCount > 0)    snapshotRows.push({ value: String(visitCount),    label: `service visit${visitCount !== 1 ? "s" : ""} logged` })
+  snapshotRows.push({ value: "✓", label: "routes set up and optimized" })
+  snapshotRows.push({ value: "✓", label: "customer portal active" })
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -845,85 +837,118 @@ export function buildTrialConversionHtml(data: TrialConversionEmailData): string
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     @media only screen and (max-width:600px) {
-      .tc-body { padding: 20px 16px !important; }
-      .tc-cta  { padding: 13px 24px !important; font-size: 15px !important; }
+      .tc-body  { padding: 20px 16px !important; }
+      .tc-snap  { padding: 20px 16px !important; }
+      .tc-plans { display: block !important; }
+      .tc-plan  { display: block !important; width: 100% !important; margin-bottom: 10px !important; }
+      .tc-cta   { padding: 14px 24px !important; font-size: 15px !important; }
     }
   </style>
 </head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
-  <div style="max-width:560px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;margin:0;padding:16px 8px">
+  <div style="max-width:560px;width:100%;margin:0 auto">
 
     <!-- Header -->
-    <div style="background:#0c4a6e;padding:24px 28px">
-      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-.01em">PoolOS</p>
-      <p style="margin:4px 0 0;font-size:13px;color:#bae6fd">Pool service software built for the field</p>
+    <div style="background:#0c4a6e;padding:22px 28px;border-radius:12px 12px 0 0">
+      <p style="margin:0;font-size:19px;font-weight:700;color:#ffffff;letter-spacing:-.01em">PoolOS</p>
+      <p style="margin:3px 0 0;font-size:12px;color:#7dd3fc;letter-spacing:.02em;text-transform:uppercase">Pool service software</p>
     </div>
 
-    <div class="tc-body" style="padding:28px">
+    <!-- Body -->
+    <div class="tc-body" style="background:#ffffff;padding:28px 28px 24px">
 
-      <!-- Greeting -->
-      <p style="font-size:15px;color:#111827;margin:0 0 6px">Hi ${firstName},</p>
-      <p style="font-size:14px;color:#6b7280;margin:0 0 20px;line-height:1.6">
-        Thanks for trying PoolOS${companyName ? ` for <strong style="color:#374151">${companyName}</strong>` : ""}.
-        ${usageLine ? `So far you've got <strong style="color:#374151">${usageLine}</strong> — ` : ""}We want to make sure you keep everything you've set up when your trial ends.
+      <p style="font-size:15px;color:#111827;margin:0 0 10px;font-weight:500">Hi ${firstName},</p>
+
+      <p style="font-size:14px;color:#4b5563;margin:0 0 22px;line-height:1.7">
+        You've spent real time setting up ${companyName ? `<strong style="color:#111827">${companyName}</strong>` : "your business"} in PoolOS.
+        Here's where things stand:
       </p>
 
-      <!-- Trial status banner -->
-      <div style="background:${trialBannerBg};border:1px solid ${trialBannerBdr};border-radius:8px;padding:14px 16px;margin-bottom:24px">
-        <p style="margin:0;font-size:14px;color:${trialBannerColor};line-height:1.5">${trialStatusLine}</p>
-        <p style="margin:6px 0 0;font-size:13px;color:#6b7280;line-height:1.5">
-          Upgrade before it expires and your customers, routes, invoices, and history carry over instantly — no re-setup required.
+      <!-- Account snapshot card -->
+      <div class="tc-snap" style="background:#0f172a;border-radius:10px;padding:22px 24px;margin-bottom:24px">
+        <p style="margin:0 0 16px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8">
+          ${companyName || "Your account"}, right now
         </p>
+        <table style="width:100%;border-collapse:collapse">
+          ${snapshotRows.map((row, i) => `
+          <tr>
+            <td style="padding:${i === 0 ? "0" : "8px"} 0 0;vertical-align:baseline;width:44px">
+              <span style="font-size:${row.value.length <= 3 ? "22px" : "15px"};font-weight:700;color:#38bdf8;font-variant-numeric:tabular-nums">${row.value}</span>
+            </td>
+            <td style="padding:${i === 0 ? "0" : "8px"} 0 0 4px;font-size:13px;color:#cbd5e1;vertical-align:baseline">${row.label}</td>
+          </tr>`).join("")}
+        </table>
       </div>
 
-      <!-- What's included -->
-      <p style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin:0 0 12px">What you keep when you upgrade</p>
-      <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
-        ${features.map((f) => `
-        <tr>
-          <td style="padding:7px 0;vertical-align:top;width:28px;font-size:16px">${f.icon}</td>
-          <td style="padding:7px 0 7px 8px;font-size:14px;color:#374151;line-height:1.4;border-bottom:1px solid #f3f4f6">${f.label}</td>
-        </tr>`).join("")}
+      <!-- Bridge copy -->
+      <p style="font-size:14px;color:#4b5563;margin:0 0 8px;line-height:1.7">
+        That's a real book of business — not a demo. Every customer, every visit, every route
+        is saved exactly as you left it.
+      </p>
+      <p style="font-size:14px;color:#4b5563;margin:0 0 24px;line-height:1.7">
+        ${deadlineText}
+      </p>
+
+      <!-- Divider -->
+      <div style="border-top:1px solid #f1f5f9;margin-bottom:24px"></div>
+
+      <!-- Plans side by side -->
+      <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin:0 0 12px">Pick a plan and keep going</p>
+      <table class="tc-plans" style="width:100%;border-collapse:separate;border-spacing:8px 0;margin:0 -8px 20px">
+        <tr class="tc-plans">
+          <td class="tc-plan" style="width:50%;vertical-align:top;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px">
+            <p style="margin:0 0 2px;font-size:15px;font-weight:700;color:#111827">Starter</p>
+            <p style="margin:0 0 10px;font-size:22px;font-weight:800;color:#0ea5e9">$49<span style="font-size:13px;font-weight:500;color:#64748b">/mo</span></p>
+            <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6">Up to 50 customers<br>2 staff accounts<br>Invoicing &amp; routes<br>Customer portal</p>
+          </td>
+          <td class="tc-plan" style="width:50%;vertical-align:top;background:#f0f9ff;border:2px solid #0ea5e9;border-radius:10px;padding:16px;position:relative">
+            <p style="margin:0 0 0 0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0284c7">Most popular</p>
+            <p style="margin:2px 0 2px;font-size:15px;font-weight:700;color:#111827">Pro</p>
+            <p style="margin:0 0 10px;font-size:22px;font-weight:800;color:#0ea5e9">$99<span style="font-size:13px;font-weight:500;color:#64748b">/mo</span></p>
+            <p style="margin:0;font-size:12px;color:#64748b;line-height:1.6">Unlimited customers<br>Multiple techs<br>Full reports<br>Priority support</p>
+          </td>
+        </tr>
       </table>
 
-      <!-- Pricing callout -->
-      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-bottom:24px;text-align:center">
-        <p style="font-size:13px;color:#0369a1;margin:0 0 4px;font-weight:600">Starter plan · $49/month</p>
-        <p style="font-size:12px;color:#0284c7;margin:0">Up to 50 customers · No contracts · Cancel anytime</p>
-      </div>
-
       <!-- CTA -->
-      <div style="text-align:center;margin-bottom:24px">
+      <div style="text-align:center;margin-bottom:8px">
         <a href="${upgradeUrl}"
            class="tc-cta"
-           style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:.01em">
-          Choose your plan →
+           style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:15px 40px;border-radius:9px;letter-spacing:.01em">
+          Keep my account →
         </a>
-        <p style="font-size:12px;color:#9ca3af;margin:10px 0 0">Takes less than 2 minutes · Secure checkout</p>
       </div>
-
-      <!-- Sign-off -->
-      <p style="font-size:13px;color:#6b7280;margin:0 0 4px;line-height:1.6">
-        Have questions or want to talk through which plan fits your business? Just reply to this email.
+      <p style="text-align:center;font-size:12px;color:#94a3b8;margin:10px 0 24px">
+        No contracts &nbsp;·&nbsp; Cancel anytime &nbsp;·&nbsp; Your data is never deleted
       </p>
-      <p style="font-size:13px;color:#374151;margin:0">— Chris at PoolOS</p>
+
+      <!-- Divider -->
+      <div style="border-top:1px solid #f1f5f9;margin-bottom:20px"></div>
+
+      <!-- Personal sign-off -->
+      <p style="font-size:13px;color:#6b7280;margin:0 0 12px;line-height:1.7">
+        Not sure which plan fits? Hit reply — I read every one and I'm happy to help you figure it out.
+      </p>
+      <p style="font-size:14px;color:#374151;margin:0;font-weight:500">— Chris, PoolOS</p>
     </div>
 
     <!-- Footer -->
-    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
-      PoolOS · <a href="mailto:billing@poolos.biz" style="color:#9ca3af;text-decoration:none">billing@poolos.biz</a>
-      · <a href="${upgradeUrl}" style="color:#9ca3af;text-decoration:none">View plans</a>
+    <div style="background:#e2e8f0;border-radius:0 0 12px 12px;padding:14px 24px;text-align:center;font-size:11px;color:#94a3b8">
+      PoolOS &nbsp;·&nbsp; <a href="mailto:billing@poolos.biz" style="color:#94a3b8;text-decoration:none">billing@poolos.biz</a>
+      &nbsp;·&nbsp; <a href="${upgradeUrl}" style="color:#94a3b8;text-decoration:none">View all plans</a>
     </div>
+
   </div>
 </body>
 </html>`
 }
 
 export function trialConversionSubject(firstName: string, daysLeft: number | null): string {
-  if (daysLeft === null) return `${firstName}, your PoolOS trial has ended — don't lose your data`
-  if (daysLeft <= 1) return `Last chance — your PoolOS trial ends today`
-  if (daysLeft <= 3) return `${firstName}, your PoolOS trial ends in ${daysLeft} days`
-  return `${firstName}, keep everything you've built in PoolOS`
+  if (daysLeft === null) return `${firstName}, your data is still here — pick up where you left off`
+  if (daysLeft === 0)   return `Your PoolOS account pauses tonight — keep it going`
+  if (daysLeft === 1)   return `Tomorrow's the last day — keep your routes and customers`
+  if (daysLeft <= 3)    return `${firstName}, ${daysLeft} days left to keep your PoolOS account`
+  return `${firstName}, keep what you've built`
 }
 
 export function buildContactReplyHtml(data: {
