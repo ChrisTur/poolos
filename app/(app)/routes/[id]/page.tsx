@@ -58,20 +58,27 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   const stopCustomerIds = new Set(route.stops.map((s) => s.customerId))
   const availableCustomers = allCustomers.filter((c) => !stopCustomerIds.has(c.id))
 
-  // Geocode all stops server-side so the map component just places markers
-  const markers = await Promise.all(
-    route.stops.map(async (stop, i) => {
-      const addr = `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`
-      const coords = await geocodeAddress(addr)
-      return {
-        label: String(i + 1),
-        name: `${stop.customer.firstName} ${stop.customer.lastName}`,
-        address: addr,
-        lat: coords?.lat ?? null,
-        lng: coords?.lng ?? null,
-      }
-    })
-  )
+  // Geocode all stops + start address server-side so the map component just places markers
+  const [markers, startCoords] = await Promise.all([
+    Promise.all(
+      route.stops.map(async (stop, i) => {
+        const addr = `${stop.customer.address}, ${stop.customer.city}, ${stop.customer.state} ${stop.customer.zip}`
+        const coords = await geocodeAddress(addr)
+        return {
+          label: String(i + 1),
+          name: `${stop.customer.firstName} ${stop.customer.lastName}`,
+          address: addr,
+          lat: coords?.lat ?? null,
+          lng: coords?.lng ?? null,
+        }
+      })
+    ),
+    defaultStart ? geocodeAddress(defaultStart) : Promise.resolve(null),
+  ])
+
+  const startMarker = startCoords
+    ? { lat: startCoords.lat, lng: startCoords.lng, address: defaultStart }
+    : undefined
 
   return (
     <div className="space-y-6">
@@ -110,7 +117,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
             </CardBody>
           </Card>
 
-          <RouteMap markers={markers} />
+          <RouteMap markers={markers} startMarker={startMarker} />
         </div>
 
         {/* Sidebar */}
