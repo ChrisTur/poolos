@@ -982,3 +982,57 @@ export function buildContactReplyHtml(data: {
 </body>
 </html>`
 }
+
+export function buildRateIncreaseHtml(data: {
+  companyName: string
+  companyLogoUrl: string | null
+  companyPhone: string | null
+  customerFirstName: string
+  oldRate: number
+  newRate: number
+  effectiveDate: string
+  portalUrl: string | null
+  sentByName: string | null
+}): string {
+  const { companyName, companyLogoUrl, customerFirstName, oldRate, newRate, effectiveDate, portalUrl, sentByName } = data
+  const fmt = (n: number) => `$${n.toFixed(2).replace(/\.00$/, "")}`
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+    <div style="background:#0f172a;padding:24px 32px;text-align:center;">
+      ${companyLogoUrl ? `<img src="${companyLogoUrl}" alt="${companyName}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:8px;">` : ""}
+      <p style="color:#94a3b8;font-size:13px;margin:0;">${companyName}</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="color:#1e293b;font-size:16px;margin:0 0 16px;">Hi ${customerFirstName},</p>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
+        We're writing to let you know about an upcoming change to your monthly pool service rate.
+      </p>
+      <div style="background:#f1f5f9;border-radius:10px;padding:20px 24px;margin:0 0 24px;text-align:center;">
+        <p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 12px;">Rate Change</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
+          <div>
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 2px;">Current rate</p>
+            <p style="color:#64748b;font-size:22px;font-weight:700;margin:0;text-decoration:line-through;">${fmt(oldRate)}<span style="font-size:13px;font-weight:400;">/mo</span></p>
+          </div>
+          <p style="color:#94a3b8;font-size:20px;margin:0;">→</p>
+          <div>
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 2px;">New rate</p>
+            <p style="color:#0f172a;font-size:26px;font-weight:800;margin:0;">${fmt(newRate)}<span style="font-size:13px;font-weight:400;">/mo</span></p>
+          </div>
+        </div>
+        <p style="color:#64748b;font-size:13px;margin:12px 0 0;">Effective <strong>${effectiveDate}</strong></p>
+      </div>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
+        This adjustment reflects the rising cost of chemicals and supplies. We appreciate your continued trust in us to care for your pool.
+      </p>
+      ${portalUrl ? `<div style="text-align:center;margin:0 0 24px;"><a href="${portalUrl}" style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:15px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">View your account →</a></div>` : ""}
+      <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 8px;">If you have any questions, just reply to this email — we're happy to help.</p>
+      <p style="color:#94a3b8;font-size:13px;margin:0;">— ${sentByName ?? companyName}</p>
+    </div>
+  </div>
+</body>
+</html>`
+}

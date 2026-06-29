@@ -70,6 +70,7 @@ model Company {
   supportTickets         SupportTicket[]
   issueReports           IssueReport[]
   chemicalUsages         ChemicalUsage[]
+  rateHistory            RateHistory[]
 }
 
 model User {
@@ -100,6 +101,7 @@ model User {
   equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
   submittedTickets  SupportTicket[]     @relation("TicketSubmitter")
   reportedIssues    IssueReport[]       @relation("IssueReporter")
+  rateChanges       RateHistory[]
 }
 
 model Session {
@@ -168,6 +170,7 @@ model Customer {
   attachments     Attachment[]
   issueReports    IssueReport[]
   checklistItems  VisitChecklistItem[]
+  rateHistory     RateHistory[]
 }
 
 model CustomerNote {
@@ -517,6 +520,24 @@ model CustomerTag {
   tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([customerId, tagId])
+}
+
+model RateHistory {
+  id        String   @id @default(cuid())
+  changedAt DateTime @default(now())
+  oldRate   Float
+  newRate   Float
+  note      String?  // e.g. "Price increase wizard — +10%"
+
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  changedById String?
+  changedBy   User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([companyId])
 }
 
 model Attachment {
