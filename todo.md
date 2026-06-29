@@ -122,3 +122,4 @@
 - [x] Distributed rate limiting — migrated to Upstash Redis (sliding window); falls back to in-memory for local dev
 - [x] Structured JSON logging — pino with GCP-compatible severity field; child loggers per module
 - [x] Automated tests — auth, invoice creation, payment flow, and Stripe webhook (20 tests, Vitest)
+
