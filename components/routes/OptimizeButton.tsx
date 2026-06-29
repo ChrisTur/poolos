@@ -46,7 +46,7 @@ export default function OptimizeButton({
             value={startAddress}
             onChange={(e) => setStartAddress(e.target.value)}
             placeholder="e.g. 123 Main St, City, ST"
-            className="w-48 text-xs rounded-lg border border-gray-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            className="w-48 text-xs text-gray-900 placeholder:text-gray-400 rounded-lg border border-gray-300 px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
           <button
             type="button"
