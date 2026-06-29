@@ -1,8 +1,9 @@
 "use client"
 
 import { useState } from "react"
-import { Menu, Waves, Eye, X } from "lucide-react"
+import { Waves, Eye, X } from "lucide-react"
 import Sidebar from "./Sidebar"
+import BottomNav from "./BottomNav"
 import NotificationBell from "./NotificationBell"
 import { stopViewAs } from "@/lib/actions/admin"
 import PromoBannerBar from "@/components/PromoBannerBar"
@@ -68,30 +69,18 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner,
 
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0 sticky top-0 z-10">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-1 -ml-1 text-gray-500 hover:text-gray-900 rounded-lg"
-            aria-label="Open menu"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          <div className="flex items-center gap-1.5 flex-1">
-            <Waves className="w-4 h-4 text-sky-600" />
+          <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <Waves className="w-4 h-4 text-sky-600 shrink-0" />
             {firstName
-              ? <span className="font-medium text-gray-800 text-sm">Hello, {firstName}!</span>
+              ? <span className="font-medium text-gray-800 text-sm truncate">Hello, {firstName}!</span>
               : <span className="font-semibold text-sky-900 text-sm">PoolOS</span>}
           </div>
           <NotificationBell notifications={notifications} />
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="w-8 h-8 rounded-full bg-sky-600 flex items-center justify-center text-white text-xs font-bold shrink-0"
-            aria-label="Account menu"
-          >
-            {initials}
-          </button>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-x-hidden pb-24 lg:pb-8">{children}</main>
+
+        <BottomNav userRole={userRole} onMoreClick={() => setSidebarOpen(true)} />
       </div>
     </div>
   )
