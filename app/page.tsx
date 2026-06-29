@@ -16,6 +16,8 @@ import {
   MessageSquare,
   Zap,
   CreditCard,
+  Navigation,
+  Layers,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
 import MarketingFooter from "@/components/marketing/MarketingFooter"
@@ -284,10 +286,12 @@ export default async function HomePage() {
             {/* Mobile feature pills — visible only below lg, replaces the mockup */}
             <div className="lg:hidden grid grid-cols-2 gap-3">
               {[
-                { icon: CalendarDays, label: "Smart scheduling",     color: "bg-sky-50 text-sky-600 border-sky-100"    },
-                { icon: FileText,     label: "Invoicing & payments", color: "bg-green-50 text-green-600 border-green-100" },
-                { icon: Beaker,       label: "Chemical tracking",    color: "bg-purple-50 text-purple-600 border-purple-100" },
-                { icon: MessageSquare, label: "Customer portal",     color: "bg-amber-50 text-amber-600 border-amber-100"   },
+                { icon: CalendarDays,  label: "Route scheduling",    color: "bg-sky-50 text-sky-600 border-sky-100"       },
+                { icon: FileText,      label: "Invoicing & payments", color: "bg-green-50 text-green-600 border-green-100" },
+                { icon: Beaker,        label: "Chemical tracking",   color: "bg-purple-50 text-purple-600 border-purple-100" },
+                { icon: Layers,        label: "Job templates",       color: "bg-amber-50 text-amber-600 border-amber-100"  },
+                { icon: Navigation,    label: "Route optimization",  color: "bg-rose-50 text-rose-600 border-rose-100"     },
+                { icon: MessageSquare, label: "Customer portal",     color: "bg-indigo-50 text-indigo-600 border-indigo-100" },
               ].map((f) => (
                 <div key={f.label} className={`flex items-center gap-2.5 px-3.5 py-3 rounded-xl border ${f.color}`}>
                   <f.icon className="w-4 h-4 shrink-0" />
@@ -331,38 +335,38 @@ export default async function HomePage() {
               {
                 icon: CalendarDays,
                 color: "bg-sky-100 text-sky-600",
-                title: "Smart Scheduling",
-                body: "Build routes by day of the week, track overdue customers, and let your techs see exactly where they're going — all from their phone.",
+                title: "Routes & Scheduling",
+                body: "Build daily routes, drag stops to reorder or move between days, and optimize the drive order in one click. Techs see their full route on any phone.",
               },
               {
                 icon: FileText,
                 color: "bg-green-100 text-green-600",
                 title: "Invoicing & Payments",
-                body: "Create and send invoices in seconds. Customers pay online via card, Venmo, or Zelle. Set up auto-pay so you never chase a payment again.",
+                body: "Create and send invoices in seconds. Customers pay online via card or set up auto-pay. Estimates go out with a digital signature link.",
               },
               {
                 icon: Beaker,
                 color: "bg-purple-100 text-purple-600",
                 title: "Chemical Tracking",
-                body: "Log chlorine, pH, alkalinity, and calcium with every visit. Trend charts make it easy to spot problem pools before they escalate.",
+                body: "Log readings per visit with instant dosing recommendations. The last 3 results appear inline as techs fill out the form so they can spot trends on the spot.",
               },
               {
-                icon: LayoutDashboard,
+                icon: Layers,
                 color: "bg-amber-100 text-amber-600",
-                title: "Customer Portal",
-                body: "Give every customer a private portal where they can see visit history, chemical readings, invoices, and message your team directly.",
+                title: "Job Templates",
+                body: "One-click workflows for pool opening, closing, filter clean, acid wash, and more. Each template loads a checklist that techs must confirm before the visit is marked complete.",
               },
               {
                 icon: Camera,
                 color: "bg-rose-100 text-rose-600",
-                title: "Field Reports",
-                body: "Techs log visits with photos, chemical readings, and notes right from their phone. Customers get notified automatically when service is done.",
+                title: "Field Reports & Portal",
+                body: "Techs log visits with photos, notes, and readings from their phone. Every customer gets a private portal to view history, pay invoices, and message your team.",
               },
               {
                 icon: BarChart3,
                 color: "bg-indigo-100 text-indigo-600",
                 title: "Reports & Analytics",
-                body: "Revenue reports, aging invoices, chemical trends, and route analytics — the numbers you need to grow your business confidently.",
+                body: "Revenue by route, AR aging, chemical cost per stop, technician scorecards, and chemical trend alerts — everything you need to grow confidently.",
               },
             ].map((f) => (
               <div
