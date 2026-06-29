@@ -65,6 +65,19 @@ export default function CustomerForm({ action, customer, submitLabel = "Save Cus
       </fieldset>
 
       <fieldset className="space-y-4">
+        <legend className="text-sm font-semibold text-amber-700 uppercase tracking-wide">Access &amp; Entry</legend>
+        <Textarea
+          id="accessNotes"
+          name="accessNotes"
+          label="Access Notes"
+          defaultValue={customer?.accessNotes ?? ""}
+          placeholder="e.g. Gate code: 1234 · Dog in backyard (friendly lab) · Key under blue flowerpot on left"
+          rows={3}
+        />
+        <p className="text-xs text-gray-400 -mt-2">Shown as a warning banner on the visit form and route stop cards. Use this for anything a tech needs to know before arriving.</p>
+      </fieldset>
+
+      <fieldset className="space-y-4">
         <legend className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Account</legend>
         <div className="grid sm:grid-cols-2 gap-4">
           <Select

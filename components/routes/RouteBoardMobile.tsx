@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
-  GripVertical, MapPin, ChevronDown, ChevronUp,
+  GripVertical, MapPin, ChevronDown, ChevronUp, KeyRound,
   Inbox, ArrowRightLeft, Plus, Check,
 } from "lucide-react"
 import { moveStopToRoute } from "@/lib/actions/routes"
@@ -105,14 +105,22 @@ function SortableStop({
 
       {/* Customer info */}
       <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-900 truncate text-sm">
-          {stop.customer.firstName} {stop.customer.lastName}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-semibold text-gray-900 truncate text-sm">
+            {stop.customer.firstName} {stop.customer.lastName}
+          </p>
+          {stop.customer.accessNotes && (
+            <KeyRound className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+          )}
+        </div>
         {stop.customer.address && (
           <p className="text-xs text-gray-400 truncate flex items-center gap-1 mt-0.5">
             <MapPin className="w-2.5 h-2.5 shrink-0" />
             {stop.customer.address}{stop.customer.city ? `, ${stop.customer.city}` : ""}
           </p>
+        )}
+        {stop.customer.accessNotes && (
+          <p className="text-xs text-amber-700 truncate mt-0.5">{stop.customer.accessNotes}</p>
         )}
       </div>
 
@@ -340,14 +348,22 @@ function UnscheduledSection({
               className="flex items-center gap-3 bg-white rounded-xl border border-amber-200 px-3 py-3"
             >
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 text-sm truncate">
-                  {c.firstName} {c.lastName}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-gray-900 text-sm truncate">
+                    {c.firstName} {c.lastName}
+                  </p>
+                  {c.accessNotes && (
+                    <KeyRound className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  )}
+                </div>
                 {c.address && (
                   <p className="text-xs text-gray-400 truncate mt-0.5 flex items-center gap-1">
                     <MapPin className="w-2.5 h-2.5 shrink-0" />
                     {c.address}{c.city ? `, ${c.city}` : ""}
                   </p>
+                )}
+                {c.accessNotes && (
+                  <p className="text-xs text-amber-700 truncate mt-0.5">{c.accessNotes}</p>
                 )}
               </div>
 

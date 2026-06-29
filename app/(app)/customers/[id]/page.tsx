@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, ClipboardList, ToggleLeft, ToggleRight } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, ClipboardList, ToggleLeft, ToggleRight, KeyRound } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
@@ -167,6 +167,18 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           </div>
         </div>
       </div>
+
+      {/* Access notes banner */}
+      {customer.accessNotes && (
+        <div className="flex items-start gap-3 rounded-xl bg-amber-50 border border-amber-300 px-5 py-3">
+          <KeyRound className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Access Notes</p>
+            <p className="text-sm text-amber-700 mt-0.5 whitespace-pre-wrap">{customer.accessNotes}</p>
+          </div>
+          <Link href={`/customers/${id}/edit`} className="ml-auto shrink-0 text-xs text-amber-600 hover:text-amber-800 underline">Edit</Link>
+        </div>
+      )}
 
       {/* Outstanding balance widget */}
       {outstandingTotal > 0 && (
