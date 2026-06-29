@@ -5,6 +5,7 @@ import {
   FileText, FileEdit, CreditCard, Receipt, BarChart2, TrendingUp, Clock,
   Users, Globe, MessageSquare, Mail, Bell, Star,
   Shield, UserCog, Download, LifeBuoy, ChevronRight,
+  Layers, Navigation, GripVertical, KeyRound, History,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
 import MarketingFooter from "@/components/marketing/MarketingFooter"
@@ -57,6 +58,31 @@ const SECTIONS: Section[] = [
         icon: AlertTriangle,
         title: "Issue Tracking",
         description: "Flag leaks, equipment failures, safety hazards, and water quality problems. Track status from open to in-progress to resolved. High-priority issues surface in the notification bell.",
+      },
+      {
+        icon: Layers,
+        title: "Job Templates",
+        description: "One-click workflows for pool opening, closing, filter clean, acid wash, pump prime, and more. Each template loads a pre-built checklist into the visit form so techs never miss a step.",
+      },
+      {
+        icon: Navigation,
+        title: "Route Optimization",
+        description: "Auto-sort stops into the shortest drive order with one click. Set a company default start address or let each technician configure their own — with an ad-hoc override per run.",
+      },
+      {
+        icon: GripVertical,
+        title: "Drag-and-Drop Scheduling",
+        description: "Reorder stops within a route or move them between routes by dragging on desktop or long-pressing on mobile. An unscheduled queue holds customers not yet assigned to a route day.",
+      },
+      {
+        icon: KeyRound,
+        title: "Customer Access Notes",
+        description: "Store gate codes, dog warnings, key locations, and entry instructions per customer. Shown as a prominent amber banner on the visit form and inline on every route stop card — never buried in general notes.",
+      },
+      {
+        icon: History,
+        title: "Water Test History",
+        description: "The last 3 chemical readings appear inline on the visit form the moment a customer is selected. Out-of-range values are highlighted red so techs can spot trends before they test.",
       },
     ],
   },
