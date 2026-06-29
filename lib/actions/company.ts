@@ -48,6 +48,9 @@ export async function updateCompany(formData: FormData) {
       cardFeeEnabled:   formData.get("cardFeeEnabled") === "true",
       cardFeePercent:   parseFloat((formData.get("cardFeePercent") as string) || "2.9") || 2.9,
       cardFeeFixed:     parseFloat((formData.get("cardFeeFixed") as string) || "0.30") || 0,
+      reviewRequestEnabled:     formData.get("reviewRequestEnabled") === "true",
+      reviewRequestAfterVisits: parseInt((formData.get("reviewRequestAfterVisits") as string) || "5") || 5,
+      googleReviewUrl:          (formData.get("googleReviewUrl") as string) || null,
     },
   })
 

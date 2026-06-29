@@ -26,7 +26,7 @@
 - [ ] 🌟 Rate change audit log — full history of every monthly rate change per customer with date, old rate, new rate, and who changed it; visible on customer profile
 
 ### Customer / Marketing — Differentiators
-- [ ] 🌟 Review request automation — after a configurable number of completed visits, auto-send a review request email with a direct Google Maps review link; configurable in company settings
+- [x] 🌟 Review request automation — after a configurable number of completed visits, auto-send a review request email with a direct Google Maps review link; configurable in company settings
 - [ ] 🌟 Customer portal: full service history — customers can see all past visit dates, chemical readings, and photos (not just invoices/estimates); builds trust and reduces "what did you do today?" calls
 - [ ] 🌟 Seasonal upsell campaigns — one-click email campaign targeting customers who don't have a pool opening or closing visit booked; uses job template names to detect; sends templated upsell email
 - [ ] 🌟 Customer self-scheduling (portal) — customers request an additional visit or service through the portal; creates a pending visit in the schedule for the owner to confirm or decline

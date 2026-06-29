@@ -52,6 +52,10 @@ model Company {
   tcAcceptedAt      DateTime?  // timestamp when owner accepted T&C at signup
   marketingOptIn    Boolean @default(false)
 
+  reviewRequestEnabled      Boolean @default(false)
+  reviewRequestAfterVisits  Int     @default(5)
+  googleReviewUrl           String?
+
   users     User[]
   customers Customer[]
   routes    Route[]
@@ -153,6 +157,7 @@ model Customer {
   portalLastAccessedAt DateTime?
 
   serviceFrequency  String?  // weekly | biweekly | monthly | quarterly | as_needed
+  reviewRequestSentAt DateTime?  // set when review request email is sent; prevents re-sending
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
