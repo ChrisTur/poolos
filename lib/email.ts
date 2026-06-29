@@ -982,3 +982,99 @@ export function buildContactReplyHtml(data: {
 </body>
 </html>`
 }
+
+export function buildRateIncreaseHtml(data: {
+  companyName: string
+  companyLogoUrl: string | null
+  companyPhone: string | null
+  customerFirstName: string
+  oldRate: number
+  newRate: number
+  effectiveDate: string
+  portalUrl: string | null
+  sentByName: string | null
+}): string {
+  const { companyName, companyLogoUrl, customerFirstName, oldRate, newRate, effectiveDate, portalUrl, sentByName } = data
+  const fmt = (n: number) => `$${n.toFixed(2).replace(/\.00$/, "")}`
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+    <div style="background:#0f172a;padding:24px 32px;text-align:center;">
+      ${companyLogoUrl ? `<img src="${companyLogoUrl}" alt="${companyName}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:8px;">` : ""}
+      <p style="color:#94a3b8;font-size:13px;margin:0;">${companyName}</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="color:#1e293b;font-size:16px;margin:0 0 16px;">Hi ${customerFirstName},</p>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
+        We're writing to let you know about an upcoming change to your monthly pool service rate.
+      </p>
+      <div style="background:#f1f5f9;border-radius:10px;padding:20px 24px;margin:0 0 24px;text-align:center;">
+        <p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 12px;">Rate Change</p>
+        <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
+          <div>
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 2px;">Current rate</p>
+            <p style="color:#64748b;font-size:22px;font-weight:700;margin:0;text-decoration:line-through;">${fmt(oldRate)}<span style="font-size:13px;font-weight:400;">/mo</span></p>
+          </div>
+          <p style="color:#94a3b8;font-size:20px;margin:0;">→</p>
+          <div>
+            <p style="color:#94a3b8;font-size:11px;margin:0 0 2px;">New rate</p>
+            <p style="color:#0f172a;font-size:26px;font-weight:800;margin:0;">${fmt(newRate)}<span style="font-size:13px;font-weight:400;">/mo</span></p>
+          </div>
+        </div>
+        <p style="color:#64748b;font-size:13px;margin:12px 0 0;">Effective <strong>${effectiveDate}</strong></p>
+      </div>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 24px;">
+        This adjustment reflects the rising cost of chemicals and supplies. We appreciate your continued trust in us to care for your pool.
+      </p>
+      ${portalUrl ? `<div style="text-align:center;margin:0 0 24px;"><a href="${portalUrl}" style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:15px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">View your account →</a></div>` : ""}
+      <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 8px;">If you have any questions, just reply to this email — we're happy to help.</p>
+      <p style="color:#94a3b8;font-size:13px;margin:0;">— ${sentByName ?? companyName}</p>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+export function buildReviewRequestHtml(data: {
+  companyName: string
+  companyLogoUrl: string | null
+  companyPhone: string | null
+  customerFirstName: string
+  googleReviewUrl: string
+  sentByName: string | null
+}): string {
+  const { companyName, companyLogoUrl, customerFirstName, googleReviewUrl, sentByName } = data
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <div style="max-width:560px;margin:32px auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;">
+    <div style="background:#0f172a;padding:24px 32px;text-align:center;">
+      ${companyLogoUrl ? `<img src="${companyLogoUrl}" alt="${companyName}" style="max-height:40px;max-width:160px;object-fit:contain;margin-bottom:8px;">` : ""}
+      <p style="color:#94a3b8;font-size:13px;margin:0;">${companyName}</p>
+    </div>
+    <div style="padding:32px;">
+      <p style="color:#1e293b;font-size:16px;margin:0 0 16px;">Hi ${customerFirstName},</p>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 20px;">
+        It's been a pleasure keeping your pool in top shape! We'd love to hear how we're doing.
+      </p>
+      <p style="color:#475569;font-size:15px;line-height:1.6;margin:0 0 28px;">
+        If you have a minute, leaving us a Google review makes a huge difference — it helps other families find trustworthy pool care in the area.
+      </p>
+      <div style="text-align:center;margin:0 0 28px;">
+        <a href="${googleReviewUrl}" style="display:inline-flex;align-items:center;gap:10px;background:#4285F4;color:#ffffff;font-size:15px;font-weight:600;padding:14px 28px;border-radius:10px;text-decoration:none;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Leave a Google Review ★
+        </a>
+      </div>
+      <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 8px;">
+        Thank you for trusting us with your pool — we truly appreciate it!
+      </p>
+      <p style="color:#94a3b8;font-size:13px;margin:0;">— ${sentByName ?? companyName}</p>
+    </div>
+  </div>
+</body>
+</html>`
+}

@@ -4,7 +4,7 @@ import { updateCompany, uploadLogo } from "@/lib/actions/company"
 import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
-import { Upload } from "lucide-react"
+import { Upload, Star } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -221,6 +221,91 @@ export default async function CompanySettingsPage() {
             </div>
             <p className="text-xs text-gray-400">Shown transparently on the payment page. Default matches Stripe's standard rate (2.9% + $0.30).</p>
             <Button type="submit" size="sm">Save Fee Settings</Button>
+          </form>
+        </CardBody>
+      </Card>
+
+      {/* Review Request Automation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-amber-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Review Request Automation</h2>
+          </div>
+        </CardHeader>
+        <CardBody>
+          <form action={updateCompany} className="space-y-5">
+            {/* Preserve all other company fields */}
+            <input type="hidden" name="name" value={company.name} />
+            <input type="hidden" name="phone" value={company.phone ?? ""} />
+            <input type="hidden" name="address" value={company.address ?? ""} />
+            <input type="hidden" name="city" value={company.city ?? ""} />
+            <input type="hidden" name="state" value={company.state ?? ""} />
+            <input type="hidden" name="zip" value={company.zip ?? ""} />
+            <input type="hidden" name="website" value={company.website ?? ""} />
+            <input type="hidden" name="bccEmail" value={company.bccEmail ?? ""} />
+            <input type="hidden" name="replyToEmail" value={company.replyToEmail ?? ""} />
+            <input type="hidden" name="defaultDueDays" value={String(company.defaultDueDays)} />
+            <input type="hidden" name="lateFeeEnabled" value={String(company.lateFeeEnabled)} />
+            <input type="hidden" name="lateFeePercent" value={String(company.lateFeePercent)} />
+            <input type="hidden" name="lateFeeGraceDays" value={String(company.lateFeeGraceDays)} />
+            <input type="hidden" name="cardFeeEnabled" value={String(company.cardFeeEnabled)} />
+            <input type="hidden" name="cardFeePercent" value={String(company.cardFeePercent)} />
+            <input type="hidden" name="cardFeeFixed" value={String(company.cardFeeFixed)} />
+
+            <div className="flex items-center gap-3">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="hidden" name="reviewRequestEnabled" value="false" />
+                <input
+                  type="checkbox"
+                  name="reviewRequestEnabled"
+                  value="true"
+                  defaultChecked={company.reviewRequestEnabled}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
+              </label>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Enable review request emails</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Automatically email customers a Google review link after a set number of completed visits. Sent once per customer.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Send after how many visits?</label>
+                <input
+                  type="number"
+                  name="reviewRequestAfterVisits"
+                  min="1"
+                  max="50"
+                  defaultValue={company.reviewRequestAfterVisits}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">Email is sent once when this threshold is first reached.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Google review link</label>
+                <input
+                  type="url"
+                  name="googleReviewUrl"
+                  defaultValue={company.googleReviewUrl ?? ""}
+                  placeholder="https://g.page/r/YOUR_PLACE_ID/review"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Find yours at{" "}
+                  <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">
+                    business.google.com
+                  </a>
+                  {" "}→ Get more reviews.
+                </p>
+              </div>
+            </div>
+
+            <Button type="submit" size="sm">Save Review Settings</Button>
           </form>
         </CardBody>
       </Card>

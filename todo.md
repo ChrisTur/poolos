@@ -19,14 +19,14 @@
 - [ ] 🌟 Chemical inventory tracking — log your on-hand stock of each chemical; auto-decrement when logged on a visit; low-stock alerts in the notification bell
 
 ### Management — Differentiators
-- [ ] 🌟 Price increase wizard — select customers by route, tag, or "no increase in X months"; set a new rate; preview changes; send a pre-written rate-increase email to all affected customers in one click
-- [ ] 🌟 Customer profitability view — per-customer card showing monthly rate vs. avg chemical cost + visit count; sorts by least-profitable customers first so you know who to re-price or drop
+- [x] 🌟 Price increase wizard — select customers by route, tag, or "no increase in X months"; set a new rate; preview changes; send a pre-written rate-increase email to all affected customers in one click
+- [x] 🌟 Customer profitability view — per-customer card showing monthly rate vs. avg chemical cost + visit count; sorts by least-profitable customers first so you know who to re-price or drop
 - [ ] 🌟 Service contract / season pass — sell a pre-paid block of visits (e.g. "Pool Opening Package — 3 visits"); tracked against usage; shows remaining balance on customer page and portal
 - [ ] 🌟 Recurring expense automation — mark expenses as recurring (weekly/monthly/annual); auto-create on schedule; shows up in P&L without manual entry every period
 - [ ] 🌟 Rate change audit log — full history of every monthly rate change per customer with date, old rate, new rate, and who changed it; visible on customer profile
 
 ### Customer / Marketing — Differentiators
-- [ ] 🌟 Review request automation — after a configurable number of completed visits, auto-send a review request email with a direct Google Maps review link; configurable in company settings
+- [x] 🌟 Review request automation — after a configurable number of completed visits, auto-send a review request email with a direct Google Maps review link; configurable in company settings
 - [ ] 🌟 Customer portal: full service history — customers can see all past visit dates, chemical readings, and photos (not just invoices/estimates); builds trust and reduces "what did you do today?" calls
 - [ ] 🌟 Seasonal upsell campaigns — one-click email campaign targeting customers who don't have a pool opening or closing visit booked; uses job template names to detect; sends templated upsell email
 - [ ] 🌟 Customer self-scheduling (portal) — customers request an additional visit or service through the portal; creates a pending visit in the schedule for the owner to confirm or decline

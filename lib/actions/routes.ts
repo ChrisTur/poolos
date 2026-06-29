@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { resend, FROM, buildVisitCompletionHtml } from "@/lib/email"
+import { resend, FROM, buildVisitCompletionHtml, buildReviewRequestHtml } from "@/lib/email"
 import { geocodeAddress, nearestNeighborOrder, nearestNeighborOrderFromStart } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
@@ -256,8 +256,8 @@ export async function logVisit(formData: FormData) {
   // On completed visits: store a CustomerMessage in the thread, optionally email the customer
   if (status === "completed") {
     const [customer, company] = await Promise.all([
-      db.customer.findUnique({ where: { id: customerId }, select: { email: true, firstName: true, portalToken: true } }),
-      db.company.findUnique({ where: { id: companyId }, select: { name: true, logoUrl: true, phone: true, bccEmail: true, replyToEmail: true } }),
+      db.customer.findUnique({ where: { id: customerId }, select: { email: true, firstName: true, portalToken: true, reviewRequestSentAt: true } }),
+      db.company.findUnique({ where: { id: companyId }, select: { name: true, logoUrl: true, phone: true, bccEmail: true, replyToEmail: true, reviewRequestEnabled: true, reviewRequestAfterVisits: true, googleReviewUrl: true } }),
     ])
 
     if (customer && company) {
@@ -347,6 +347,54 @@ export async function logVisit(formData: FormData) {
           companyId,
         },
       })
+
+      // Review request: send once when customer hits the configured visit threshold
+      if (
+        company.reviewRequestEnabled &&
+        company.googleReviewUrl &&
+        customer.email &&
+        !customer.reviewRequestSentAt
+      ) {
+        const completedCount = await db.serviceVisit.count({
+          where: { customerId, customer: { companyId }, status: "completed" },
+        })
+        if (completedCount >= company.reviewRequestAfterVisits) {
+          const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+          const reviewSubject = `Quick favor — leave us a review?`
+          const { data: reviewData, error: reviewError } = await resend.emails.send({
+            from: `${company.name} <${fromEmail}>`,
+            to: customer.email,
+            replyTo: company.replyToEmail ?? undefined,
+            subject: reviewSubject,
+            html: buildReviewRequestHtml({
+              companyName: company.name,
+              companyLogoUrl: company.logoUrl,
+              companyPhone: company.phone,
+              customerFirstName: customer.firstName,
+              googleReviewUrl: company.googleReviewUrl,
+              sentByName: session.name,
+            }),
+          })
+          const reviewStatus = reviewError ? "failed" : "sent"
+          await Promise.all([
+            db.emailLog.create({
+              data: {
+                type: "review_request",
+                status: reviewStatus,
+                toEmail: customer.email,
+                subject: reviewSubject,
+                resendId: reviewData?.id ?? null,
+                customerId,
+                companyId,
+                serviceVisitId: visit.id,
+              },
+            }),
+            reviewStatus === "sent"
+              ? db.customer.update({ where: { id: customerId }, data: { reviewRequestSentAt: new Date() } })
+              : Promise.resolve(),
+          ])
+        }
+      }
     }
   }
 

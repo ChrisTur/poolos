@@ -52,6 +52,10 @@ model Company {
   tcAcceptedAt      DateTime?  // timestamp when owner accepted T&C at signup
   marketingOptIn    Boolean @default(false)
 
+  reviewRequestEnabled      Boolean @default(false)
+  reviewRequestAfterVisits  Int     @default(5)
+  googleReviewUrl           String?
+
   users     User[]
   customers Customer[]
   routes    Route[]
@@ -70,6 +74,7 @@ model Company {
   supportTickets         SupportTicket[]
   issueReports           IssueReport[]
   chemicalUsages         ChemicalUsage[]
+  rateHistory            RateHistory[]
 }
 
 model User {
@@ -100,6 +105,7 @@ model User {
   equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
   submittedTickets  SupportTicket[]     @relation("TicketSubmitter")
   reportedIssues    IssueReport[]       @relation("IssueReporter")
+  rateChanges       RateHistory[]
 }
 
 model Session {
@@ -151,6 +157,7 @@ model Customer {
   portalLastAccessedAt DateTime?
 
   serviceFrequency  String?  // weekly | biweekly | monthly | quarterly | as_needed
+  reviewRequestSentAt DateTime?  // set when review request email is sent; prevents re-sending
 
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -168,6 +175,7 @@ model Customer {
   attachments     Attachment[]
   issueReports    IssueReport[]
   checklistItems  VisitChecklistItem[]
+  rateHistory     RateHistory[]
 }
 
 model CustomerNote {
@@ -517,6 +525,24 @@ model CustomerTag {
   tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([customerId, tagId])
+}
+
+model RateHistory {
+  id        String   @id @default(cuid())
+  changedAt DateTime @default(now())
+  oldRate   Float
+  newRate   Float
+  note      String?  // e.g. "Price increase wizard — +10%"
+
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  changedById String?
+  changedBy   User?    @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([companyId])
 }
 
 model Attachment {
