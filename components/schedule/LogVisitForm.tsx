@@ -8,7 +8,7 @@ import { runDosing } from "@/lib/chemistry"
 import Button from "@/components/ui/Button"
 import {
   X, Loader2, CheckCircle2,
-  AlertTriangle, CheckSquare, Square, Layers,
+  AlertTriangle, CheckSquare, Square, Layers, KeyRound,
 } from "lucide-react"
 import type { Customer, Route, VisitChecklistItem, JobTemplate, JobTemplateStep } from "@/app/generated/prisma/client"
 import DosingPanel from "@/components/schedule/DosingPanel"
@@ -251,6 +251,17 @@ export default function LogVisitForm({
           </p>
         )}
       </div>
+
+      {/* Access notes — shown prominently when a customer with notes is selected */}
+      {selectedCustomer?.accessNotes && (
+        <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-300 px-3.5 py-3">
+          <KeyRound className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-0.5">Access Notes</p>
+            <p className="text-sm text-amber-800 whitespace-pre-wrap">{selectedCustomer.accessNotes}</p>
+          </div>
+        </div>
+      )}
 
       {/* Job type / template picker */}
       {jobTemplates.length > 0 && (
