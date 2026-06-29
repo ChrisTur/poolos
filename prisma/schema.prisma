@@ -606,11 +606,13 @@ model EmailLog {
   bccEmail  String?
   subject   String
 
+  resendId   String?  // ID returned by Resend API — use for delivery lookups
+
   invoiceId  String?
   invoice    Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   estimateId String?
-  customerId String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
   companyId  String
   company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   serviceVisitId String?

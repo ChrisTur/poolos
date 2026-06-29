@@ -185,18 +185,32 @@ export async function sendTrialConversionEmail(
     upgradeUrl,
   })
 
-  try {
-    const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
-    await resend.emails.send({
-      from: `Chris at PoolOS <${fromEmail}>`,
-      to: owner.email,
-      replyTo: "billing@poolos.biz",
-      subject: trialConversionSubject(owner.firstName, daysLeft),
-      html,
-    })
-  } catch (err) {
-    return { ok: false, error: `Send failed: ${err instanceof Error ? err.message : "unknown error"}` }
+  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+  const subject = trialConversionSubject(owner.firstName, daysLeft)
+
+  const { data, error } = await resend.emails.send({
+    from: `Chris at PoolOS <${fromEmail}>`,
+    to: owner.email,
+    replyTo: "billing@poolos.biz",
+    subject,
+    html,
+  })
+
+  if (error) {
+    return { ok: false, error: `Resend error: ${error.message}` }
   }
+
+  // Log to EmailLog so there's a DB record of the outreach
+  await db.emailLog.create({
+    data: {
+      type: "trial_outreach",
+      status: "sent",
+      toEmail: owner.email,
+      subject,
+      companyId,
+      resendId: data?.id ?? null,
+    },
+  })
 
   revalidatePath("/admin/trial-outreach")
   return { ok: true }
