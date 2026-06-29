@@ -12,8 +12,8 @@
 - [ ] ⚡ Multiple bodies of water — track pool + spa + water feature separately per customer; each with its own readings, pricing, workflow, and chemical history
 
 ### Field — Differentiators
-- [ ] 🌟 Customer access notes — pool gate codes, access instructions, dog warnings, key location; pinned prominently on the visit form when a customer is selected and on route stop cards; never buried in general notes
-- [ ] 🌟 Water test history on visit form — show last 3 chemical readings inline when a customer is selected so techs can spot trends without leaving the form
+- [x] 🌟 Customer access notes — pool gate codes, access instructions, dog warnings, key location; pinned prominently on the visit form when a customer is selected and on route stop cards; never buried in general notes
+- [x] 🌟 Water test history on visit form — show last 3 chemical readings inline when a customer is selected so techs can spot trends without leaving the form
 - [ ] 🌟 Before/after photo comparison — visit detail page shows photos side-by-side across the two most recent visits for a customer; makes progress visible to management and customers
 - [ ] 🌟 GPS visit verification — optionally capture lat/lng on visit submit; flag visits logged far from the customer's address; surface in technician scorecards
 - [ ] 🌟 Chemical inventory tracking — log your on-hand stock of each chemical; auto-decrement when logged on a visit; low-stock alerts in the notification bell
