@@ -4,7 +4,7 @@ import Link from "next/link"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
-import { DollarSign, Users, CalendarDays, TrendingUp, AlertTriangle, Clock, MapPin, Users2, ChevronRight } from "lucide-react"
+import { DollarSign, Users, CalendarDays, TrendingUp, AlertTriangle, Clock, MapPin, Users2, ChevronRight, BarChart } from "lucide-react"
 import { visitNeedsAttention } from "@/lib/chemistry"
 import PaymentDonut, { type PaymentSlice } from "@/components/reports/PaymentDonut"
 import ChemicalHealthTable from "@/components/reports/ChemicalHealthTable"
@@ -476,6 +476,18 @@ export default async function ReportsPage({
               <div>
                 <p className="font-semibold text-gray-900 text-sm">Technician Scorecards</p>
                 <p className="text-xs text-gray-500 mt-0.5">Visits, ratings, chem spend per tech</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
+            </Card>
+          </Link>
+          <Link href="/reports/profitability">
+            <Card className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <span className="bg-emerald-50 text-emerald-600 p-2.5 rounded-lg shrink-0">
+                <BarChart className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Customer Profitability</p>
+                <p className="text-xs text-gray-500 mt-0.5">Monthly rate vs. chem cost; sorted least-profitable first</p>
               </div>
               <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
             </Card>

@@ -19,8 +19,8 @@
 - [ ] 🌟 Chemical inventory tracking — log your on-hand stock of each chemical; auto-decrement when logged on a visit; low-stock alerts in the notification bell
 
 ### Management — Differentiators
-- [ ] 🌟 Price increase wizard — select customers by route, tag, or "no increase in X months"; set a new rate; preview changes; send a pre-written rate-increase email to all affected customers in one click
-- [ ] 🌟 Customer profitability view — per-customer card showing monthly rate vs. avg chemical cost + visit count; sorts by least-profitable customers first so you know who to re-price or drop
+- [x] 🌟 Price increase wizard — select customers by route, tag, or "no increase in X months"; set a new rate; preview changes; send a pre-written rate-increase email to all affected customers in one click
+- [x] 🌟 Customer profitability view — per-customer card showing monthly rate vs. avg chemical cost + visit count; sorts by least-profitable customers first so you know who to re-price or drop
 - [ ] 🌟 Service contract / season pass — sell a pre-paid block of visits (e.g. "Pool Opening Package — 3 visits"); tracked against usage; shows remaining balance on customer page and portal
 - [ ] 🌟 Recurring expense automation — mark expenses as recurring (weekly/monthly/annual); auto-create on schedule; shows up in P&L without manual entry every period
 - [ ] 🌟 Rate change audit log — full history of every monthly rate change per customer with date, old rate, new rate, and who changed it; visible on customer profile
