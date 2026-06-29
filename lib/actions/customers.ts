@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { requirePermission } from "@/lib/session"
+import { requirePermission, requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildCustomerMessageHtml } from "@/lib/email"
@@ -23,6 +23,7 @@ export async function createCustomer(formData: FormData) {
       poolType: (formData.get("poolType") as string) || null,
       poolSize: (formData.get("poolSize") as string) || null,
       poolNotes: (formData.get("poolNotes") as string) || null,
+      accessNotes: (formData.get("accessNotes") as string) || null,
       monthlyRate: formData.get("monthlyRate") ? parseFloat(formData.get("monthlyRate") as string) : null,
       dueDays: formData.get("dueDays") ? parseInt(formData.get("dueDays") as string) : null,
       status: (formData.get("status") as string) || "active",
@@ -51,6 +52,7 @@ export async function updateCustomer(id: string, formData: FormData) {
       poolType: (formData.get("poolType") as string) || null,
       poolSize: (formData.get("poolSize") as string) || null,
       poolNotes: (formData.get("poolNotes") as string) || null,
+      accessNotes: (formData.get("accessNotes") as string) || null,
       monthlyRate: formData.get("monthlyRate") ? parseFloat(formData.get("monthlyRate") as string) : null,
       dueDays: formData.get("dueDays") ? parseInt(formData.get("dueDays") as string) : null,
       status: formData.get("status") as string,
@@ -246,4 +248,36 @@ export async function sendMessage(_: unknown, formData: FormData) {
 
   revalidatePath(`/customers/${customerId}`)
   return { success: true }
+}
+
+export type RecentReading = {
+  id: string
+  visitedAt: Date
+  chlorine: number | null
+  ph: number | null
+  alkalinity: number | null
+  calcium: number | null
+  cya: number | null
+  salt: number | null
+}
+
+export async function getRecentReadings(customerId: string): Promise<RecentReading[]> {
+  const { companyId } = await requireSession()
+  return db.serviceVisit.findMany({
+    where: {
+      customerId,
+      customer: { companyId },
+      OR: [
+        { chlorine: { not: null } },
+        { ph: { not: null } },
+        { alkalinity: { not: null } },
+        { calcium: { not: null } },
+        { cya: { not: null } },
+        { salt: { not: null } },
+      ],
+    },
+    orderBy: { visitedAt: "desc" },
+    take: 3,
+    select: { id: true, visitedAt: true, chlorine: true, ph: true, alkalinity: true, calcium: true, cya: true, salt: true },
+  })
 }

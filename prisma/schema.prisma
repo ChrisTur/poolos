@@ -138,6 +138,8 @@ model Customer {
   poolSize    String?
   poolNotes   String?
 
+  accessNotes String?  // gate codes, dog warnings, entry instructions — shown prominently on visit form and route cards
+
   status      String  @default("active")
   monthlyRate Float?
   dueDays     Int?

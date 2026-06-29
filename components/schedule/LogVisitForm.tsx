@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useMemo, useRef } from "react"
+import { useState, useMemo, useRef, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { logVisit } from "@/lib/actions/routes"
 import { getUploadUrl } from "@/lib/actions/attachments"
+import { getRecentReadings, type RecentReading } from "@/lib/actions/customers"
 import { runDosing } from "@/lib/chemistry"
 import Button from "@/components/ui/Button"
 import {
   X, Loader2, CheckCircle2,
-  AlertTriangle, CheckSquare, Square, Layers,
+  AlertTriangle, CheckSquare, Square, Layers, KeyRound,
 } from "lucide-react"
 import type { Customer, Route, VisitChecklistItem, JobTemplate, JobTemplateStep } from "@/app/generated/prisma/client"
 import DosingPanel from "@/components/schedule/DosingPanel"
@@ -41,6 +42,76 @@ const NOTE_TEMPLATES = [
 ]
 
 const inputCls = "w-full rounded-lg border border-gray-300 px-3 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+
+// ── Water test history panel ──────────────────────────────────────────────────
+
+type ReadingRow = { key: keyof Omit<RecentReading, "id" | "visitedAt">; label: string; min: number; max: number; unit: string }
+const READING_ROWS: ReadingRow[] = [
+  { key: "chlorine",   label: "Free Cl",  min: 1,    max: 3,    unit: "ppm"  },
+  { key: "ph",         label: "pH",       min: 7.2,  max: 7.6,  unit: ""     },
+  { key: "alkalinity", label: "Alk",      min: 80,   max: 120,  unit: "ppm"  },
+  { key: "calcium",    label: "CH",       min: 200,  max: 400,  unit: "ppm"  },
+  { key: "cya",        label: "CYA",      min: 30,   max: 50,   unit: "ppm"  },
+  { key: "salt",       label: "Salt",     min: 2700, max: 3400, unit: "ppm"  },
+]
+
+function fmt(val: number | null, key: string) {
+  if (val === null) return "—"
+  if (key === "ph") return val.toFixed(1)
+  return val % 1 === 0 ? val.toString() : val.toFixed(1)
+}
+
+function valClass(val: number | null, min: number, max: number) {
+  if (val === null) return "text-gray-300"
+  if (val < min || val > max) return "text-red-600 font-semibold"
+  return "text-emerald-600 font-medium"
+}
+
+function WaterTestHistory({ readings, loading }: { readings: RecentReading[]; loading: boolean }) {
+  const visibleRows = READING_ROWS.filter((r) =>
+    readings.some((v) => v[r.key] !== null)
+  )
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-white">
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Last {readings.length > 0 ? readings.length : "…"} Water Tests</span>
+        {loading && <Loader2 className="w-3 h-3 text-gray-400 animate-spin" />}
+      </div>
+
+      {loading && readings.length === 0 ? (
+        <div className="px-3 py-4 text-center text-xs text-gray-400">Loading history…</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="px-3 py-2 text-left font-medium text-gray-500 w-16">Test</th>
+                {readings.map((r) => (
+                  <th key={r.id} className="px-3 py-2 text-center font-medium text-gray-500 whitespace-nowrap">
+                    {new Date(r.visitedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {visibleRows.map((row) => (
+                <tr key={row.key} className="bg-white">
+                  <td className="px-3 py-2 text-gray-500 whitespace-nowrap">{row.label}{row.unit && <span className="text-gray-300 ml-0.5">{row.unit === "ppm" ? "" : ""}</span>}</td>
+                  {readings.map((r) => (
+                    <td key={r.id} className={`px-3 py-2 text-center tabular-nums ${valClass(r[row.key], row.min, row.max)}`}>
+                      {fmt(r[row.key], row.key)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 
@@ -82,6 +153,8 @@ export default function LogVisitForm({
   const [chemicalRows,    setChemicalRows]    = useState<ChemicalUsageRow[]>([])
   const [templateId,      setTemplateId]      = useState("")
   const [templateChecked, setTemplateChecked] = useState<Set<string>>(new Set())
+  const [recentReadings,  setRecentReadings]  = useState<RecentReading[]>([])
+  const [readingsPending, startReadingsTransition] = useTransition()
 
   const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
   const poolVolume = selectedCustomer?.poolSize ? parseFloat(selectedCustomer.poolSize) : null
@@ -90,10 +163,17 @@ export default function LogVisitForm({
 
   function handleCustomerChange(id: string) {
     setCustomerId(id)
+    setRecentReadings([])
     const c = customers.find((x) => x.id === id)
     const saltEquipment = c?.equipment?.some((e) => e.type === "salt_system") ?? false
     if (saltEquipment || c?.poolType?.toLowerCase().includes("salt")) setSaltwater(true)
     else setSaltwater(false)
+    if (id) {
+      startReadingsTransition(async () => {
+        const readings = await getRecentReadings(id)
+        setRecentReadings(readings)
+      })
+    }
   }
 
   function handleRouteChange(routeId: string) {
@@ -252,6 +332,17 @@ export default function LogVisitForm({
         )}
       </div>
 
+      {/* Access notes — shown prominently when a customer with notes is selected */}
+      {selectedCustomer?.accessNotes && (
+        <div className="flex items-start gap-2.5 rounded-lg bg-amber-50 border border-amber-300 px-3.5 py-3">
+          <KeyRound className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide mb-0.5">Access Notes</p>
+            <p className="text-sm text-amber-800 whitespace-pre-wrap">{selectedCustomer.accessNotes}</p>
+          </div>
+        </div>
+      )}
+
       {/* Job type / template picker */}
       {jobTemplates.length > 0 && (
         <div>
@@ -351,6 +442,11 @@ export default function LogVisitForm({
           ))}
         </div>
       </div>
+
+      {/* Water test history */}
+      {customerId && (recentReadings.length > 0 || readingsPending) && (
+        <WaterTestHistory readings={recentReadings} loading={readingsPending} />
+      )}
 
       {/* Chemical readings */}
       <fieldset>

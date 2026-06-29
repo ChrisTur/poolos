@@ -20,7 +20,7 @@ import {
 } from "@dnd-kit/sortable"
 import { useDroppable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
-import { GripVertical, MapPin, User, Inbox } from "lucide-react"
+import { GripVertical, MapPin, User, Inbox, KeyRound } from "lucide-react"
 import { moveStopToRoute } from "@/lib/actions/routes"
 import type { Route, RouteStop, Customer } from "@/app/generated/prisma/client"
 
@@ -89,14 +89,22 @@ function StopCard({
         <User className="w-4 h-4 text-gray-300 shrink-0" />
       )}
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-gray-900 truncate text-xs">
-          {customer.firstName} {customer.lastName}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="font-medium text-gray-900 truncate text-xs">
+            {customer.firstName} {customer.lastName}
+          </p>
+          {customer.accessNotes && (
+            <KeyRound className="w-3 h-3 text-amber-500 shrink-0" />
+          )}
+        </div>
         {address && (
           <p className="text-[11px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
             <MapPin className="w-2.5 h-2.5 shrink-0" />
             {address}
           </p>
+        )}
+        {customer.accessNotes && (
+          <p className="text-[11px] text-amber-700 truncate mt-0.5">{customer.accessNotes}</p>
         )}
       </div>
     </div>
