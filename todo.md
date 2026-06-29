@@ -31,6 +31,7 @@
 - [ ] ⚡ Technician payroll calculations — automated pay based on jobs completed; configurable rates per employee, property, body of water, and service type
 
 ### Integrations (External Services — No GCP Dependency)
+- [ ] Facebook posting — publish before/after photos, seasonal tips, and service highlights to the company's Facebook page directly from PoolOS; requires Facebook Graph API + Page access token; configurable in company settings
 - [ ] QuickBooks Online — two-way sync of customers, invoices, payments, refunds, and service categories; needs QBO developer account
 - [ ] SMS notifications — Twilio integration for visit reminders and alerts; start A2P 10DLC carrier registration now (takes 2–4 weeks)
 
