@@ -3,6 +3,7 @@
 import { useState, useTransition, useMemo } from "react"
 import { applyPriceIncrease } from "@/lib/actions/priceIncrease"
 import { formatCurrency } from "@/lib/utils"
+import Link from "next/link"
 import { CheckCircle2, ChevronRight, DollarSign, Mail, Users } from "lucide-react"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 
@@ -117,12 +118,12 @@ export default function PriceIncreaseWizard({
               </p>
             </div>
             <div className="flex gap-3 justify-center">
-              <a href="/customers" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-800">
+              <Link href="/customers" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-800">
                 View customers
-              </a>
-              <a href="/reports/profitability" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-800">
+              </Link>
+              <Link href="/reports/profitability" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-800">
                 Profitability report
-              </a>
+              </Link>
             </div>
           </div>
         </CardBody>
