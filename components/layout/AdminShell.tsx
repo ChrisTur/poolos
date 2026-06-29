@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy, Shield } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy, Shield, FlaskConical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import NotificationBell from "./NotificationBell"
 import type { AdminNotification } from "@/lib/notifications"
@@ -21,12 +21,13 @@ const platformNav = [
 ]
 
 const marketingNav = [
-  { href: "/admin/site-config", label: "Site Config", icon: Settings },
-  { href: "/admin/waitlist",    label: "Waitlist",    icon: ListChecks },
-  { href: "/admin/features",    label: "Features",    icon: Zap },
-  { href: "/admin/blog",        label: "Blog",        icon: BookOpen },
-  { href: "/admin/banners",     label: "Banners",     icon: Megaphone },
-  { href: "/admin/referrals",   label: "Referrals",   icon: Gift },
+  { href: "/admin/site-config",     label: "Site Config",    icon: Settings },
+  { href: "/admin/waitlist",        label: "Waitlist",       icon: ListChecks },
+  { href: "/admin/features",        label: "Features",       icon: Zap },
+  { href: "/admin/blog",            label: "Blog",           icon: BookOpen },
+  { href: "/admin/banners",         label: "Banners",        icon: Megaphone },
+  { href: "/admin/referrals",       label: "Referrals",      icon: Gift },
+  { href: "/admin/trial-outreach",  label: "Trial Outreach", icon: FlaskConical },
 ]
 
 function NavLink({ href, label, icon: Icon, pathname, onClose, exact = false }: {

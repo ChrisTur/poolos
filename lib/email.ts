@@ -801,6 +801,131 @@ export function buildPasswordResetHtml(firstName: string, resetUrl: string) {
 </html>`
 }
 
+export interface TrialConversionEmailData {
+  firstName: string
+  companyName: string
+  trialEndsAt: Date | null
+  daysLeft: number | null   // null = already expired
+  customerCount: number
+  visitCount: number
+  upgradeUrl: string
+}
+
+export function buildTrialConversionHtml(data: TrialConversionEmailData): string {
+  const { firstName, companyName, trialEndsAt, daysLeft, customerCount, visitCount, upgradeUrl } = data
+
+  const trialBannerColor = daysLeft !== null && daysLeft <= 3 ? "#dc2626" : daysLeft !== null ? "#d97706" : "#6b7280"
+  const trialBannerBg   = daysLeft !== null && daysLeft <= 3 ? "#fef2f2" : daysLeft !== null ? "#fffbeb" : "#f9fafb"
+  const trialBannerBdr  = daysLeft !== null && daysLeft <= 3 ? "#fecaca" : daysLeft !== null ? "#fde68a" : "#e5e7eb"
+
+  const trialStatusLine = daysLeft === null
+    ? "Your free trial has ended."
+    : daysLeft === 0
+    ? "Your free trial ends <strong>today</strong>."
+    : daysLeft === 1
+    ? "Your free trial ends <strong>tomorrow</strong>."
+    : `Your free trial ends in <strong>${daysLeft} days</strong>${trialEndsAt ? ` (${fmtDate(trialEndsAt)})` : ""}.`
+
+  const usageLine = [
+    customerCount > 0 ? `${customerCount} customer${customerCount !== 1 ? "s" : ""} added` : null,
+    visitCount > 0    ? `${visitCount} visit${visitCount !== 1 ? "s" : ""} logged` : null,
+  ].filter(Boolean).join(" · ")
+
+  const features = [
+    { icon: "📋", label: "All your customers & history — nothing lost on upgrade" },
+    { icon: "🗺️", label: "Route scheduling, drag-and-drop, and auto-optimization" },
+    { icon: "📱", label: "Customer portal, invoicing, and online payments" },
+    { icon: "📊", label: "Chemical tracking, reports, and visit notifications" },
+  ]
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    @media only screen and (max-width:600px) {
+      .tc-body { padding: 20px 16px !important; }
+      .tc-cta  { padding: 13px 24px !important; font-size: 15px !important; }
+    }
+  </style>
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:560px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+
+    <!-- Header -->
+    <div style="background:#0c4a6e;padding:24px 28px">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff;letter-spacing:-.01em">PoolOS</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#bae6fd">Pool service software built for the field</p>
+    </div>
+
+    <div class="tc-body" style="padding:28px">
+
+      <!-- Greeting -->
+      <p style="font-size:15px;color:#111827;margin:0 0 6px">Hi ${firstName},</p>
+      <p style="font-size:14px;color:#6b7280;margin:0 0 20px;line-height:1.6">
+        Thanks for trying PoolOS${companyName ? ` for <strong style="color:#374151">${companyName}</strong>` : ""}.
+        ${usageLine ? `So far you've got <strong style="color:#374151">${usageLine}</strong> — ` : ""}We want to make sure you keep everything you've set up when your trial ends.
+      </p>
+
+      <!-- Trial status banner -->
+      <div style="background:${trialBannerBg};border:1px solid ${trialBannerBdr};border-radius:8px;padding:14px 16px;margin-bottom:24px">
+        <p style="margin:0;font-size:14px;color:${trialBannerColor};line-height:1.5">${trialStatusLine}</p>
+        <p style="margin:6px 0 0;font-size:13px;color:#6b7280;line-height:1.5">
+          Upgrade before it expires and your customers, routes, invoices, and history carry over instantly — no re-setup required.
+        </p>
+      </div>
+
+      <!-- What's included -->
+      <p style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin:0 0 12px">What you keep when you upgrade</p>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+        ${features.map((f) => `
+        <tr>
+          <td style="padding:7px 0;vertical-align:top;width:28px;font-size:16px">${f.icon}</td>
+          <td style="padding:7px 0 7px 8px;font-size:14px;color:#374151;line-height:1.4;border-bottom:1px solid #f3f4f6">${f.label}</td>
+        </tr>`).join("")}
+      </table>
+
+      <!-- Pricing callout -->
+      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:16px;margin-bottom:24px;text-align:center">
+        <p style="font-size:13px;color:#0369a1;margin:0 0 4px;font-weight:600">Starter plan · $49/month</p>
+        <p style="font-size:12px;color:#0284c7;margin:0">Up to 50 customers · No contracts · Cancel anytime</p>
+      </div>
+
+      <!-- CTA -->
+      <div style="text-align:center;margin-bottom:24px">
+        <a href="${upgradeUrl}"
+           class="tc-cta"
+           style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:16px;font-weight:700;text-decoration:none;padding:14px 36px;border-radius:8px;letter-spacing:.01em">
+          Choose your plan →
+        </a>
+        <p style="font-size:12px;color:#9ca3af;margin:10px 0 0">Takes less than 2 minutes · Secure checkout</p>
+      </div>
+
+      <!-- Sign-off -->
+      <p style="font-size:13px;color:#6b7280;margin:0 0 4px;line-height:1.6">
+        Have questions or want to talk through which plan fits your business? Just reply to this email.
+      </p>
+      <p style="font-size:13px;color:#374151;margin:0">— Chris at PoolOS</p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+      PoolOS · <a href="mailto:billing@poolos.biz" style="color:#9ca3af;text-decoration:none">billing@poolos.biz</a>
+      · <a href="${upgradeUrl}" style="color:#9ca3af;text-decoration:none">View plans</a>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
+export function trialConversionSubject(firstName: string, daysLeft: number | null): string {
+  if (daysLeft === null) return `${firstName}, your PoolOS trial has ended — don't lose your data`
+  if (daysLeft <= 1) return `Last chance — your PoolOS trial ends today`
+  if (daysLeft <= 3) return `${firstName}, your PoolOS trial ends in ${daysLeft} days`
+  return `${firstName}, keep everything you've built in PoolOS`
+}
+
 export function buildContactReplyHtml(data: {
   name: string
   originalBody: string
