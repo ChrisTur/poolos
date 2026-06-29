@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
+import { resend, FROM, buildTrialConversionHtml, trialConversionSubject } from "@/lib/email"
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50)
@@ -143,4 +144,60 @@ export async function adminCreateCompany(formData: FormData) {
   })
 
   redirect("/admin/companies?created=1")
+}
+
+export async function sendTrialConversionEmail(
+  companyId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireSuperAdmin()
+
+  const company = await db.company.findUnique({
+    where: { id: companyId },
+    include: {
+      users: { where: { role: "owner" }, take: 1 },
+      _count: { select: { customers: true } },
+    },
+  })
+
+  if (!company) return { ok: false, error: "Company not found." }
+  if (company.plan !== "trial") return { ok: false, error: "Company is not on a trial plan." }
+
+  const owner = company.users[0]
+  if (!owner?.email) return { ok: false, error: "No owner email found." }
+
+  const [visitCount] = await Promise.all([
+    db.serviceVisit.count({ where: { customer: { companyId } } }),
+  ])
+
+  const daysLeft = company.trialEndsAt
+    ? Math.max(0, Math.ceil((company.trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : null
+
+  const upgradeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/settings/billing`
+
+  const html = buildTrialConversionHtml({
+    firstName: owner.firstName,
+    companyName: company.name,
+    trialEndsAt: company.trialEndsAt,
+    daysLeft,
+    customerCount: company._count.customers,
+    visitCount,
+    upgradeUrl,
+  })
+
+  try {
+    const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+    await resend.emails.send({
+      from: `Chris at PoolOS <${fromEmail}>`,
+      to: owner.email,
+      replyTo: "billing@poolos.biz",
+      subject: trialConversionSubject(owner.firstName, daysLeft),
+      html,
+    })
+  } catch (err) {
+    return { ok: false, error: `Send failed: ${err instanceof Error ? err.message : "unknown error"}` }
+  }
+
+  revalidatePath("/admin/trial-outreach")
+  return { ok: true }
 }
