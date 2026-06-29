@@ -22,7 +22,8 @@ function MarginBadge({ pct }: { pct: number }) {
 export default async function ProfitabilityPage() {
   const { companyId } = await requireSession()
 
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+  const ninetyDaysAgo = new Date()
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
 
   const customers = await db.customer.findMany({
     where: { companyId, status: "active", monthlyRate: { not: null } },
