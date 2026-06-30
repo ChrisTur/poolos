@@ -428,10 +428,40 @@ export async function logVisit(formData: FormData) {
         await db.chemicalUsage.createMany({
           data: validUsages.map((u) => ({ ...u, visitId: visit.id, companyId })),
         })
+
+        // Auto-decrement inventory for any matching items (case-insensitive name match)
+        const inventoryItems = await db.inventoryItem.findMany({
+          where: { companyId, isActive: true },
+          select: { id: true, name: true, unit: true },
+        })
+        for (const usage of validUsages) {
+          const match = inventoryItems.find(
+            (item) => item.name.toLowerCase() === usage.productName.toLowerCase().trim(),
+          )
+          if (!match) continue
+          const delta = -Math.abs(usage.quantity)
+          await db.$transaction([
+            db.inventoryItem.update({
+              where: { id: match.id },
+              data: { onHand: { increment: delta } },
+            }),
+            db.inventoryTransaction.create({
+              data: {
+                itemId: match.id,
+                companyId,
+                type: "usage",
+                quantity: delta,
+                serviceVisitId: visit.id,
+                note: `Visit log — ${usage.quantity} ${usage.unit}`,
+              },
+            }),
+          ])
+        }
       }
     } catch { /* ignore parse errors */ }
   }
 
+  revalidatePath("/inventory")
   revalidatePath("/dashboard")
   revalidatePath("/schedule")
 }

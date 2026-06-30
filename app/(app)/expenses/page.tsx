@@ -1,7 +1,8 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
+import { createDueRecurringExpenses } from "@/lib/actions/recurringExpenses"
 import Link from "next/link"
-import { Plus, Pencil, Trash2, Download } from "lucide-react"
+import { Plus, Pencil, Trash2, Download, RefreshCw } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate } from "@/lib/utils"
@@ -44,6 +45,9 @@ export default async function ExpensesPage({
   const { category, period = "30d" } = await searchParams
   const periodStart = getPeriodStart(period)
 
+  // Lazy-create any overdue recurring expenses
+  await createDueRecurringExpenses(companyId)
+
   const where = {
     companyId,
     date: { gte: periodStart },
@@ -85,6 +89,12 @@ export default async function ExpensesPage({
               <span className="hidden sm:inline">Export</span>
             </Button>
           </a>
+          <Link href="/expenses/recurring">
+            <Button size="sm" variant="secondary">
+              <RefreshCw className="w-4 h-4" />
+              <span className="hidden sm:inline">Recurring</span>
+            </Button>
+          </Link>
           <Link href="/expenses/vendors">
             <Button size="sm" variant="secondary">Vendors</Button>
           </Link>
