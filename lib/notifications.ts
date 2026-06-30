@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 
 export type AppNotification = {
   id:       string
-  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "chemical_trend" | "equipment_due" | "open_issue" | "low_rating"
+  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "chemical_trend" | "equipment_due" | "open_issue" | "low_rating" | "low_stock"
   severity: "red" | "blue" | "amber" | "orange"
   label:    string
   detail:   string
@@ -42,7 +42,7 @@ function chemIssues(v: {
 export async function getCompanyNotifications(companyId: string): Promise<AppNotification[]> {
   const now = new Date()
 
-  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues, lowRatingVisits] = await Promise.all([
+  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues, lowRatingVisits, lowStockItems] = await Promise.all([
     // 1. Overdue invoices
     db.invoice.findMany({
       where: { companyId, status: "sent", dueDate: { lt: now } },
@@ -119,6 +119,12 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
         id: true, rating: true, feedbackComment: true, visitedAt: true,
         customer: { select: { id: true, firstName: true, lastName: true } },
       },
+    }),
+
+    // 8. Inventory items with a threshold set (filter low/out-of-stock in JS)
+    db.inventoryItem.findMany({
+      where: { companyId, isActive: true, lowStockThreshold: { gt: 0 } },
+      select: { id: true, name: true, onHand: true, lowStockThreshold: true, unit: true },
     }),
   ])
 
@@ -260,6 +266,20 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
       label:    `${v.customer.firstName} ${v.customer.lastName}`,
       detail:   `Rated ${v.rating}/5${comment ? ": " + comment.slice(0, 50) : ""}`,
       href:     `/customers/${v.customer.id}`,
+    })
+  }
+
+  // Low / out-of-stock inventory
+  for (const item of lowStockItems) {
+    if (item.onHand > item.lowStockThreshold) continue
+    const isOut = item.onHand <= 0
+    notifications.push({
+      id:       `stock-${item.id}`,
+      type:     "low_stock",
+      severity: isOut ? "red" : "amber",
+      label:    item.name,
+      detail:   isOut ? "Out of stock" : `${item.onHand} ${item.unit} remaining (threshold: ${item.lowStockThreshold})`,
+      href:     "/inventory",
     })
   }
 

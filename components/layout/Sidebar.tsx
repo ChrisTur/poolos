@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   Download,
   Layers,
+  Package,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -41,10 +42,11 @@ const operationsNav: NavItem[] = [
 ]
 
 const billingNav: NavItem[] = [
-  { href: "/invoices",  label: "Invoices",  icon: FileText,  permission: "invoices.view" },
-  { href: "/estimates", label: "Estimates", icon: FileEdit,  permission: "estimates.view" },
-  { href: "/expenses",  label: "Expenses",  icon: Receipt,   permission: "expenses.view" },
-  { href: "/reports",   label: "Reports",   icon: BarChart2, permission: "reports.view" },
+  { href: "/invoices",   label: "Invoices",   icon: FileText,  permission: "invoices.view" },
+  { href: "/estimates",  label: "Estimates",  icon: FileEdit,  permission: "estimates.view" },
+  { href: "/expenses",   label: "Expenses",   icon: Receipt,   permission: "expenses.view" },
+  { href: "/inventory",  label: "Inventory",  icon: Package,   permission: "expenses.view" },
+  { href: "/reports",    label: "Reports",    icon: BarChart2, permission: "reports.view" },
 ]
 
 // Equipment Management routes — add new items here as they're built
