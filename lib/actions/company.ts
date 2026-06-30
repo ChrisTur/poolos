@@ -51,6 +51,26 @@ export async function updateCompany(formData: FormData) {
       reviewRequestEnabled:     formData.get("reviewRequestEnabled") === "true",
       reviewRequestAfterVisits: parseInt((formData.get("reviewRequestAfterVisits") as string) || "5") || 5,
       googleReviewUrl:          (formData.get("googleReviewUrl") as string) || null,
+      publicPageEnabled:  formData.get("publicPageEnabled") === "true",
+      publicPageTagline:  (formData.get("publicPageTagline") as string) || null,
+      publicPageAbout:    (formData.get("publicPageAbout") as string) || null,
+      serviceArea:        (formData.get("serviceArea") as string) || null,
+    },
+  })
+
+  revalidatePath("/settings/company")
+}
+
+export async function updatePublicPage(formData: FormData) {
+  const user = await requirePermission("settings.company")
+
+  await db.company.update({
+    where: { id: user.companyId },
+    data: {
+      publicPageEnabled: formData.get("publicPageEnabled") === "true",
+      publicPageTagline: (formData.get("publicPageTagline") as string) || null,
+      publicPageAbout:   (formData.get("publicPageAbout") as string) || null,
+      serviceArea:       (formData.get("serviceArea") as string) || null,
     },
   })
 
