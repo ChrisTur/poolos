@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, ClipboardList, ToggleLeft, ToggleRight, KeyRound } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, ClipboardList, ToggleLeft, ToggleRight, KeyRound, History, Camera } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
@@ -34,7 +34,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [customer, emailLogs, messages, companyTags, companyUsers, issues] = await Promise.all([
+  const [customer, emailLogs, messages, companyTags, companyUsers, issues, visitAttachments] = await Promise.all([
     db.customer.findFirst({
       where: { id, companyId },
       include: {
@@ -59,6 +59,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
         tags: { include: { tag: true } },
         attachments: { orderBy: { createdAt: "desc" } },
         checklistItems: { orderBy: { position: "asc" } },
+        rateHistory: {
+          orderBy: { changedAt: "desc" },
+          take: 20,
+          include: { changedBy: { select: { firstName: true, lastName: true } } },
+        },
       },
     }),
     db.emailLog.findMany({
@@ -77,6 +82,10 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       where: { customerId: id, companyId },
       orderBy: { createdAt: "desc" },
       include: { reportedBy: { select: { firstName: true, lastName: true } } },
+    }),
+    db.attachment.findMany({
+      where: { customerId: id, companyId, serviceVisitId: { not: null }, mimeType: { startsWith: "image/" } },
+      orderBy: { createdAt: "asc" },
     }),
   ])
 
@@ -116,6 +125,21 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const disableAutoPayAction = disableAutoPay.bind(null, id)
   const appUrl               = process.env.NEXT_PUBLIC_APP_URL ?? ""
   const portalUrl            = `${appUrl}/portal/${customer.portalToken}`
+
+  // Before/after photo data — group image attachments by visit, pick 2 most recent visits
+  const photosByVisitId = new Map<string, typeof visitAttachments>()
+  for (const att of visitAttachments) {
+    if (!att.serviceVisitId) continue
+    if (!photosByVisitId.has(att.serviceVisitId)) photosByVisitId.set(att.serviceVisitId, [])
+    photosByVisitId.get(att.serviceVisitId)!.push(att)
+  }
+  // serviceVisits is already desc — take the 2 most recent with photos, then reverse for Before|After
+  const photoPairs = customer.serviceVisits
+    .filter((v) => photosByVisitId.has(v.id))
+    .slice(0, 2)
+    .reverse()
+    .map((v) => ({ visitedAt: v.visitedAt, visitId: v.id, photos: photosByVisitId.get(v.id)! }))
+  const gcsPublicBase = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? null
 
   // Chemical chart data: visits with at least one reading
   const visitsWithChemicals = customer.serviceVisits.filter(
@@ -336,6 +360,48 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               </p>
             </CardBody>
           </Card>
+
+          {/* Rate History */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5 text-gray-400" /> Rate History
+              </h2>
+            </CardHeader>
+            {customer.rateHistory.length === 0 ? (
+              <CardBody><p className="text-sm text-gray-400">No rate changes on record.</p></CardBody>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {customer.rateHistory.map((entry) => {
+                  const increased = entry.newRate > entry.oldRate
+                  const diff = Math.abs(entry.newRate - entry.oldRate)
+                  return (
+                    <div key={entry.id} className="px-5 py-3 flex items-start justify-between gap-3 text-sm">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-gray-800">
+                            {formatCurrency(entry.oldRate)} → {formatCurrency(entry.newRate)}
+                          </span>
+                          <span className={`text-xs font-semibold ${increased ? "text-green-600" : "text-red-500"}`}>
+                            {increased ? "↑" : "↓"} {formatCurrency(diff)}
+                          </span>
+                        </div>
+                        {entry.changedBy && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            by {entry.changedBy.firstName} {entry.changedBy.lastName}
+                          </p>
+                        )}
+                        {entry.note && (
+                          <p className="text-xs text-gray-500 mt-0.5 italic">{entry.note}</p>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-400 shrink-0">{formatDate(entry.changedAt)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </Card>
         </div>
 
         {/* Right column */}
@@ -402,6 +468,46 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
             </CardHeader>
             <CustomerVisitHistory visits={customer.serviceVisits} />
           </Card>
+
+          {/* Before / After Photos */}
+          {gcsPublicBase && photoPairs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-gray-400" /> Before &amp; After Photos
+                </h2>
+                <p className="text-xs text-gray-400">Two most recent visits with photos</p>
+              </CardHeader>
+              <CardBody>
+                <div className={`grid gap-5 ${photoPairs.length === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+                  {photoPairs.map((pair, idx) => (
+                    <div key={pair.visitId}>
+                      <p className="text-xs font-semibold text-gray-500 mb-2">
+                        {photoPairs.length === 2 ? (idx === 0 ? "Before" : "After") : "Most Recent"}
+                        <span className="font-normal text-gray-400 ml-1">· {formatDate(pair.visitedAt)}</span>
+                      </p>
+                      <div className="grid grid-cols-2 gap-1">
+                        {pair.photos.slice(0, 4).map((photo) => (
+                          <a
+                            key={photo.id}
+                            href={`${gcsPublicBase}/${photo.key}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <img
+                              src={`${gcsPublicBase}/${photo.key}`}
+                              alt={photo.filename}
+                              className="w-full h-28 object-cover rounded-lg border border-gray-200 hover:opacity-90 transition-opacity"
+                            />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardBody>
+            </Card>
+          )}
 
           {/* Chemical trending chart */}
           {visitsWithChemicals.length > 0 && (
