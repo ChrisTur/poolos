@@ -2,11 +2,16 @@
 
 import { db } from "@/lib/db"
 import { requireSession, requirePermission } from "@/lib/session"
+import { bucket } from "@/lib/gcs"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
 import crypto from "crypto"
+
+function checkbox(formData: FormData, name: string): boolean {
+  return formData.getAll(name).includes("true")
+}
 
 export async function completeOnboarding(formData: FormData) {
   const user = await requireSession()
@@ -42,16 +47,16 @@ export async function updateCompany(formData: FormData) {
       bccEmail: (formData.get("bccEmail") as string) || null,
       replyToEmail: (formData.get("replyToEmail") as string) || null,
       defaultDueDays: parseInt((formData.get("defaultDueDays") as string) || "30") || 30,
-      lateFeeEnabled:   formData.get("lateFeeEnabled") === "true",
+      lateFeeEnabled:   checkbox(formData, "lateFeeEnabled"),
       lateFeePercent:   parseFloat((formData.get("lateFeePercent") as string) || "1.5") || 1.5,
       lateFeeGraceDays: parseInt((formData.get("lateFeeGraceDays") as string) || "0") || 0,
-      cardFeeEnabled:   formData.get("cardFeeEnabled") === "true",
+      cardFeeEnabled:   checkbox(formData, "cardFeeEnabled"),
       cardFeePercent:   parseFloat((formData.get("cardFeePercent") as string) || "2.9") || 2.9,
       cardFeeFixed:     parseFloat((formData.get("cardFeeFixed") as string) || "0.30") || 0,
-      reviewRequestEnabled:     formData.get("reviewRequestEnabled") === "true",
+      reviewRequestEnabled:     checkbox(formData, "reviewRequestEnabled"),
       reviewRequestAfterVisits: parseInt((formData.get("reviewRequestAfterVisits") as string) || "5") || 5,
       googleReviewUrl:          (formData.get("googleReviewUrl") as string) || null,
-      publicPageEnabled:  formData.get("publicPageEnabled") === "true",
+      publicPageEnabled:  checkbox(formData, "publicPageEnabled"),
       publicPageTagline:  (formData.get("publicPageTagline") as string) || null,
       publicPageAbout:    (formData.get("publicPageAbout") as string) || null,
       serviceArea:        (formData.get("serviceArea") as string) || null,
@@ -67,13 +72,74 @@ export async function updatePublicPage(formData: FormData) {
   await db.company.update({
     where: { id: user.companyId },
     data: {
-      publicPageEnabled: formData.get("publicPageEnabled") === "true",
-      publicPageTagline: (formData.get("publicPageTagline") as string) || null,
-      publicPageAbout:   (formData.get("publicPageAbout") as string) || null,
-      serviceArea:       (formData.get("serviceArea") as string) || null,
+      publicPageEnabled:     checkbox(formData, "publicPageEnabled"),
+      publicPageTagline:     (formData.get("publicPageTagline") as string) || null,
+      publicPageAbout:       (formData.get("publicPageAbout") as string) || null,
+      serviceArea:           (formData.get("serviceArea") as string) || null,
+      publicPageShowPhone:   checkbox(formData, "publicPageShowPhone"),
+      publicPageShowWebsite: checkbox(formData, "publicPageShowWebsite"),
+      publicPageShowAddress: checkbox(formData, "publicPageShowAddress"),
+      publicPageShowEmail:   checkbox(formData, "publicPageShowEmail"),
+      publicPageShowReviews: checkbox(formData, "publicPageShowReviews"),
     },
   })
 
+  revalidatePath("/settings/company")
+}
+
+export async function toggleGalleryPhoto(attachmentId: string) {
+  const { companyId } = await requirePermission("settings.company")
+  const att = await db.attachment.findFirst({ where: { id: attachmentId, companyId } })
+  if (!att) return
+  await db.attachment.update({ where: { id: attachmentId }, data: { isPublicGallery: !att.isPublicGallery } })
+  revalidatePath("/settings/company")
+}
+
+export async function uploadGalleryPhoto(formData: FormData) {
+  const { companyId } = await requirePermission("settings.company")
+  const file = formData.get("photo") as File
+  if (!file || file.size === 0) return
+  if (file.size > 10 * 1024 * 1024) return
+
+  const allowed = ["image/jpeg", "image/png", "image/webp"]
+  if (!allowed.includes(file.type)) return
+
+  const bytes = await file.arrayBuffer()
+  const header = new Uint8Array(bytes.slice(0, 12))
+  const isJpeg = header[0] === 0xff && header[1] === 0xd8
+  const isPng  = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47
+  const isWebp = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
+                 header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50
+  if (!isJpeg && !isPng && !isWebp) return
+
+  const ext = isJpeg ? "jpg" : isPng ? "png" : "webp"
+  const key = `gallery/${companyId}/${Date.now()}.${ext}`
+
+  await bucket().file(key).save(Buffer.from(bytes), {
+    contentType: file.type,
+    metadata: { cacheControl: "public, max-age=31536000" },
+  })
+
+  await db.attachment.create({
+    data: {
+      key,
+      filename: file.name,
+      mimeType: file.type,
+      size: file.size,
+      companyId,
+      isPublicGallery: true,
+    },
+  })
+
+  revalidatePath("/settings/company")
+}
+
+export async function deleteGalleryPhoto(attachmentId: string) {
+  const { companyId } = await requirePermission("settings.company")
+  const att = await db.attachment.findFirst({ where: { id: attachmentId, companyId } })
+  if (!att) return
+  try { await bucket().file(att.key).delete() } catch {}
+  await db.attachment.delete({ where: { id: attachmentId } })
   revalidatePath("/settings/company")
 }
 

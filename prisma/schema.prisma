@@ -56,10 +56,15 @@ model Company {
   reviewRequestAfterVisits  Int     @default(5)
   googleReviewUrl           String?
 
-  publicPageEnabled  Boolean @default(false)
-  publicPageTagline  String?
-  publicPageAbout    String?
-  serviceArea        String?
+  publicPageEnabled      Boolean @default(false)
+  publicPageTagline      String?
+  publicPageAbout        String?
+  serviceArea            String?
+  publicPageShowPhone    Boolean @default(true)
+  publicPageShowWebsite  Boolean @default(true)
+  publicPageShowAddress  Boolean @default(false)
+  publicPageShowEmail    Boolean @default(false)
+  publicPageShowReviews  Boolean @default(false)
 
   users     User[]
   customers Customer[]
@@ -562,6 +567,7 @@ model Attachment {
   filename  String
   mimeType  String?
   size      Int?     // bytes
+  isPublicGallery Boolean @default(false)
 
   customerId     String?
   customer       Customer?  @relation(fields: [customerId], references: [id], onDelete: Cascade)
