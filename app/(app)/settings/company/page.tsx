@@ -1,17 +1,34 @@
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
-import { updateCompany, uploadLogo, updatePublicPage } from "@/lib/actions/company"
+import { updateCompany, uploadLogo, updatePublicPage, toggleGalleryPhoto, uploadGalleryPhoto, deleteGalleryPhoto } from "@/lib/actions/company"
 import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
-import { Upload, Star, Globe } from "lucide-react"
+import ConfirmButton from "@/components/ui/ConfirmButton"
+import { Upload, Star, Globe, Image as ImageIcon, Trash2 } from "lucide-react"
+
+const GCS = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
 
 export const dynamic = "force-dynamic"
 
 export default async function CompanySettingsPage() {
   const { companyId } = await requirePermission("settings.company")
-  const company = await db.company.findUnique({ where: { id: companyId } })
+  const [company, visitPhotos] = await Promise.all([
+    db.company.findUnique({ where: { id: companyId } }),
+    db.attachment.findMany({
+      where: { companyId, serviceVisitId: { not: null }, mimeType: { startsWith: "image/" } },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: { id: true, key: true, filename: true, isPublicGallery: true },
+    }),
+  ])
   if (!company) return null
+
+  const galleryPhotos = await db.attachment.findMany({
+    where: { companyId, isPublicGallery: true, serviceVisitId: null },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, key: true, filename: true },
+  })
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -319,72 +336,155 @@ export default async function CompanySettingsPage() {
           </div>
         </CardHeader>
         <CardBody>
-          <form action={updatePublicPage} className="space-y-5">
+          <form action={updatePublicPage} className="space-y-6">
+
+            {/* Enable toggle */}
             <div className="flex items-start gap-3">
-              <label className="relative inline-flex items-center cursor-pointer mt-0.5">
+              <label className="relative inline-flex items-center cursor-pointer mt-0.5 shrink-0">
                 <input type="hidden" name="publicPageEnabled" value="false" />
-                <input
-                  type="checkbox"
-                  name="publicPageEnabled"
-                  value="true"
-                  defaultChecked={company.publicPageEnabled}
-                  className="sr-only peer"
-                />
+                <input type="checkbox" name="publicPageEnabled" value="true"
+                  defaultChecked={company.publicPageEnabled} className="sr-only peer" />
                 <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
               </label>
               <div>
                 <span className="text-sm font-medium text-gray-700">Enable public profile page</span>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Publishes a public-facing profile page at{" "}
-                  <a
-                    href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"}/pro/${company.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sky-600 hover:underline"
-                  >
+                  Publishes at{" "}
+                  <a href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"}/pro/${company.slug}`}
+                    target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:underline">
                     poolos.biz/pro/{company.slug}
-                  </a>
-                  {" "}— visible to anyone, indexed by Google.
+                  </a>{" "}— visible to anyone, indexed by Google.
                 </p>
               </div>
             </div>
 
+            {/* Tagline + About + Service Area */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
-              <input
-                name="publicPageTagline"
-                defaultValue={company.publicPageTagline ?? ""}
-                placeholder="Serving Phoenix and the Valley since 2015"
-                maxLength={120}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
+              <input name="publicPageTagline" defaultValue={company.publicPageTagline ?? ""}
+                placeholder="Serving Phoenix and the Valley since 2015" maxLength={120}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <p className="text-xs text-gray-400 mt-1">Short line shown under your company name. Max 120 characters.</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">About</label>
-              <textarea
-                name="publicPageAbout"
-                defaultValue={company.publicPageAbout ?? ""}
-                rows={4}
+              <textarea name="publicPageAbout" defaultValue={company.publicPageAbout ?? ""} rows={4}
                 placeholder="Tell potential customers about your business — how long you've been operating, what sets you apart, and what types of pools you service."
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
-              />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none" />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Service Area</label>
-              <input
-                name="serviceArea"
-                defaultValue={company.serviceArea ?? ""}
+              <input name="serviceArea" defaultValue={company.serviceArea ?? ""}
                 placeholder="Phoenix, Scottsdale, Tempe, and surrounding areas"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <p className="text-xs text-gray-400 mt-1">Used on your public page and in search metadata.</p>
+            </div>
+
+            {/* Contact info visibility */}
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-3">Show on public page</p>
+              <div className="space-y-2.5">
+                {([
+                  { name: "publicPageShowPhone",   label: "Phone number",      available: !!company.phone },
+                  { name: "publicPageShowWebsite",  label: "Website link",      available: !!company.website },
+                  { name: "publicPageShowAddress",  label: "Street address",    available: !!(company.address && company.city) },
+                  { name: "publicPageShowEmail",    label: "Contact email",     available: !!company.replyToEmail },
+                  { name: "publicPageShowReviews",  label: "Google review link",available: !!company.googleReviewUrl },
+                ] as const).map(({ name, label, available }) => (
+                  <label key={name} className={`flex items-center gap-3 cursor-pointer ${!available ? "opacity-40" : ""}`}>
+                    <input type="hidden" name={name} value="false" />
+                    <input type="checkbox" name={name} value="true"
+                      defaultChecked={company[name] && available}
+                      disabled={!available}
+                      className="w-4 h-4 rounded border-gray-300 text-sky-600 focus:ring-sky-500 focus:ring-offset-0" />
+                    <span className="text-sm text-gray-700">{label}</span>
+                    {!available && <span className="text-xs text-gray-400">(not set)</span>}
+                  </label>
+                ))}
+              </div>
             </div>
 
             <Button type="submit" size="sm">Save Profile Settings</Button>
           </form>
+        </CardBody>
+      </Card>
+
+      {/* Gallery */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <ImageIcon className="w-4 h-4 text-sky-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Public Gallery</h2>
+          </div>
+        </CardHeader>
+        <CardBody className="space-y-6">
+          {/* Uploaded gallery photos */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Uploaded photos</p>
+            {galleryPhotos.length === 0 ? (
+              <p className="text-sm text-gray-400">No uploaded gallery photos yet.</p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {galleryPhotos.map((photo) => {
+                  const deleteAction = deleteGalleryPhoto.bind(null, photo.id)
+                  return (
+                    <div key={photo.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                      <img src={`${GCS}/${photo.key}`} alt={photo.filename}
+                        className="w-full h-full object-cover" />
+                      <form action={deleteAction} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="submit" title="Remove"
+                          className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600">
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </form>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Upload new */}
+            <form action={uploadGalleryPhoto} encType="multipart/form-data" className="flex items-center gap-3 mt-4">
+              <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required
+                className="text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-sky-50 file:text-sky-700 hover:file:bg-sky-100" />
+              <Button type="submit" size="sm" variant="secondary">
+                <Upload className="w-4 h-4" /> Upload
+              </Button>
+            </form>
+            <p className="text-xs text-gray-400 mt-1">JPEG, PNG, or WebP. Max 10 MB. Hero image is the first photo in your gallery.</p>
+          </div>
+
+          {/* Pick from visit photos */}
+          {visitPhotos.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Add from visit photos</p>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {visitPhotos.map((photo) => {
+                  const toggleAction = toggleGalleryPhoto.bind(null, photo.id)
+                  return (
+                    <form key={photo.id} action={toggleAction}>
+                      <button type="submit" title={photo.isPublicGallery ? "Remove from gallery" : "Add to gallery"}
+                        className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                          photo.isPublicGallery
+                            ? "border-sky-500 ring-2 ring-sky-200"
+                            : "border-transparent hover:border-sky-300"
+                        }`}>
+                        <img src={`${GCS}/${photo.key}`} alt={photo.filename} className="w-full h-full object-cover" />
+                        {photo.isPublicGallery && (
+                          <div className="absolute inset-0 bg-sky-500/20 flex items-end justify-center pb-1">
+                            <span className="text-white text-xs font-bold bg-sky-600 rounded px-1">In gallery</span>
+                          </div>
+                        )}
+                      </button>
+                    </form>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">Click a photo to add or remove it from your public gallery.</p>
+            </div>
+          )}
         </CardBody>
       </Card>
 
