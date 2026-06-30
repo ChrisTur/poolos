@@ -2,7 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { db } from "@/lib/db"
-import { MapPin, Phone, Globe, Waves, CheckCircle2 } from "lucide-react"
+import { MapPin, Phone, Globe, Mail, Waves, CheckCircle2, Star } from "lucide-react"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 const GCS  = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
@@ -10,7 +10,7 @@ const GCS  = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
 type Props = { params: Promise<{ slug: string }> }
 
 async function getCompany(slug: string) {
-  const company = await db.company.findUnique({
+  return db.company.findUnique({
     where: { slug },
     include: {
       jobTemplates: {
@@ -20,16 +20,19 @@ async function getCompany(slug: string) {
       },
     },
   })
-  return company
 }
 
 async function getGalleryPhotos(companyId: string) {
+  // Prefer manually curated gallery photos; fall back to recent visit photos
+  const gallery = await db.attachment.findMany({
+    where: { companyId, isPublicGallery: true },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, key: true, filename: true },
+  })
+  if (gallery.length > 0) return gallery
+
   return db.attachment.findMany({
-    where: {
-      companyId,
-      serviceVisitId: { not: null },
-      mimeType: { startsWith: "image/" },
-    },
+    where: { companyId, serviceVisitId: { not: null }, mimeType: { startsWith: "image/" } },
     orderBy: { createdAt: "desc" },
     take: 9,
     select: { id: true, key: true, filename: true },
@@ -39,20 +42,17 @@ async function getGalleryPhotos(companyId: string) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const company = await getCompany(slug)
-
-  if (!company || !company.publicPageEnabled) {
-    return { title: "Not Found" }
-  }
+  if (!company || !company.publicPageEnabled) return { title: "Not Found" }
 
   const title = company.serviceArea
     ? `${company.name} | Pool Service in ${company.serviceArea}`
     : `${company.name} | Professional Pool Service`
 
-  const description = company.publicPageTagline
+  const description =
+    company.publicPageTagline
     ?? `${company.name} provides professional pool cleaning, maintenance, and repair services${company.serviceArea ? ` in ${company.serviceArea}` : ""}.`
 
   const url = `${BASE}/pro/${slug}`
-
   const photos = await getGalleryPhotos(company.id)
   const heroPhoto = photos[0] ? `${GCS}/${photos[0].key}` : null
 
@@ -61,26 +61,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     alternates: { canonical: url },
     keywords: [
-      "pool service",
-      "pool cleaning",
-      "pool maintenance",
-      company.name,
+      "pool service", "pool cleaning", "pool maintenance", company.name,
       ...(company.city ? [company.city] : []),
       ...(company.state ? [company.state] : []),
       ...(company.serviceArea ? [company.serviceArea] : []),
     ].join(", "),
     openGraph: {
-      title,
-      description,
-      url,
-      type: "website",
-      siteName: "PoolOS",
+      title, description, url, type: "website", siteName: "PoolOS",
       ...(heroPhoto ? { images: [{ url: heroPhoto, width: 1200, height: 630, alt: company.name }] } : {}),
     },
     twitter: {
-      card: "summary_large_image",
-      title,
-      description,
+      card: "summary_large_image", title, description,
       ...(heroPhoto ? { images: [heroPhoto] } : {}),
     },
   }
@@ -89,7 +80,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CompanyPublicPage({ params }: Props) {
   const { slug } = await params
   const company = await getCompany(slug)
-
   if (!company || !company.publicPageEnabled) notFound()
 
   const photos = await getGalleryPhotos(company.id)
@@ -98,7 +88,13 @@ export default async function CompanyPublicPage({ params }: Props) {
 
   const cityState = [company.city, company.state].filter(Boolean).join(", ")
 
-  // JSON-LD LocalBusiness structured data
+  const showPhone   = company.publicPageShowPhone   && !!company.phone
+  const showWebsite = company.publicPageShowWebsite && !!company.website
+  const showAddress = company.publicPageShowAddress && !!(company.address && company.city)
+  const showEmail   = company.publicPageShowEmail   && !!company.replyToEmail
+  const showReviews = company.publicPageShowReviews && !!company.googleReviewUrl
+  const hasContact  = showPhone || showWebsite || showAddress || showEmail || showReviews
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
@@ -107,51 +103,41 @@ export default async function CompanyPublicPage({ params }: Props) {
       company.publicPageAbout
       ?? `${company.name} provides professional pool cleaning, maintenance, and repair services${company.serviceArea ? ` in ${company.serviceArea}` : ""}.`,
     url: `${BASE}/pro/${slug}`,
-    ...(company.phone ? { telephone: company.phone } : {}),
-    ...(company.website ? { sameAs: [company.website] } : {}),
-    ...(company.address
-      ? {
-          address: {
-            "@type": "PostalAddress",
-            streetAddress: company.address,
-            ...(company.city  ? { addressLocality: company.city }  : {}),
-            ...(company.state ? { addressRegion: company.state }   : {}),
-            ...(company.zip   ? { postalCode: company.zip }        : {}),
-            addressCountry: "US",
-          },
-        }
-      : {}),
+    ...(showPhone   ? { telephone: company.phone } : {}),
+    ...(showWebsite ? { sameAs: [company.website] } : {}),
+    ...(showAddress ? {
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: company.address,
+        ...(company.city  ? { addressLocality: company.city }  : {}),
+        ...(company.state ? { addressRegion: company.state }   : {}),
+        ...(company.zip   ? { postalCode: company.zip }        : {}),
+        addressCountry: "US",
+      },
+    } : {}),
     ...(company.serviceArea ? { areaServed: company.serviceArea } : {}),
-    ...(heroPhoto ? { image: heroPhoto } : {}),
+    ...(heroPhoto    ? { image: heroPhoto } : {}),
     ...(company.logoUrl ? { logo: company.logoUrl } : {}),
   }
 
   return (
     <>
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       <div className="min-h-screen bg-white">
         {/* ── Hero ── */}
         <div className="relative h-[60vh] min-h-[380px] max-h-[560px] overflow-hidden bg-sky-900">
           {heroPhoto ? (
-            <img
-              src={heroPhoto}
-              alt={`${company.name} pool work`}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
+            <img src={heroPhoto} alt={`${company.name} pool work`}
+              className="absolute inset-0 w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600" />
           )}
-          {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-sky-950/80 via-sky-900/40 to-transparent" />
 
-          {/* Logo + nav */}
-          <div className="absolute top-0 left-0 right-0 px-6 py-5 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+          {/* PoolOS badge */}
+          <div className="absolute top-0 left-0 right-0 px-6 py-5">
+            <Link href="/" className="inline-flex items-center gap-2 opacity-70 hover:opacity-100 transition-opacity">
               <div className="w-6 h-6 rounded-md bg-white/20 flex items-center justify-center backdrop-blur-sm">
                 <Waves className="w-3.5 h-3.5 text-white" />
               </div>
@@ -162,11 +148,8 @@ export default async function CompanyPublicPage({ params }: Props) {
           {/* Company identity */}
           <div className="absolute bottom-0 left-0 right-0 px-6 sm:px-10 pb-10">
             {company.logoUrl && (
-              <img
-                src={company.logoUrl}
-                alt={`${company.name} logo`}
-                className="h-14 object-contain mb-4 drop-shadow-lg"
-              />
+              <img src={company.logoUrl} alt={`${company.name} logo`}
+                className="h-14 object-contain mb-4 drop-shadow-lg" />
             )}
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight drop-shadow-md">
               {company.name}
@@ -189,32 +172,41 @@ export default async function CompanyPublicPage({ params }: Props) {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
 
           {/* Contact strip */}
-          {(company.phone || company.website || company.serviceArea) && (
-            <div className="flex flex-wrap gap-4">
-              {company.phone && (
-                <a
-                  href={`tel:${company.phone.replace(/\D/g, "")}`}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition-colors shadow"
-                >
-                  <Phone className="w-4 h-4" />
-                  {company.phone}
+          {hasContact && (
+            <div className="flex flex-wrap gap-3">
+              {showPhone && (
+                <a href={`tel:${company.phone!.replace(/\D/g, "")}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition-colors shadow">
+                  <Phone className="w-4 h-4" />{company.phone}
                 </a>
               )}
-              {company.website && (
-                <a
-                  href={company.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-semibold hover:border-sky-400 hover:text-sky-600 transition-colors"
-                >
-                  <Globe className="w-4 h-4" />
-                  Website
+              {showWebsite && (
+                <a href={company.website!} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-semibold hover:border-sky-400 hover:text-sky-600 transition-colors">
+                  <Globe className="w-4 h-4" />Website
                 </a>
+              )}
+              {showEmail && (
+                <a href={`mailto:${company.replyToEmail}`}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-semibold hover:border-sky-400 hover:text-sky-600 transition-colors">
+                  <Mail className="w-4 h-4" />{company.replyToEmail}
+                </a>
+              )}
+              {showReviews && (
+                <a href={company.googleReviewUrl!} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-sm font-semibold hover:bg-amber-100 transition-colors">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />Leave a Review
+                </a>
+              )}
+              {showAddress && (
+                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gray-50 border border-gray-200 text-gray-600 text-sm">
+                  <MapPin className="w-4 h-4 shrink-0" />
+                  {[company.address, company.city, company.state].filter(Boolean).join(", ")}
+                </div>
               )}
               {company.serviceArea && (
                 <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-amber-50 text-amber-800 text-sm font-medium border border-amber-200">
-                  <MapPin className="w-4 h-4" />
-                  {company.serviceArea}
+                  <MapPin className="w-4 h-4 shrink-0" />{company.serviceArea}
                 </div>
               )}
             </div>
@@ -236,10 +228,8 @@ export default async function CompanyPublicPage({ params }: Props) {
               <h2 className="text-lg font-bold text-gray-900 mb-4">Services We Offer</h2>
               <div className="grid sm:grid-cols-2 gap-3">
                 {company.jobTemplates.map((t) => (
-                  <div
-                    key={t.name}
-                    className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:border-sky-200 hover:bg-sky-50/40 transition-colors"
-                  >
+                  <div key={t.name}
+                    className="flex items-start gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50 hover:border-sky-200 hover:bg-sky-50/40 transition-colors">
                     <CheckCircle2 className="w-5 h-5 text-sky-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{t.name}</p>
@@ -259,18 +249,10 @@ export default async function CompanyPublicPage({ params }: Props) {
               <h2 className="text-lg font-bold text-gray-900 mb-4">Our Work</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {galleryPhotos.map((photo) => (
-                  <a
-                    key={photo.id}
-                    href={`${GCS}/${photo.key}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="aspect-square overflow-hidden rounded-xl border border-gray-100 hover:border-sky-300 transition-colors block"
-                  >
-                    <img
-                      src={`${GCS}/${photo.key}`}
-                      alt={photo.filename}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                    />
+                  <a key={photo.id} href={`${GCS}/${photo.key}`} target="_blank" rel="noopener noreferrer"
+                    className="aspect-square overflow-hidden rounded-xl border border-gray-100 hover:border-sky-300 transition-colors block">
+                    <img src={`${GCS}/${photo.key}`} alt={photo.filename}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                   </a>
                 ))}
               </div>
@@ -278,32 +260,25 @@ export default async function CompanyPublicPage({ params }: Props) {
           )}
 
           {/* CTA */}
-          {company.phone && (
+          {showPhone && (
             <section className="rounded-2xl bg-gradient-to-br from-sky-600 to-cyan-500 p-8 text-center shadow-lg">
               <h2 className="text-2xl font-bold text-white mb-2">Ready for crystal-clear water?</h2>
               <p className="text-sky-100 mb-6 text-sm">
-                {company.serviceArea
-                  ? `Serving ${company.serviceArea}.`
-                  : "Get in touch today for a free quote."}
+                {company.serviceArea ? `Serving ${company.serviceArea}.` : "Get in touch today for a free quote."}
               </p>
-              <a
-                href={`tel:${company.phone.replace(/\D/g, "")}`}
-                className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-white text-sky-700 font-bold text-sm hover:bg-sky-50 transition-colors shadow"
-              >
-                <Phone className="w-4 h-4" />
-                Call {company.phone}
+              <a href={`tel:${company.phone!.replace(/\D/g, "")}`}
+                className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-white text-sky-700 font-bold text-sm hover:bg-sky-50 transition-colors shadow">
+                <Phone className="w-4 h-4" />Call {company.phone}
               </a>
             </section>
           )}
         </div>
 
-        {/* ── Footer ── */}
+        {/* Footer */}
         <div className="border-t border-gray-100 py-6 text-center">
           <p className="text-xs text-gray-400">
             Managed with{" "}
-            <Link href="/" className="text-sky-500 hover:underline font-medium">
-              PoolOS
-            </Link>
+            <Link href="/" className="text-sky-500 hover:underline font-medium">PoolOS</Link>
             {" "}— Pool Service Management Software
           </p>
         </div>
