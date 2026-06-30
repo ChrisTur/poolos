@@ -56,6 +56,11 @@ model Company {
   reviewRequestAfterVisits  Int     @default(5)
   googleReviewUrl           String?
 
+  publicPageEnabled  Boolean @default(false)
+  publicPageTagline  String?
+  publicPageAbout    String?
+  serviceArea        String?
+
   users     User[]
   customers Customer[]
   routes    Route[]

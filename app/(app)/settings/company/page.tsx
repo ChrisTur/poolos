@@ -1,10 +1,10 @@
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
-import { updateCompany, uploadLogo } from "@/lib/actions/company"
+import { updateCompany, uploadLogo, updatePublicPage } from "@/lib/actions/company"
 import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
-import { Upload, Star } from "lucide-react"
+import { Upload, Star, Globe } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -306,6 +306,84 @@ export default async function CompanySettingsPage() {
             </div>
 
             <Button type="submit" size="sm">Save Review Settings</Button>
+          </form>
+        </CardBody>
+      </Card>
+
+      {/* Public Profile */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Globe className="w-4 h-4 text-sky-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">Public Profile Page</h2>
+          </div>
+        </CardHeader>
+        <CardBody>
+          <form action={updatePublicPage} className="space-y-5">
+            <div className="flex items-start gap-3">
+              <label className="relative inline-flex items-center cursor-pointer mt-0.5">
+                <input type="hidden" name="publicPageEnabled" value="false" />
+                <input
+                  type="checkbox"
+                  name="publicPageEnabled"
+                  value="true"
+                  defaultChecked={company.publicPageEnabled}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
+              </label>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Enable public profile page</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Publishes a public-facing profile page at{" "}
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"}/pro/${company.slug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sky-600 hover:underline"
+                  >
+                    poolos.biz/pro/{company.slug}
+                  </a>
+                  {" "}— visible to anyone, indexed by Google.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+              <input
+                name="publicPageTagline"
+                defaultValue={company.publicPageTagline ?? ""}
+                placeholder="Serving Phoenix and the Valley since 2015"
+                maxLength={120}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Short line shown under your company name. Max 120 characters.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">About</label>
+              <textarea
+                name="publicPageAbout"
+                defaultValue={company.publicPageAbout ?? ""}
+                rows={4}
+                placeholder="Tell potential customers about your business — how long you've been operating, what sets you apart, and what types of pools you service."
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Service Area</label>
+              <input
+                name="serviceArea"
+                defaultValue={company.serviceArea ?? ""}
+                placeholder="Phoenix, Scottsdale, Tempe, and surrounding areas"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">Used on your public page and in search metadata.</p>
+            </div>
+
+            <Button type="submit" size="sm">Save Profile Settings</Button>
           </form>
         </CardBody>
       </Card>
