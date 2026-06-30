@@ -75,6 +75,9 @@ model Company {
   issueReports           IssueReport[]
   chemicalUsages         ChemicalUsage[]
   rateHistory            RateHistory[]
+  inventoryItems         InventoryItem[]
+  inventoryTransactions  InventoryTransaction[]
+  recurringExpenses      RecurringExpense[]
 }
 
 model User {
@@ -105,7 +108,8 @@ model User {
   equipmentServices EquipmentService[]  @relation("EquipmentServiceTech")
   submittedTickets  SupportTicket[]     @relation("TicketSubmitter")
   reportedIssues    IssueReport[]       @relation("IssueReporter")
-  rateChanges       RateHistory[]
+  rateChanges           RateHistory[]
+  inventoryTransactions InventoryTransaction[]
 }
 
 model Session {
@@ -795,4 +799,69 @@ model ChemicalUsage {
 
   @@index([companyId])
   @@index([visitId])
+}
+
+model InventoryItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name              String
+  category          String    // chemical | part | supply | other
+  unit              String    // lb | gal | oz | each | case | bag | tablet | quart
+  onHand            Float     @default(0)
+  lowStockThreshold Float     @default(0)
+  reorderQty        Float?
+  costPerUnit       Float?
+  notes             String?
+  amazonAsin        String?
+  isActive          Boolean   @default(true)
+
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  transactions InventoryTransaction[]
+
+  @@index([companyId])
+}
+
+model InventoryTransaction {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type      String   // restock | usage | adjustment
+  quantity  Float    // positive = added, negative = removed
+  note      String?
+
+  itemId         String
+  item           InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  companyId      String
+  company        Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdById    String?
+  createdBy      User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  serviceVisitId String?
+
+  @@index([itemId])
+  @@index([companyId])
+}
+
+model RecurringExpense {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  description   String
+  amount        Float
+  category      String
+  vendor        String?
+  notes         String?
+  frequency     String    // weekly | monthly | quarterly | annual
+  nextDueAt     DateTime
+  lastCreatedAt DateTime?
+  isActive      Boolean   @default(true)
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
 }
