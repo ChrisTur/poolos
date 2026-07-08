@@ -190,6 +190,95 @@ export async function broadcastMessage(
   return { sent, skipped: noEmail + sendFailed }
 }
 
+export async function sendUpsellCampaign(
+  sinceDate: string,
+  subject: string,
+  body: string,
+): Promise<{ sent: number; skipped: number; error?: string }> {
+  const { companyId, name: senderName } = await requirePermission("messages.send")
+
+  if (!subject.trim() || !body.trim()) return { sent: 0, skipped: 0, error: "Subject and message are required." }
+  if (!sinceDate) return { sent: 0, skipped: 0, error: "Please select a cutoff date." }
+
+  const since = new Date(sinceDate)
+
+  // Find active customers whose latest visit is before sinceDate (or they've never been visited)
+  const allCustomers = await db.customer.findMany({
+    where: { companyId, status: "active" },
+    select: {
+      id: true, email: true, firstName: true, portalToken: true,
+      serviceVisits: { orderBy: { visitedAt: "desc" }, take: 1, select: { visitedAt: true } },
+    },
+  })
+
+  const targets = allCustomers.filter((c) => {
+    const lastVisit = c.serviceVisits[0]?.visitedAt
+    return !lastVisit || lastVisit < since
+  })
+
+  if (targets.length === 0) return { sent: 0, skipped: 0, error: "No customers match this filter." }
+
+  const company = await db.company.findUnique({
+    where: { id: companyId },
+    select: { name: true, logoUrl: true, phone: true, replyToEmail: true },
+  })
+  if (!company) return { sent: 0, skipped: 0, error: "Company not found." }
+
+  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+  const withEmail = targets.filter((c) => c.email)
+  const noEmail = targets.length - withEmail.length
+
+  if (withEmail.length === 0) return { sent: 0, skipped: noEmail, error: "None of the matching customers have email addresses." }
+
+  const buildEmail = (c: (typeof withEmail)[0]) => {
+    const portalUrl = c.portalToken
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/portal/${c.portalToken}`
+      : null
+    return {
+      from: `${company.name} <${fromEmail}>`,
+      to: c.email!,
+      replyTo: company.replyToEmail ?? undefined,
+      subject,
+      html: buildCustomerMessageHtml({
+        companyName: company.name,
+        companyLogoUrl: company.logoUrl,
+        companyPhone: company.phone,
+        customerFirstName: c.firstName,
+        message: body,
+        portalUrl,
+        sentByName: senderName,
+      }),
+    }
+  }
+
+  let sent = 0
+  let sendFailed = 0
+  for (let i = 0; i < withEmail.length; i += 100) {
+    const chunk = withEmail.slice(i, i + 100)
+    try {
+      await resend.batch.send(chunk.map(buildEmail))
+      sent += chunk.length
+    } catch {
+      sendFailed += chunk.length
+    }
+  }
+
+  if (sent > 0) {
+    await db.customerMessage.createMany({
+      data: withEmail.slice(0, sent).map((c) => ({
+        body,
+        fromCompany: true,
+        sentViaEmail: true,
+        sentByName: senderName,
+        customerId: c.id,
+        companyId,
+      })),
+    })
+  }
+
+  return { sent, skipped: noEmail + sendFailed }
+}
+
 export async function sendMessage(_: unknown, formData: FormData) {
   const { companyId, name: senderName } = await requirePermission("messages.send")
 
