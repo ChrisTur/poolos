@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/session"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import { createVehicle, updateVehicle, toggleVehicleActive } from "@/lib/actions/vehicles"
 import { Truck, PlusCircle, ToggleLeft, ToggleRight } from "lucide-react"
-import Button from "@/components/ui/Button"
+import VehicleForm from "@/components/settings/VehicleForm"
 
 export const dynamic = "force-dynamic"
 
@@ -34,6 +34,10 @@ export default async function VehiclesPage() {
                   <div className="flex items-center gap-2">
                     <Truck className="w-4 h-4 text-gray-400 shrink-0" />
                     <span className="font-semibold text-gray-900 text-sm">{v.name}</span>
+                    {v.year || v.make || v.model
+                      ? <span className="text-xs text-gray-500">{[v.year, v.make, v.model].filter(Boolean).join(" ")}</span>
+                      : null
+                    }
                     {!v.isActive && (
                       <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactive</span>
                     )}
@@ -49,41 +53,19 @@ export default async function VehiclesPage() {
                   </form>
                 </CardHeader>
                 <CardBody>
-                  <form action={updateAction} className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="col-span-2 sm:col-span-3">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Name / Label *</label>
-                      <input name="name" required defaultValue={v.name}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Make</label>
-                      <input name="make" defaultValue={v.make ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
-                      <input name="model" defaultValue={v.model ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Year</label>
-                      <input name="year" type="number" min="1990" max="2030" defaultValue={v.year ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">License Plate</label>
-                      <input name="licensePlate" defaultValue={v.licensePlate ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                    </div>
-                    <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-                      <input name="notes" defaultValue={v.notes ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-                    </div>
-                    <div className="col-span-2 sm:col-span-3 flex justify-end">
-                      <Button type="submit" size="sm">Save</Button>
-                    </div>
-                  </form>
+                  <VehicleForm
+                    action={updateAction}
+                    defaults={{
+                      name: v.name,
+                      make: v.make,
+                      model: v.model,
+                      year: v.year,
+                      licensePlate: v.licensePlate,
+                      initialMileage: v.initialMileage,
+                      notes: v.notes,
+                    }}
+                    submitLabel="Save"
+                  />
                 </CardBody>
               </Card>
             )
@@ -100,41 +82,7 @@ export default async function VehiclesPage() {
           </h2>
         </CardHeader>
         <CardBody>
-          <form action={createVehicle} className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="col-span-2 sm:col-span-3">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Name / Label *</label>
-              <input name="name" required placeholder="e.g. Truck 1 - F-150"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Make</label>
-              <input name="make" placeholder="Ford"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
-              <input name="model" placeholder="F-150"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Year</label>
-              <input name="year" type="number" min="1990" max="2030" placeholder={String(new Date().getFullYear())}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">License Plate</label>
-              <input name="licensePlate" placeholder="ABC-1234"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-              <input name="notes" placeholder="Optional notes"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
-            </div>
-            <div className="col-span-2 sm:col-span-3 flex justify-end">
-              <Button type="submit" size="sm">Add Vehicle</Button>
-            </div>
-          </form>
+          <VehicleForm action={createVehicle} submitLabel="Add Vehicle" />
         </CardBody>
       </Card>
     </div>
