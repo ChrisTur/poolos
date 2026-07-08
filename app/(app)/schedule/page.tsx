@@ -5,6 +5,7 @@ import { DAY_NAMES, formatDate } from "@/lib/utils"
 import { statusBadge } from "@/components/ui/Badge"
 import LogVisitForm from "@/components/schedule/LogVisitForm"
 import ScheduleCalendar from "@/components/schedule/ScheduleCalendar"
+import VisitRequestCard from "@/components/schedule/VisitRequestCard"
 import Link from "next/link"
 
 export const dynamic = "force-dynamic"
@@ -34,7 +35,7 @@ export default async function SchedulePage() {
   const monthStart = new Date(thisYear, thisMonth, 1)
   const monthEnd   = new Date(thisYear, thisMonth + 1, 0, 23, 59, 59, 999)
 
-  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits, companyUsers, jobTemplates] = await Promise.all([
+  const [routes, recentVisits, customers, scheduledCustomers, checklistItems, monthVisits, companyUsers, jobTemplates, pendingRequests] = await Promise.all([
     db.route.findMany({
       where: { companyId, isActive: true },
       orderBy: { dayOfWeek: "asc" },
@@ -88,6 +89,11 @@ export default async function SchedulePage() {
       orderBy: { createdAt: "asc" },
       include: { steps: { orderBy: { position: "asc" } } },
     }),
+    db.visitRequest.findMany({
+      where: { companyId, status: "pending" },
+      orderBy: { createdAt: "asc" },
+      include: { customer: { select: { id: true, firstName: true, lastName: true } } },
+    }),
   ])
 
   const byDay = DAY_NAMES.reduce<Record<number, typeof routes>>((acc, _, i) => {
@@ -125,6 +131,20 @@ export default async function SchedulePage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Schedule</h1>
+
+      {/* Pending visit requests */}
+      {pendingRequests.length > 0 && (
+        <section>
+          <h2 className="text-sm font-semibold text-amber-700 uppercase tracking-wide mb-3">
+            {pendingRequests.length} Pending Visit Request{pendingRequests.length !== 1 ? "s" : ""}
+          </h2>
+          <div className="space-y-3">
+            {pendingRequests.map((req) => (
+              <VisitRequestCard key={req.id} request={req} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Calendar */}
       <Card>

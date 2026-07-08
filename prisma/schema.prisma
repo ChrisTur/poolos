@@ -90,6 +90,7 @@ model Company {
   recurringExpenses      RecurringExpense[]
   routeRuns              RouteRun[]
   vehicles               Vehicle[]
+  visitRequests          VisitRequest[]
 }
 
 model User {
@@ -193,6 +194,7 @@ model Customer {
   issueReports    IssueReport[]
   checklistItems  VisitChecklistItem[]
   rateHistory     RateHistory[]
+  visitRequests   VisitRequest[]
 }
 
 model CustomerNote {
@@ -477,6 +479,25 @@ model Expense {
   company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   routeRunId String?
   routeRun   RouteRun? @relation(fields: [routeRunId], references: [id], onDelete: SetNull)
+}
+
+model VisitRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  preferredDate DateTime?
+  serviceType   String?   // what the customer wants done (free text)
+  notes         String?
+  status        String    @default("pending") // pending | confirmed | declined
+  declineReason String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
+  @@index([customerId])
 }
 
 model Vehicle {

@@ -4,6 +4,7 @@ import Link from "next/link"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
 import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle, FileText, ChevronRight } from "lucide-react"
 import PortalReplyForm from "@/components/portal/PortalReplyForm"
+import PortalRequestForm from "@/components/portal/PortalRequestForm"
 
 const GCS = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
 
@@ -272,6 +273,9 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
             </Link>
           </section>
         )}
+
+        {/* Visit request */}
+        <PortalRequestForm token={token} />
 
         {/* Messages */}
         <section>
