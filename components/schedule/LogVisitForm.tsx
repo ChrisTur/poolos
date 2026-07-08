@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useRef, useTransition } from "react"
+import { useState, useMemo, useRef, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { logVisit } from "@/lib/actions/routes"
 import { getUploadUrl } from "@/lib/actions/attachments"
@@ -126,21 +126,35 @@ export default function LogVisitForm({
   checklistItems = [],
   users = [],
   jobTemplates = [],
+  defaultCustomerId,
+  defaultRouteId,
+  defaultTechnicianId,
+  redirectTo,
 }: {
   customers: CustomerWithEquipment[]
   routes: RouteWithAssignment[]
   checklistItems?: VisitChecklistItem[]
   users?: UserOption[]
   jobTemplates?: TemplateWithSteps[]
+  defaultCustomerId?: string
+  defaultRouteId?: string
+  defaultTechnicianId?: string
+  redirectTo?: string
 }) {
   const router  = useRouter()
   const formRef = useRef<HTMLFormElement>(null)
 
-  const [customerId,    setCustomerId]    = useState("")
-  const [selectedRoute, setSelectedRoute] = useState("")
-  const [technicianId,  setTechnicianId]  = useState("")
+  // Derive initial saltwater from pre-filled customer if provided
+  const _initCustomer = defaultCustomerId ? customers.find((c) => c.id === defaultCustomerId) : null
+  const _initSaltwater = _initCustomer
+    ? (_initCustomer.equipment?.some((e) => e.type === "salt_system") || !!_initCustomer.poolType?.toLowerCase().includes("salt"))
+    : false
+
+  const [customerId,    setCustomerId]    = useState(defaultCustomerId ?? "")
+  const [selectedRoute, setSelectedRoute] = useState(defaultRouteId ?? "")
+  const [technicianId,  setTechnicianId]  = useState(defaultTechnicianId ?? "")
   const [status,        setStatus]        = useState("completed")
-  const [saltwater,     setSaltwater]     = useState(false)
+  const [saltwater,     setSaltwater]     = useState(_initSaltwater)
   const [chem,          setChem]          = useState<ChemFields>(EMPTY_CHEM)
   const [notes,         setNotes]         = useState("")
   const [photos,        setPhotos]        = useState<File[]>([])
@@ -155,6 +169,17 @@ export default function LogVisitForm({
   const [templateChecked, setTemplateChecked] = useState<Set<string>>(new Set())
   const [recentReadings,  setRecentReadings]  = useState<RecentReading[]>([])
   const [readingsPending, startReadingsTransition] = useTransition()
+
+  // Pre-load recent readings for defaultCustomerId on mount
+  useEffect(() => {
+    if (defaultCustomerId) {
+      startReadingsTransition(async () => {
+        const readings = await getRecentReadings(defaultCustomerId)
+        setRecentReadings(readings)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const selectedCustomer = customers.find((c) => c.id === customerId) ?? null
   const poolVolume = selectedCustomer?.poolSize ? parseFloat(selectedCustomer.poolSize) : null
@@ -297,8 +322,12 @@ export default function LogVisitForm({
       setChemOpen(false)
       formRef.current?.reset()
       if (customerId) handleCustomerChange(customerId)
-      router.refresh()
-      setTimeout(() => setDone(false), 3000)
+      if (redirectTo) {
+        router.push(redirectTo)
+      } else {
+        router.refresh()
+        setTimeout(() => setDone(false), 3000)
+      }
     } catch {
       setError("Failed to log visit. Please try again.")
     } finally {
@@ -312,18 +341,27 @@ export default function LogVisitForm({
       {/* Customer */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
-        <select
-          name="customerId"
-          required
-          value={customerId}
-          onChange={(e) => handleCustomerChange(e.target.value)}
-          className={inputCls}
-        >
-          <option value="">Select customer…</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
-          ))}
-        </select>
+        {defaultCustomerId ? (
+          <>
+            <input type="hidden" name="customerId" value={customerId} />
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm font-semibold text-gray-900">
+              {selectedCustomer?.firstName} {selectedCustomer?.lastName}
+            </div>
+          </>
+        ) : (
+          <select
+            name="customerId"
+            required
+            value={customerId}
+            onChange={(e) => handleCustomerChange(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">Select customer…</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+            ))}
+          </select>
+        )}
         {selectedCustomer?.poolSize && (
           <p className="text-xs text-gray-400 mt-1">
             Pool: {parseFloat(selectedCustomer.poolSize).toLocaleString()} gal
@@ -386,7 +424,11 @@ export default function LogVisitForm({
       )}
 
       {/* Route */}
-      {routes.length > 0 && (
+      {defaultRouteId ? (
+        <>
+          <input type="hidden" name="routeId" value={selectedRoute} />
+        </>
+      ) : routes.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Route</label>
           <select

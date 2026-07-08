@@ -29,7 +29,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [route, allCustomers, companyUsers, company] = await Promise.all([
+  const [route, allCustomers, companyUsers, company, vehicles] = await Promise.all([
     db.route.findFirst({
       where: { id, companyId },
       include: {
@@ -52,6 +52,11 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
     db.company.findUnique({
       where: { id: companyId },
       select: { address: true, city: true, state: true, zip: true },
+    }),
+    db.vehicle.findMany({
+      where: { companyId, isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, make: true, model: true, year: true },
     }),
   ])
 
@@ -163,6 +168,7 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
             stops={route.stops}
             activeRun={activeRun}
             completedVisitCustomerIds={completedVisitCustomerIds}
+            vehicles={vehicles}
           />
 
           {/* Add stop */}
