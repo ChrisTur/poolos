@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 
 export type AppNotification = {
   id:       string
-  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "chemical_trend" | "equipment_due" | "open_issue" | "low_rating" | "low_stock"
+  type:     "overdue_invoice" | "portal_reply" | "chemical_alert" | "chemical_trend" | "equipment_due" | "open_issue" | "low_rating" | "low_stock" | "visit_request"
   severity: "red" | "blue" | "amber" | "orange"
   label:    string
   detail:   string
@@ -42,7 +42,7 @@ function chemIssues(v: {
 export async function getCompanyNotifications(companyId: string): Promise<AppNotification[]> {
   const now = new Date()
 
-  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues, lowRatingVisits, lowStockItems] = await Promise.all([
+  const [overdueInvoices, allMessages, recentVisits, equipmentDue, dismissed, highPriorityIssues, lowRatingVisits, lowStockItems, pendingRequests] = await Promise.all([
     // 1. Overdue invoices
     db.invoice.findMany({
       where: { companyId, status: "sent", dueDate: { lt: now } },
@@ -125,6 +125,16 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
     db.inventoryItem.findMany({
       where: { companyId, isActive: true, lowStockThreshold: { gt: 0 } },
       select: { id: true, name: true, onHand: true, lowStockThreshold: true, unit: true },
+    }),
+
+    // 9. Pending visit requests from the customer portal
+    db.visitRequest.findMany({
+      where: { companyId, status: "pending" },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true, createdAt: true, serviceType: true,
+        customer: { select: { id: true, firstName: true, lastName: true } },
+      },
     }),
   ])
 
@@ -280,6 +290,18 @@ export async function getCompanyNotifications(companyId: string): Promise<AppNot
       label:    item.name,
       detail:   isOut ? "Out of stock" : `${item.onHand} ${item.unit} remaining (threshold: ${item.lowStockThreshold})`,
       href:     "/inventory",
+    })
+  }
+
+  // Pending visit requests
+  for (const req of pendingRequests) {
+    notifications.push({
+      id:       `vreq-${req.id}`,
+      type:     "visit_request",
+      severity: "blue",
+      label:    `${req.customer.firstName} ${req.customer.lastName} — visit request`,
+      detail:   req.serviceType ?? "No service type specified",
+      href:     "/schedule",
     })
   }
 
