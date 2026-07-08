@@ -13,22 +13,23 @@ export const dynamic = "force-dynamic"
 
 export default async function CompanySettingsPage() {
   const { companyId } = await requirePermission("settings.company")
-  const [company, visitPhotos] = await Promise.all([
+  const [company, galleryPhotos, visitPhotos] = await Promise.all([
     db.company.findUnique({ where: { id: companyId } }),
+    // All photos currently in the gallery (uploaded directly OR from visits)
     db.attachment.findMany({
-      where: { companyId, serviceVisitId: { not: null }, mimeType: { startsWith: "image/" } },
+      where: { companyId, isPublicGallery: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, key: true, filename: true, serviceVisitId: true },
+    }),
+    // Visit photos not yet added to the gallery
+    db.attachment.findMany({
+      where: { companyId, serviceVisitId: { not: null }, mimeType: { startsWith: "image/" }, isPublicGallery: false },
       orderBy: { createdAt: "desc" },
       take: 30,
-      select: { id: true, key: true, filename: true, isPublicGallery: true },
+      select: { id: true, key: true, filename: true },
     }),
   ])
   if (!company) return null
-
-  const galleryPhotos = await db.attachment.findMany({
-    where: { companyId, isPublicGallery: true, serviceVisitId: null },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, key: true, filename: true },
-  })
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -420,21 +421,23 @@ export default async function CompanySettingsPage() {
           </div>
         </CardHeader>
         <CardBody className="space-y-6">
-          {/* Uploaded gallery photos */}
+          {/* Current gallery — all isPublicGallery: true (uploads + visit photos) */}
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Uploaded photos</p>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Gallery photos</p>
             {galleryPhotos.length === 0 ? (
-              <p className="text-sm text-gray-400">No uploaded gallery photos yet.</p>
+              <p className="text-sm text-gray-400">No gallery photos yet. Upload one or add from your visit photos below.</p>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {galleryPhotos.map((photo) => {
-                  const deleteAction = deleteGalleryPhoto.bind(null, photo.id)
+                  const isVisitPhoto = !!photo.serviceVisitId
+                  const removeAction = isVisitPhoto
+                    ? toggleGalleryPhoto.bind(null, photo.id)
+                    : deleteGalleryPhoto.bind(null, photo.id)
                   return (
                     <div key={photo.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
-                      <img src={`${GCS}/${photo.key}`} alt={photo.filename}
-                        className="w-full h-full object-cover" />
-                      <form action={deleteAction} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="submit" title="Remove"
+                      <img src={`${GCS}/${photo.key}`} alt={photo.filename} className="w-full h-full object-cover" />
+                      <form action={removeAction} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="submit" title={isVisitPhoto ? "Remove from gallery" : "Delete photo"}
                           className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600">
                           <Trash2 className="w-3 h-3" />
                         </button>
@@ -456,7 +459,7 @@ export default async function CompanySettingsPage() {
             <p className="text-xs text-gray-400 mt-1">JPEG, PNG, or WebP. Max 10 MB. Hero image is the first photo in your gallery.</p>
           </div>
 
-          {/* Pick from visit photos */}
+          {/* Pick from visit photos not yet in gallery */}
           {visitPhotos.length > 0 && (
             <div>
               <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">Add from visit photos</p>
@@ -465,18 +468,9 @@ export default async function CompanySettingsPage() {
                   const toggleAction = toggleGalleryPhoto.bind(null, photo.id)
                   return (
                     <form key={photo.id} action={toggleAction}>
-                      <button type="submit" title={photo.isPublicGallery ? "Remove from gallery" : "Add to gallery"}
-                        className={`relative w-full aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                          photo.isPublicGallery
-                            ? "border-sky-500 ring-2 ring-sky-200"
-                            : "border-transparent hover:border-sky-300"
-                        }`}>
+                      <button type="submit" title="Add to gallery"
+                        className="relative w-full aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-sky-300 transition-all">
                         <img src={`${GCS}/${photo.key}`} alt={photo.filename} className="w-full h-full object-cover" />
-                        {photo.isPublicGallery && (
-                          <div className="absolute inset-0 bg-sky-500/20 flex items-end justify-center pb-1">
-                            <span className="text-white text-xs font-bold bg-sky-600 rounded px-1">In gallery</span>
-                          </div>
-                        )}
                       </button>
                     </form>
                   )
