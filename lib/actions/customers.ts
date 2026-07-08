@@ -370,3 +370,21 @@ export async function getRecentReadings(customerId: string): Promise<RecentReadi
     select: { id: true, visitedAt: true, chlorine: true, ph: true, alkalinity: true, calcium: true, cya: true, salt: true },
   })
 }
+
+
+export async function getCustomerContractsAndBodies(customerId: string) {
+  const { companyId } = await requireSession()
+  const [contracts, poolBodies] = await Promise.all([
+    db.serviceContract.findMany({
+      where: { customerId, companyId, status: "active" },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, totalVisits: true, usedVisits: true },
+    }),
+    db.poolBody.findMany({
+      where: { customerId, companyId, isActive: true },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, type: true },
+    }),
+  ])
+  return { contracts, poolBodies }
+}

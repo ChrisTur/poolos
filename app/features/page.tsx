@@ -6,6 +6,7 @@ import {
   Users, Globe, MessageSquare, Mail, Bell, Star,
   Shield, UserCog, Download, LifeBuoy, ChevronRight,
   Layers, Navigation, GripVertical, KeyRound, History,
+  Gauge, Truck, Camera, CalendarPlus, Megaphone,
 } from "lucide-react"
 import MarketingNav from "@/components/marketing/MarketingNav"
 import MarketingFooter from "@/components/marketing/MarketingFooter"
@@ -83,6 +84,16 @@ const SECTIONS: Section[] = [
         icon: History,
         title: "Water Test History",
         description: "The last 3 chemical readings appear inline on the visit form the moment a customer is selected. Out-of-range values are highlighted red so techs can spot trends before they test.",
+      },
+      {
+        icon: Gauge,
+        title: "Route Progress & Mileage Tracking",
+        description: "Techs start and complete routes with odometer readings for tax and reimbursement purposes. A live progress bar advances as visits are logged. Add extra stops (fuel, lunch, supply runs) and review the last 5 runs in a per-route mileage log.",
+      },
+      {
+        icon: Truck,
+        title: "Vehicle Fleet Management",
+        description: "Register your company vehicles with make, model, year, license plate, and starting odometer. Assign a vehicle when starting a route run and track miles driven per vehicle across the mileage report.",
       },
     ],
   },
@@ -186,6 +197,16 @@ const SECTIONS: Section[] = [
         title: "Service Ratings",
         description: "Customers rate each completed visit 1–5 stars and leave feedback. Low ratings (1–2) trigger an immediate notification.",
       },
+      {
+        icon: Camera,
+        title: "Full Service History with Photos",
+        description: "Customers can browse their complete visit timeline — every visit ever logged, with date, technician, chemical readings, chemicals applied, and a tappable photo gallery. Builds trust and eliminates 'what did you do today?' calls.",
+      },
+      {
+        icon: CalendarPlus,
+        title: "Customer Self-Scheduling",
+        description: "Customers request an additional visit or service directly from their portal — preferred date, service type, and notes. Requests appear at the top of your schedule queue with one-click confirm or decline.",
+      },
     ],
   },
   {
@@ -213,7 +234,12 @@ const SECTIONS: Section[] = [
       {
         icon: Bell,
         title: "Notification Center",
-        description: "A real-time bell for overdue invoices, portal replies, chemical alerts, chemical trends, equipment due, open issues, and low customer ratings.",
+        description: "A real-time bell for overdue invoices, portal replies, chemical alerts, chemical trends, equipment due, open issues, low ratings, and incoming visit requests.",
+      },
+      {
+        icon: Megaphone,
+        title: "Seasonal Upsell Campaigns",
+        description: "One-click email campaigns targeting customers who haven't had a pool opening, closing, or any service in a set period. Built-in presets with a ready-to-send subject and body — just review and send.",
       },
     ],
   },

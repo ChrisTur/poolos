@@ -360,7 +360,7 @@ export default async function HomePage() {
                 icon: Camera,
                 color: "bg-rose-100 text-rose-600",
                 title: "Field Reports & Portal",
-                body: "Techs log visits with photos, notes, and readings from their phone. Every customer gets a private portal to view history, pay invoices, and message your team.",
+                body: "Techs log visits with photos, notes, and readings from their phone. Every customer gets a private portal to view their full service history, pay invoices, message your team, and request a service visit.",
               },
               {
                 icon: BarChart3,
@@ -525,9 +525,10 @@ export default async function HomePage() {
               </p>
               <ul className="space-y-2.5 sm:space-y-3">
                 {[
-                  "Full visit history and chemical trend charts",
-                  "Pay outstanding invoices online in seconds",
+                  "Full visit history with photos, readings & chemicals applied",
+                  "Pay outstanding invoices and approve estimates online",
                   "Two-way messaging with your team",
+                  "Request a service visit directly from the portal",
                   "Automatically sent after every completed visit",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2.5 text-sm text-gray-600">

@@ -60,6 +60,8 @@ export async function updateCompany(formData: FormData) {
       publicPageTagline:  (formData.get("publicPageTagline") as string) || null,
       publicPageAbout:    (formData.get("publicPageAbout") as string) || null,
       serviceArea:        (formData.get("serviceArea") as string) || null,
+      gpsVerificationEnabled: checkbox(formData, "gpsVerificationEnabled"),
+      gpsVerificationRadiusM: parseInt((formData.get("gpsVerificationRadiusM") as string) || "300") || 300,
     },
   })
 
