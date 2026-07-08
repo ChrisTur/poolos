@@ -13,8 +13,17 @@ import RouteMap from "@/components/routes/RouteMap"
 import DeleteRouteButton from "@/components/routes/DeleteRouteButton"
 import OptimizeButton from "@/components/routes/OptimizeButton"
 import { geocodeAddress } from "@/lib/geocode"
+import RouteRunPanel from "./RouteRunPanel"
 
 export const dynamic = "force-dynamic"
+
+function todayWindow() {
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(end.getDate() + 1)
+  return { start, end }
+}
 
 export default async function RouteDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { companyId } = await requireSession()
@@ -47,6 +56,32 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
   ])
 
   if (!route) notFound()
+
+  const { start: todayStart, end: todayEnd } = todayWindow()
+  const routeCustomerIds = route.stops.map((s) => s.customerId)
+
+  const [activeRun, todayVisits, pastRuns] = await Promise.all([
+    db.routeRun.findFirst({
+      where: { routeId: id, companyId, date: todayStart, completedAt: null },
+      include: { extraStops: { orderBy: { createdAt: "asc" } } },
+    }),
+    db.serviceVisit.findMany({
+      where: {
+        customer: { companyId },
+        customerId: { in: routeCustomerIds },
+        visitedAt: { gte: todayStart, lt: todayEnd },
+      },
+      select: { customerId: true },
+    }),
+    db.routeRun.findMany({
+      where: { routeId: id, companyId, completedAt: { not: null } },
+      orderBy: { date: "desc" },
+      take: 5,
+      include: { technician: { select: { firstName: true, lastName: true } } },
+    }),
+  ])
+
+  const completedVisitCustomerIds = todayVisits.map((v) => v.customerId)
 
   const defaultStart =
     route.assignedUser?.defaultStartAddress ||
@@ -122,6 +157,14 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
 
         {/* Sidebar */}
         <div className="space-y-5">
+          {/* Route run / progress */}
+          <RouteRunPanel
+            routeId={id}
+            stops={route.stops}
+            activeRun={activeRun}
+            completedVisitCustomerIds={completedVisitCustomerIds}
+          />
+
           {/* Add stop */}
           <Card>
             <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Add Stop</h2></CardHeader>
@@ -187,6 +230,45 @@ export default async function RouteDetailPage({ params }: { params: Promise<{ id
               </form>
             </CardBody>
           </Card>
+
+          {/* Mileage / run history */}
+          {pastRuns.length > 0 && (
+            <Card>
+              <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Mileage Log</h2></CardHeader>
+              <CardBody className="p-0">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left px-4 py-2 font-medium text-gray-500">Date</th>
+                      <th className="text-right px-4 py-2 font-medium text-gray-500">Miles</th>
+                      <th className="text-right px-4 py-2 font-medium text-gray-500">Tech</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pastRuns.map((run) => {
+                      const mi =
+                        run.odometerStart != null && run.odometerEnd != null
+                          ? (run.odometerEnd - run.odometerStart).toFixed(1)
+                          : null
+                      return (
+                        <tr key={run.id} className="border-b border-gray-50 last:border-0">
+                          <td className="px-4 py-2 text-gray-700">
+                            {new Date(run.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-700 font-medium">
+                            {mi != null ? `${mi} mi` : "—"}
+                          </td>
+                          <td className="px-4 py-2 text-right text-gray-400">
+                            {run.technician ? `${run.technician.firstName} ${run.technician.lastName[0]}.` : "—"}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </CardBody>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -88,6 +88,7 @@ model Company {
   inventoryItems         InventoryItem[]
   inventoryTransactions  InventoryTransaction[]
   recurringExpenses      RecurringExpense[]
+  routeRuns              RouteRun[]
 }
 
 model User {
@@ -120,6 +121,7 @@ model User {
   reportedIssues    IssueReport[]       @relation("IssueReporter")
   rateChanges           RateHistory[]
   inventoryTransactions InventoryTransaction[]
+  routeRuns             RouteRun[]
 }
 
 model Session {
@@ -235,6 +237,7 @@ model Route {
 
   stops   RouteStop[]
   visits  ServiceVisit[]
+  runs    RouteRun[]
 }
 
 model RouteStop {
@@ -249,6 +252,43 @@ model RouteStop {
 
   @@unique([routeId, customerId])
   @@index([routeId, position])
+}
+
+model RouteRun {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+
+  date          DateTime  // calendar date of this run (midnight local)
+  startedAt     DateTime
+  completedAt   DateTime?
+
+  odometerStart Float?    // starting odometer reading in miles
+  odometerEnd   Float?    // ending odometer reading in miles
+  notes         String?
+
+  routeId      String
+  route        Route  @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  technicianId String?
+  technician   User?  @relation(fields: [technicianId], references: [id], onDelete: SetNull)
+  companyId    String
+  company      Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  extraStops RouteRunExtraStop[]
+
+  @@index([routeId])
+  @@index([companyId])
+}
+
+model RouteRunExtraStop {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  type  String  // lunch | fuel | supply_run | other
+  label String
+  notes String?
+
+  routeRunId String
+  routeRun   RouteRun @relation(fields: [routeRunId], references: [id], onDelete: Cascade)
 }
 
 model ServiceVisit {
