@@ -83,7 +83,7 @@ const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[]
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   owner: ALL_PERMISSIONS,
   supervisor: ALL_PERMISSIONS.filter(
-    (p) => p !== "settings.billing" && p !== "settings.team" && p !== "settings.templates"
+    (p) => p !== "settings.billing" && p !== "settings.team"
   ),
   technician: [
     "customers.view",
