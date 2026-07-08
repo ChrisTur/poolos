@@ -32,11 +32,19 @@ const WEBHOOK_PATHS = [
 
 // [pathPrefix, requestsAllowed, windowSeconds]
 const RATE_RULES: [string, number, number][] = [
-  ["/api/auth",  30,  60],
-  ["/register",  15, 600],
-  ["/pay/",      60,  60],
-  ["/portal/",   60,  60],
+  ["/api/auth",        30,  60],
+  ["/register",        15, 600],
+  ["/forgot-password", 10, 600],
+  ["/pay/",            60,  60],
+  ["/portal/",         60,  60],
 ]
+
+const SECURITY_HEADERS: Record<string, string> = {
+  "X-Frame-Options":           "DENY",
+  "X-Content-Type-Options":    "nosniff",
+  "Referrer-Policy":           "strict-origin-when-cross-origin",
+  "Permissions-Policy":        "camera=(), microphone=(), geolocation=()",
+}
 
 function clientIp(req: NextRequest): string {
   const fwd = req.headers.get("x-forwarded-for")
@@ -81,7 +89,9 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  return NextResponse.next()
+  const res = NextResponse.next()
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.headers.set(k, v)
+  return res
 }
 
 export const config = {
