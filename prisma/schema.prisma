@@ -483,13 +483,14 @@ model Vehicle {
   id          String   @id @default(cuid())
   createdAt   DateTime @default(now())
 
-  name        String            // e.g. "Truck 1 - F-150"
-  make        String?
-  model       String?
-  year        Int?
-  licensePlate String?
-  notes       String?
-  isActive    Boolean @default(true)
+  name           String            // e.g. "Truck 1 - F-150"
+  make           String?
+  model          String?
+  year           Int?
+  licensePlate   String?
+  initialMileage Float?            // starting odometer at time of fleet entry
+  notes          String?
+  isActive       Boolean @default(true)
 
   companyId String
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
