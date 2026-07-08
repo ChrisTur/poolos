@@ -1,8 +1,9 @@
 "use client"
 
 import { useTransition, useState } from "react"
+import Link from "next/link"
 import { startRouteRun, completeRouteRun, addExtraStop, deleteExtraStop } from "@/lib/actions/routeRuns"
-import { Play, CheckCircle2, Circle, Clock, Gauge, MapPin, Plus, X, Coffee, Fuel, ShoppingBag, MoreHorizontal } from "lucide-react"
+import { Play, CheckCircle2, Circle, Clock, Gauge, Plus, X, Coffee, Fuel, ShoppingBag, MoreHorizontal, ClipboardList } from "lucide-react"
 
 const EXTRA_STOP_TYPES = [
   { value: "lunch",       label: "Lunch break",    icon: Coffee },
@@ -173,16 +174,25 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
         {stops.map((stop, i) => {
           const done = completedVisitCustomerIds.includes(stop.customer.id)
           return (
-            <div key={stop.id} className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm transition-colors ${done ? "bg-white/60 text-gray-400 line-through" : "bg-white text-gray-800"}`}>
+            <div key={stop.id} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-colors ${done ? "bg-white/60" : "bg-white"}`}>
               {done
                 ? <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
                 : <Circle className="w-4 h-4 text-gray-300 shrink-0" />
               }
               <span className="text-xs font-bold text-gray-400 w-4 shrink-0">{i + 1}</span>
-              <div className="min-w-0 flex-1">
+              <div className={`min-w-0 flex-1 ${done ? "text-gray-400 line-through" : "text-gray-800"}`}>
                 <span className="font-medium">{stop.customer.firstName} {stop.customer.lastName}</span>
                 <span className="text-xs text-gray-400 ml-2">{stop.customer.city}</span>
               </div>
+              {!done && (
+                <Link
+                  href={`/routes/${routeId}/visit/${stop.customer.id}`}
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-sky-50 text-sky-600 text-xs font-semibold hover:bg-sky-100 transition-colors shrink-0"
+                >
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  Log
+                </Link>
+              )}
             </div>
           )
         })}
@@ -239,12 +249,12 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Label</label>
             <input name="label" required placeholder="e.g. McDonald's on Camelback"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
             <input name="notes" placeholder="e.g. 30 min break"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={pending}
@@ -281,7 +291,7 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
             <div className="flex items-center gap-2">
               <input name="odometerEnd" type="number" step="0.1" min="0"
                 placeholder={activeRun.odometerStart ? String(activeRun.odometerStart) : "e.g. 42287"}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
               <span className="text-xs text-gray-400 whitespace-nowrap">mi</span>
             </div>
             {activeRun.odometerStart != null && (
@@ -291,7 +301,7 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Notes (optional)</label>
             <textarea name="notes" rows={2} placeholder="Any notes about today's route…"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
 
           {/* Optional fuel expense */}
@@ -309,12 +319,12 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Amount ($)</label>
                   <input name="fuelAmount" type="number" step="0.01" min="0" placeholder="e.g. 68.50"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">Vendor (optional)</label>
                   <input name="fuelVendor" placeholder="e.g. Shell"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                 </div>
               </div>
             )}

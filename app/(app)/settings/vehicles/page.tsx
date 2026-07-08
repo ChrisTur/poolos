@@ -53,32 +53,32 @@ export default async function VehiclesPage() {
                     <div className="col-span-2 sm:col-span-3">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Name / Label *</label>
                       <input name="name" required defaultValue={v.name}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Make</label>
                       <input name="make" defaultValue={v.make ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
                       <input name="model" defaultValue={v.model ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">Year</label>
                       <input name="year" type="number" min="1990" max="2030" defaultValue={v.year ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-600 mb-1">License Plate</label>
                       <input name="licensePlate" defaultValue={v.licensePlate ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                     </div>
                     <div className="col-span-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
                       <input name="notes" defaultValue={v.notes ?? ""}
-                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
                     </div>
                     <div className="col-span-2 sm:col-span-3 flex justify-end">
                       <Button type="submit" size="sm">Save</Button>
@@ -104,32 +104,32 @@ export default async function VehiclesPage() {
             <div className="col-span-2 sm:col-span-3">
               <label className="block text-xs font-medium text-gray-600 mb-1">Name / Label *</label>
               <input name="name" required placeholder="e.g. Truck 1 - F-150"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Make</label>
               <input name="make" placeholder="Ford"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Model</label>
               <input name="model" placeholder="F-150"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Year</label>
               <input name="year" type="number" min="1990" max="2030" placeholder={String(new Date().getFullYear())}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">License Plate</label>
               <input name="licensePlate" placeholder="ABC-1234"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
               <input name="notes" placeholder="Optional notes"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
             </div>
             <div className="col-span-2 sm:col-span-3 flex justify-end">
               <Button type="submit" size="sm">Add Vehicle</Button>
