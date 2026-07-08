@@ -12,8 +12,9 @@ function todayMidnight() {
 
 export async function startRouteRun(formData: FormData) {
   const { companyId, userId } = await requirePermission("routes.view")
-  const routeId = formData.get("routeId") as string
+  const routeId       = formData.get("routeId") as string
   const odometerStart = formData.get("odometerStart") ? parseFloat(formData.get("odometerStart") as string) : null
+  const vehicleId     = (formData.get("vehicleId") as string) || null
 
   const route = await db.route.findFirst({ where: { id: routeId, companyId } })
   if (!route) return
@@ -29,6 +30,7 @@ export async function startRouteRun(formData: FormData) {
       routeId,
       companyId,
       technicianId: userId,
+      vehicleId,
       date: todayMidnight(),
       startedAt: new Date(),
       odometerStart,
@@ -40,11 +42,16 @@ export async function startRouteRun(formData: FormData) {
 
 export async function completeRouteRun(formData: FormData) {
   const { companyId } = await requirePermission("routes.view")
-  const runId = formData.get("runId") as string
-  const odometerEnd = formData.get("odometerEnd") ? parseFloat(formData.get("odometerEnd") as string) : null
-  const notes = (formData.get("notes") as string) || null
+  const runId        = formData.get("runId") as string
+  const odometerEnd  = formData.get("odometerEnd") ? parseFloat(formData.get("odometerEnd") as string) : null
+  const notes        = (formData.get("notes") as string) || null
+  const fuelAmount   = formData.get("fuelAmount") ? parseFloat(formData.get("fuelAmount") as string) : null
+  const fuelVendor   = (formData.get("fuelVendor") as string)?.trim() || null
 
-  const run = await db.routeRun.findFirst({ where: { id: runId, companyId } })
+  const run = await db.routeRun.findFirst({
+    where: { id: runId, companyId },
+    include: { route: { select: { name: true } } },
+  })
   if (!run) return
 
   await db.routeRun.update({
@@ -52,7 +59,24 @@ export async function completeRouteRun(formData: FormData) {
     data: { completedAt: new Date(), odometerEnd, notes },
   })
 
+  if (fuelAmount && fuelAmount > 0) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    await db.expense.create({
+      data: {
+        companyId,
+        routeRunId: runId,
+        category: "fuel",
+        date: today,
+        description: `Fuel — ${run.route.name}`,
+        amount: fuelAmount,
+        vendor: fuelVendor,
+      },
+    })
+  }
+
   revalidatePath(`/routes/${run.routeId}`)
+  revalidatePath("/reports/mileage")
 }
 
 export async function addExtraStop(formData: FormData) {

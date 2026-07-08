@@ -22,12 +22,14 @@ type Run = {
   notes: string | null
   extraStops: ExtraStop[]
 }
+type Vehicle = { id: string; name: string; make: string | null; model: string | null; year: number | null }
 
 interface Props {
   routeId: string
   stops: Stop[]
   activeRun: Run | null
   completedVisitCustomerIds: string[]
+  vehicles: Vehicle[]
 }
 
 function fmt(mins: number) {
@@ -44,10 +46,11 @@ function miles(run: Run) {
   return (run.odometerEnd - run.odometerStart).toFixed(1)
 }
 
-export default function RouteRunPanel({ routeId, stops, activeRun, completedVisitCustomerIds }: Props) {
+export default function RouteRunPanel({ routeId, stops, activeRun, completedVisitCustomerIds, vehicles }: Props) {
   const [pending, startTransition] = useTransition()
   const [showExtraForm, setShowExtraForm] = useState(false)
   const [showCompleteForm, setShowCompleteForm] = useState(false)
+  const [logFuel, setLogFuel] = useState(false)
 
   const doneCount = stops.filter((s) => completedVisitCustomerIds.includes(s.customer.id)).length
   const totalCount = stops.length
@@ -64,6 +67,20 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
 
         <form action={(fd) => { startTransition(() => startRouteRun(fd)) }} className="space-y-3">
           <input type="hidden" name="routeId" value={routeId} />
+          {vehicles.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Vehicle (optional)</label>
+              <select name="vehicleId"
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                <option value="">No vehicle selected</option>
+                {vehicles.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.year ? `${v.year} ` : ""}{v.make ? `${v.make} ` : ""}{v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">Starting odometer (optional)</label>
             <div className="flex items-center gap-2">
@@ -276,6 +293,33 @@ export default function RouteRunPanel({ routeId, stops, activeRun, completedVisi
             <textarea name="notes" rows={2} placeholder="Any notes about today's route…"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-sky-500" />
           </div>
+
+          {/* Optional fuel expense */}
+          <div className="border-t border-gray-100 pt-3 space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" checked={logFuel} onChange={(e) => setLogFuel(e.target.checked)}
+                className="rounded border-gray-300 text-sky-600 focus:ring-sky-500" />
+              <span className="text-xs font-medium text-gray-600 flex items-center gap-1.5">
+                <Fuel className="w-3.5 h-3.5 text-amber-500" />
+                Log a fuel expense
+              </span>
+            </label>
+            {logFuel && (
+              <div className="grid grid-cols-2 gap-2 pl-6">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Amount ($)</label>
+                  <input name="fuelAmount" type="number" step="0.01" min="0" placeholder="e.g. 68.50"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1">Vendor (optional)</label>
+                  <input name="fuelVendor" placeholder="e.g. Shell"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="flex gap-2">
             <button type="submit" disabled={pending}
               className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold hover:bg-green-700 disabled:opacity-50">

@@ -4,26 +4,38 @@ import Link from "next/link"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
-import { DollarSign, Users, CalendarDays, TrendingUp, AlertTriangle, Clock, MapPin, Users2, ChevronRight, BarChart } from "lucide-react"
+import { DollarSign, Users, CalendarDays, TrendingUp, AlertTriangle, Clock, MapPin, Users2, ChevronRight, BarChart, Truck } from "lucide-react"
 import { visitNeedsAttention } from "@/lib/chemistry"
 import PaymentDonut, { type PaymentSlice } from "@/components/reports/PaymentDonut"
 import ChemicalHealthTable from "@/components/reports/ChemicalHealthTable"
+import DateRangePicker from "@/components/ui/DateRangePicker"
+import { Suspense } from "react"
 
 export const dynamic = "force-dynamic"
 
-const PERIODS = [
-  { key: "30d",  label: "Last 30 days" },
-  { key: "90d",  label: "Last 90 days" },
-  { key: "ytd",  label: "Year to date" },
-  { key: "all",  label: "All time" },
-]
+const PERIOD_LABELS: Record<string, string> = {
+  "7d": "Last 7 days", "30d": "Last 30 days", "90d": "Last 90 days", ytd: "Year to date", all: "All time",
+}
 
-function getPeriodStart(period: string): Date {
+function parseDateRange(params: { period?: string; from?: string; to?: string }): { start: Date; end: Date } {
+  if (params.from && params.to) {
+    const start = new Date(params.from)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(params.to)
+    end.setHours(23, 59, 59, 999)
+    return { start, end }
+  }
   const now = new Date()
-  if (period === "30d") return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-  if (period === "90d") return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000)
-  if (period === "ytd") return new Date(now.getFullYear(), 0, 1)
-  return new Date(0)
+  const period = params.period ?? "30d"
+  let start: Date
+  if (period === "7d")       start = new Date(now.getTime() - 7  * 86400000)
+  else if (period === "90d") start = new Date(now.getTime() - 90 * 86400000)
+  else if (period === "ytd") start = new Date(now.getFullYear(), 0, 1)
+  else if (period === "all") start = new Date(0)
+  else                       start = new Date(now.getTime() - 30 * 86400000)
+  const end = new Date()
+  end.setHours(23, 59, 59, 999)
+  return { start, end }
 }
 
 function monthKey(d: Date) {
@@ -37,11 +49,13 @@ function monthLabel(key: string) {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string }>
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>
 }) {
   const { companyId } = await requireSession()
-  const { period = "30d" } = await searchParams
-  const periodStart = getPeriodStart(period)
+  const params = await searchParams
+  const { period = "30d", from, to } = params
+  const { start: periodStart } = parseDateRange(params)
+  const periodLabel = from && to ? `${from} – ${to}` : (PERIOD_LABELS[period] ?? "Custom")
 
   const [
     periodPayments,
@@ -234,22 +248,12 @@ export default async function ReportsPage({
 
   return (
     <div className="space-y-6">
-      {/* Header + period tabs */}
-      <div>
+      {/* Header + date picker */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
-        <div className="flex gap-1 mt-3 flex-wrap">
-          {PERIODS.map((p) => (
-            <Link
-              key={p.key}
-              href={`/reports?period=${p.key}`}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                period === p.key ? "bg-sky-600 text-white" : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {p.label}
-            </Link>
-          ))}
-        </div>
+        <Suspense>
+          <DateRangePicker />
+        </Suspense>
       </div>
 
       {/* ── Business overview ── */}
@@ -257,7 +261,7 @@ export default async function ReportsPage({
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Business Overview</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Collected", value: formatCurrency(collected), icon: DollarSign, color: "text-green-600", bg: "bg-green-50", sub: PERIODS.find(p => p.key === period)?.label },
+            { label: "Collected", value: formatCurrency(collected), icon: DollarSign, color: "text-green-600", bg: "bg-green-50", sub: periodLabel },
             { label: "Outstanding", value: formatCurrency(outstanding), icon: TrendingUp, color: "text-sky-600", bg: "bg-sky-50", sub: "sent invoices" },
             { label: "Overdue", value: formatCurrency(overdue), icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50", sub: "past due" },
             { label: "MRR", value: formatCurrency(mrr), icon: DollarSign, color: "text-indigo-600", bg: "bg-indigo-50", sub: "monthly recurring" },
@@ -303,7 +307,7 @@ export default async function ReportsPage({
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-gray-900 text-sm">
-            Profit & Loss — {PERIODS.find((p) => p.key === period)?.label}
+            Profit & Loss — {periodLabel}
           </h2>
         </CardHeader>
         <CardBody>
@@ -375,7 +379,7 @@ export default async function ReportsPage({
         </Card>
 
         <Card>
-          <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Invoice Breakdown ({PERIODS.find(p => p.key === period)?.label})</h2></CardHeader>
+          <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Invoice Breakdown ({periodLabel})</h2></CardHeader>
           <div className="divide-y divide-gray-50">
             {breakdown.filter((b) => b.count > 0).map((b) => (
               <Link key={b.status} href={`/invoices?status=${b.status}`} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
@@ -397,7 +401,7 @@ export default async function ReportsPage({
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-gray-900 text-sm">
-            Revenue by Service Type — {PERIODS.find((p) => p.key === period)?.label}
+            Revenue by Service Type — {periodLabel}
           </h2>
         </CardHeader>
         <CardBody>
@@ -432,7 +436,7 @@ export default async function ReportsPage({
       <Card>
         <CardHeader>
           <h2 className="font-semibold text-gray-900 text-sm">
-            Payment Methods — {PERIODS.find((p) => p.key === period)?.label}
+            Payment Methods — {periodLabel}
           </h2>
         </CardHeader>
         <CardBody>
@@ -492,6 +496,18 @@ export default async function ReportsPage({
               <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
             </Card>
           </Link>
+          <Link href="/reports/mileage">
+            <Card className="p-4 flex items-center gap-4 hover:bg-gray-50 transition-colors cursor-pointer">
+              <span className="bg-amber-50 text-amber-600 p-2.5 rounded-lg shrink-0">
+                <Truck className="w-5 h-5" />
+              </span>
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">Mileage &amp; Fuel</p>
+                <p className="text-xs text-gray-500 mt-0.5">Miles driven by tech and vehicle with fuel costs</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
+            </Card>
+          </Link>
         </div>
       </section>
 
@@ -500,7 +516,7 @@ export default async function ReportsPage({
         <CardHeader>
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900 text-sm">
-              Chemical Costs — {PERIODS.find((p) => p.key === period)?.label}
+              Chemical Costs — {periodLabel}
             </h2>
             <span className="text-lg font-bold text-gray-900">{formatCurrency(totalChemicalSpend)}</span>
           </div>
