@@ -2,13 +2,15 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import { notFound } from "next/navigation"
 import Link from "next/link"
-import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, ClipboardList, ToggleLeft, ToggleRight, KeyRound, History, Camera } from "lucide-react"
+import { ChevronLeft, Phone, Mail, MapPin, Pencil, Trash2, Plus, Send, Wrench, ClipboardList, ToggleLeft, ToggleRight, KeyRound, History, Camera, FileText, Waves } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate, formatPhone, invoiceTotal } from "@/lib/utils"
 import { deleteCustomer, addCustomerNote, deleteCustomerNote, disableAutoPay } from "@/lib/actions/customers"
 import { addCustomerChecklistItem, deleteChecklistItem, toggleChecklistItem } from "@/lib/actions/checklist"
+import { createServiceContract, cancelServiceContract } from "@/lib/actions/serviceContracts"
+import { createPoolBody, deletePoolBody } from "@/lib/actions/poolBodies"
 import ConfirmButton from "@/components/ui/ConfirmButton"
 import CopyPayLinkButton from "@/components/invoices/CopyPayLinkButton"
 import CustomerMessages from "@/components/customers/CustomerMessages"
@@ -34,7 +36,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
   const { companyId } = await requireSession()
   const { id } = await params
 
-  const [customer, emailLogs, messages, companyTags, companyUsers, issues, visitAttachments] = await Promise.all([
+  const [customer, serviceContracts, poolBodies, emailLogs, messages, companyTags, companyUsers, issues, visitAttachments] = await Promise.all([
     db.customer.findFirst({
       where: { id, companyId },
       include: {
@@ -65,6 +67,16 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
           include: { changedBy: { select: { firstName: true, lastName: true } } },
         },
       },
+    }),
+    db.serviceContract.findMany({
+      where: { customerId: id, companyId },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, name: true, description: true, totalVisits: true, usedVisits: true, price: true, status: true, startsAt: true, expiresAt: true },
+    }),
+    db.poolBody.findMany({
+      where: { customerId: id, companyId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, type: true, volume: true, shape: true, notes: true, isActive: true },
     }),
     db.emailLog.findMany({
       where: { customerId: id, companyId },
@@ -120,9 +132,11 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
       })()
     : "Never accessed"
 
-  const deleteAction         = deleteCustomer.bind(null, id)
-  const addNoteAction        = addCustomerNote.bind(null, id)
-  const disableAutoPayAction = disableAutoPay.bind(null, id)
+  const deleteAction              = deleteCustomer.bind(null, id)
+  const addNoteAction             = addCustomerNote.bind(null, id)
+  const disableAutoPayAction      = disableAutoPay.bind(null, id)
+  const createContractAction      = createServiceContract.bind(null, id)
+  const createPoolBodyAction      = createPoolBody.bind(null, id)
   const appUrl               = process.env.NEXT_PUBLIC_APP_URL ?? ""
   const portalUrl            = `${appUrl}/portal/${customer.portalToken}`
 
@@ -271,6 +285,127 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
               {!customer.poolType && !customer.poolSize && !customer.poolNotes && !customer.serviceFrequency && (
                 <p className="text-gray-400">No pool details added.</p>
               )}
+            </CardBody>
+          </Card>
+
+          {/* Pool Bodies */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <Waves className="w-3.5 h-3.5 text-gray-400" /> Pool Bodies
+              </h2>
+              <p className="text-xs text-gray-400">Multiple bodies of water at this property</p>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              {poolBodies.length > 0 && (
+                <ul className="divide-y divide-gray-100">
+                  {poolBodies.map((body) => {
+                    const deleteBodyAction = deletePoolBody.bind(null, body.id, id)
+                    return (
+                      <li key={body.id} className={`flex items-center gap-3 py-2.5 first:pt-0 last:pb-0 ${!body.isActive ? "opacity-50" : ""}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{body.name}</p>
+                          <p className="text-xs text-gray-400 capitalize">
+                            {body.type.replace("_", " ")}
+                            {body.volume ? ` · ${body.volume.toLocaleString()} gal` : ""}
+                          </p>
+                        </div>
+                        <ConfirmButton action={deleteBodyAction} confirm={`Delete "${body.name}"?`} variant="ghost" size="sm" className="text-gray-300 hover:text-red-500 !px-1 !py-1">
+                          <Trash2 className="w-4 h-4" />
+                        </ConfirmButton>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              <form action={createPoolBodyAction} className="space-y-2 pt-1 border-t border-gray-100">
+                <div className="grid grid-cols-2 gap-2">
+                  <input name="name" required placeholder="Name (e.g. Main Pool)"
+                    className="col-span-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  <select name="type" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <option value="pool">Pool</option>
+                    <option value="spa">Spa</option>
+                    <option value="water_feature">Water Feature</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <input name="volume" type="number" min="0" placeholder="Volume (gal)"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                </div>
+                <Button type="submit" size="sm" className="w-full"><Plus className="w-4 h-4" /> Add Body of Water</Button>
+              </form>
+            </CardBody>
+          </Card>
+
+          {/* Service Contracts */}
+          <Card>
+            <CardHeader>
+              <h2 className="font-semibold text-gray-900 text-sm flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-gray-400" /> Service Contracts
+              </h2>
+              <p className="text-xs text-gray-400">Season passes &amp; visit bundles</p>
+            </CardHeader>
+            <CardBody className="space-y-3">
+              {serviceContracts.length > 0 && (
+                <ul className="divide-y divide-gray-100">
+                  {serviceContracts.map((contract) => {
+                    const cancelAction = cancelServiceContract.bind(null, contract.id, id)
+                    const remaining = contract.totalVisits - contract.usedVisits
+                    const pct = contract.totalVisits > 0 ? Math.round((contract.usedVisits / contract.totalVisits) * 100) : 0
+                    const statusColor: Record<string, string> = {
+                      active:    "bg-green-100 text-green-700",
+                      completed: "bg-gray-100 text-gray-600",
+                      expired:   "bg-amber-100 text-amber-700",
+                      cancelled: "bg-red-50 text-red-500",
+                    }
+                    return (
+                      <li key={contract.id} className="py-3 first:pt-0 last:pb-0 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{contract.name}</p>
+                            <p className="text-xs text-gray-400">
+                              {contract.usedVisits}/{contract.totalVisits} visits used
+                              {contract.price > 0 ? ` · ${formatCurrency(contract.price)}` : ""}
+                            </p>
+                          </div>
+                          <span className={`text-xs font-medium rounded-full px-2 py-0.5 shrink-0 ${statusColor[contract.status] ?? "bg-gray-100 text-gray-600"}`}>
+                            {contract.status}
+                          </span>
+                        </div>
+                        {contract.status === "active" && (
+                          <>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                            <p className="text-xs text-gray-400">{remaining} visit{remaining !== 1 ? "s" : ""} remaining</p>
+                            <ConfirmButton action={cancelAction} confirm={`Cancel "${contract.name}"?`} variant="ghost" size="sm" className="text-gray-300 hover:text-red-500 !px-1 !py-0.5 text-xs">
+                              Cancel contract
+                            </ConfirmButton>
+                          </>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              <form action={createContractAction} className="space-y-2 pt-1 border-t border-gray-100">
+                <input name="name" required placeholder="Contract name (e.g. Pool Opening Package)"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Visits included</label>
+                    <input name="totalVisits" type="number" min="1" required placeholder="e.g. 10"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Price ($)</label>
+                    <input name="price" type="number" min="0" step="0.01" placeholder="0.00"
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                  </div>
+                </div>
+                <input name="expiresAt" type="date" placeholder="Expiration (optional)"
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500" />
+                <Button type="submit" size="sm" className="w-full"><Plus className="w-4 h-4" /> Create Contract</Button>
+              </form>
             </CardBody>
           </Card>
 

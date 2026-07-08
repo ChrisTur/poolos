@@ -56,6 +56,9 @@ model Company {
   reviewRequestAfterVisits  Int     @default(5)
   googleReviewUrl           String?
 
+  gpsVerificationEnabled  Boolean @default(false)
+  gpsVerificationRadiusM  Int     @default(300)
+
   publicPageEnabled      Boolean @default(false)
   publicPageTagline      String?
   publicPageAbout        String?
@@ -91,6 +94,8 @@ model Company {
   routeRuns              RouteRun[]
   vehicles               Vehicle[]
   visitRequests          VisitRequest[]
+  serviceContracts       ServiceContract[]
+  poolBodies             PoolBody[]
 }
 
 model User {
@@ -177,24 +182,29 @@ model Customer {
   serviceFrequency  String?  // weekly | biweekly | monthly | quarterly | as_needed
   reviewRequestSentAt DateTime?  // set when review request email is sent; prevents re-sending
 
+  lat Float?  // cached geocode — used for GPS visit distance checks
+  lng Float?
+
   companyId String
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  routeStops      RouteStop[]
-  serviceVisits   ServiceVisit[]
-  invoices        Invoice[]
-  estimates       Estimate[]
-  equipment       Equipment[]
-  notes           CustomerNote[]
-  emailLogs       EmailLog[]
-  messages        CustomerMessage[]
-  alerts          CustomerAlert[]
-  tags            CustomerTag[]
-  attachments     Attachment[]
-  issueReports    IssueReport[]
-  checklistItems  VisitChecklistItem[]
-  rateHistory     RateHistory[]
-  visitRequests   VisitRequest[]
+  routeStops       RouteStop[]
+  serviceVisits    ServiceVisit[]
+  invoices         Invoice[]
+  estimates        Estimate[]
+  equipment        Equipment[]
+  notes            CustomerNote[]
+  emailLogs        EmailLog[]
+  messages         CustomerMessage[]
+  alerts           CustomerAlert[]
+  tags             CustomerTag[]
+  attachments      Attachment[]
+  issueReports     IssueReport[]
+  checklistItems   VisitChecklistItem[]
+  rateHistory      RateHistory[]
+  visitRequests    VisitRequest[]
+  serviceContracts ServiceContract[]
+  poolBodies       PoolBody[]
 }
 
 model CustomerNote {
@@ -325,6 +335,19 @@ model ServiceVisit {
 
   technicianId String?
   technician   User?   @relation("VisitTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
+
+  // GPS verification
+  visitLat            Float?
+  visitLng            Float?
+  distanceFromCustomerM Float?
+
+  // Service contract
+  contractId String?
+  contract   ServiceContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
+  // Pool body
+  poolBodyId String?
+  poolBody   PoolBody? @relation(fields: [poolBodyId], references: [id], onDelete: SetNull)
 
   issueReports    IssueReport[]
   chemicalUsages  ChemicalUsage[]
@@ -479,6 +502,52 @@ model Expense {
   company    Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   routeRunId String?
   routeRun   RouteRun? @relation(fields: [routeRunId], references: [id], onDelete: SetNull)
+}
+
+model ServiceContract {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+
+  name        String         // e.g. "Pool Opening Package"
+  description String?
+  totalVisits Int            // visits included
+  usedVisits  Int            @default(0)
+  price       Float          @default(0)
+  status      String         @default("active") // active | completed | expired | cancelled
+  startsAt    DateTime       @default(now())
+  expiresAt   DateTime?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  visits ServiceVisit[]
+
+  @@index([companyId, status])
+  @@index([customerId])
+}
+
+model PoolBody {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  name     String  // e.g. "Main Pool", "Spa", "Water Feature"
+  type     String  @default("pool") // pool | spa | water_feature | other
+  volume   Float?  // gallons
+  shape    String? // rectangle | oval | kidney | freeform | other
+  isActive Boolean @default(true)
+  notes    String?
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  serviceVisits ServiceVisit[]
+
+  @@index([customerId])
+  @@index([companyId])
 }
 
 model VisitRequest {

@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
-import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle, FileText, ChevronRight } from "lucide-react"
+import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle, FileText, ChevronRight, Package } from "lucide-react"
 import PortalReplyForm from "@/components/portal/PortalReplyForm"
 import PortalRequestForm from "@/components/portal/PortalRequestForm"
 
@@ -50,6 +50,12 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
   })
 
   if (!customer) notFound()
+
+  const activeContracts = await db.serviceContract.findMany({
+    where: { customerId: customer.id, companyId: customer.companyId, status: "active" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, name: true, description: true, totalVisits: true, usedVisits: true, expiresAt: true },
+  })
 
   // Fire-and-forget portal access tracking
   db.customer.update({ where: { id: customer.id }, data: { portalLastAccessedAt: new Date() } }).catch(() => {})
@@ -271,6 +277,44 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
             >
               Full service history <ChevronRight className="w-3.5 h-3.5" />
             </Link>
+          </section>
+        )}
+
+        {/* Service contracts */}
+        {activeContracts.length > 0 && (
+          <section>
+            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <Package className="w-4 h-4" /> Your Service Packages
+            </h2>
+            <div className="space-y-3">
+              {activeContracts.map((contract) => {
+                const remaining = contract.totalVisits - contract.usedVisits
+                const pct = contract.totalVisits > 0 ? Math.round((contract.usedVisits / contract.totalVisits) * 100) : 0
+                return (
+                  <div key={contract.id} className="bg-white border border-gray-200 rounded-xl px-5 py-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{contract.name}</p>
+                        {contract.description && (
+                          <p className="text-xs text-gray-400 mt-0.5">{contract.description}</p>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="text-2xl font-bold text-sky-600">{remaining}</p>
+                        <p className="text-xs text-gray-400">visit{remaining !== 1 ? "s" : ""} left</p>
+                      </div>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden mb-1.5">
+                      <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {contract.usedVisits} of {contract.totalVisits} visits used
+                      {contract.expiresAt && ` · Expires ${new Date(contract.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
           </section>
         )}
 
