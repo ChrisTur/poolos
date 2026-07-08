@@ -2,8 +2,10 @@ import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { formatCurrency, formatDate, invoiceTotal, paymentTotal } from "@/lib/utils"
-import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle, FileText } from "lucide-react"
+import { CheckCircle, Clock, AlertCircle, Droplets, MessageCircle, FileText, ChevronRight } from "lucide-react"
 import PortalReplyForm from "@/components/portal/PortalReplyForm"
+
+const GCS = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
 
 export const dynamic = "force-dynamic"
 
@@ -29,8 +31,12 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
       },
       serviceVisits: {
         orderBy: { visitedAt: "desc" },
-        take: 10,
+        take: 5,
+        include: {
+          technician: { select: { firstName: true, lastName: true } },
+        },
       },
+      _count: { select: { serviceVisits: true } },
       messages: {
         orderBy: { createdAt: "asc" },
       },
@@ -46,6 +52,23 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
 
   // Fire-and-forget portal access tracking
   db.customer.update({ where: { id: customer.id }, data: { portalLastAccessedAt: new Date() } }).catch(() => {})
+
+  const visitIds = customer.serviceVisits.map((v) => v.id)
+  const recentPhotos = visitIds.length > 0
+    ? await db.attachment.findMany({
+        where: { serviceVisitId: { in: visitIds } },
+        select: { id: true, key: true, serviceVisitId: true },
+        orderBy: { createdAt: "asc" },
+        take: 9,
+      })
+    : []
+  const photosByVisit = new Map<string, typeof recentPhotos>()
+  for (const a of recentPhotos) {
+    if (!a.serviceVisitId) continue
+    const list = photosByVisit.get(a.serviceVisitId) ?? []
+    list.push(a)
+    photosByVisit.set(a.serviceVisitId, list)
+  }
 
   const outstanding = customer.invoices.filter((i) => i.status !== "paid" && i.status !== "draft")
   const history     = customer.invoices.filter((i) => i.status === "paid")
@@ -185,32 +208,68 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
         {/* Service visits */}
         {customer.serviceVisits.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-              Recent service visits
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-2">
+                <Droplets className="w-4 h-4" /> Recent service visits
+              </h2>
+              {customer._count.serviceVisits > 5 && (
+                <Link
+                  href={`/portal/${token}/history`}
+                  className="text-xs text-sky-600 hover:underline flex items-center gap-0.5"
+                >
+                  View all {customer._count.serviceVisits} <ChevronRight className="w-3 h-3" />
+                </Link>
+              )}
+            </div>
             <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-50">
-              {customer.serviceVisits.map((v) => (
-                <div key={v.id} className="px-5 py-3 flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center shrink-0 mt-0.5">
-                      <Droplets className="w-4 h-4 text-sky-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{formatDate(v.visitedAt)}</p>
-                      {v.notes && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{v.notes}</p>}
-                      {(v.chlorine || v.ph || v.alkalinity || v.calcium) && (
-                        <div className="flex flex-wrap gap-2 mt-1.5">
-                          {v.chlorine   != null && <span className="text-xs text-gray-500">Cl {v.chlorine} ppm</span>}
-                          {v.ph         != null && <span className="text-xs text-gray-500">pH {v.ph}</span>}
-                          {v.alkalinity != null && <span className="text-xs text-gray-500">Alk {v.alkalinity} ppm</span>}
-                          {v.calcium    != null && <span className="text-xs text-gray-500">Ca {v.calcium} ppm</span>}
-                        </div>
-                      )}
+              {customer.serviceVisits.map((v) => {
+                const photos = photosByVisit.get(v.id) ?? []
+                return (
+                  <div key={v.id} className="px-5 py-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-7 h-7 rounded-full bg-sky-50 flex items-center justify-center shrink-0 mt-0.5">
+                        <Droplets className="w-4 h-4 text-sky-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">{formatDate(v.visitedAt)}</p>
+                        {v.technician && (
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {v.technician.firstName} {v.technician.lastName}
+                          </p>
+                        )}
+                        {v.notes && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{v.notes}</p>}
+                        {(v.chlorine != null || v.ph != null || v.alkalinity != null || v.calcium != null) && (
+                          <div className="flex flex-wrap gap-2 mt-1.5">
+                            {v.chlorine   != null && <span className="text-xs text-gray-500">Cl {v.chlorine} ppm</span>}
+                            {v.ph         != null && <span className="text-xs text-gray-500">pH {v.ph}</span>}
+                            {v.alkalinity != null && <span className="text-xs text-gray-500">Alk {v.alkalinity} ppm</span>}
+                            {v.calcium    != null && <span className="text-xs text-gray-500">Ca {v.calcium} ppm</span>}
+                          </div>
+                        )}
+                        {photos.length > 0 && (
+                          <div className="flex gap-1.5 mt-2">
+                            {photos.slice(0, 3).map((p) => (
+                              <img
+                                key={p.id}
+                                src={`${GCS}/${p.key}`}
+                                className="w-14 h-14 object-cover rounded-md"
+                                alt="visit photo"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
+            <Link
+              href={`/portal/${token}/history`}
+              className="mt-2 flex items-center justify-center gap-1 text-xs text-sky-600 hover:underline py-1"
+            >
+              Full service history <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </section>
         )}
 
