@@ -5,7 +5,7 @@ import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import ConfirmButton from "@/components/ui/ConfirmButton"
-import { Upload, Star, Globe, Image as ImageIcon, Trash2 } from "lucide-react"
+import { Upload, Star, Globe, Image as ImageIcon, Trash2, MapPin } from "lucide-react"
 
 const GCS = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
 
@@ -324,6 +324,79 @@ export default async function CompanySettingsPage() {
             </div>
 
             <Button type="submit" size="sm">Save Review Settings</Button>
+          </form>
+        </CardBody>
+      </Card>
+
+      {/* GPS Visit Verification */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-sky-500" />
+            <h2 className="font-semibold text-gray-900 text-sm">GPS Visit Verification</h2>
+          </div>
+        </CardHeader>
+        <CardBody>
+          <form action={updateCompany} className="space-y-4">
+            {/* Preserve all other company fields */}
+            <input type="hidden" name="name" value={company.name} />
+            <input type="hidden" name="phone" value={company.phone ?? ""} />
+            <input type="hidden" name="address" value={company.address ?? ""} />
+            <input type="hidden" name="city" value={company.city ?? ""} />
+            <input type="hidden" name="state" value={company.state ?? ""} />
+            <input type="hidden" name="zip" value={company.zip ?? ""} />
+            <input type="hidden" name="website" value={company.website ?? ""} />
+            <input type="hidden" name="bccEmail" value={company.bccEmail ?? ""} />
+            <input type="hidden" name="replyToEmail" value={company.replyToEmail ?? ""} />
+            <input type="hidden" name="defaultDueDays" value={String(company.defaultDueDays)} />
+            <input type="hidden" name="lateFeeEnabled" value={String(company.lateFeeEnabled)} />
+            <input type="hidden" name="lateFeePercent" value={String(company.lateFeePercent)} />
+            <input type="hidden" name="lateFeeGraceDays" value={String(company.lateFeeGraceDays)} />
+            <input type="hidden" name="cardFeeEnabled" value={String(company.cardFeeEnabled)} />
+            <input type="hidden" name="cardFeePercent" value={String(company.cardFeePercent)} />
+            <input type="hidden" name="cardFeeFixed" value={String(company.cardFeeFixed)} />
+            <input type="hidden" name="reviewRequestEnabled" value={String(company.reviewRequestEnabled)} />
+            <input type="hidden" name="reviewRequestAfterVisits" value={String(company.reviewRequestAfterVisits)} />
+            <input type="hidden" name="googleReviewUrl" value={company.googleReviewUrl ?? ""} />
+
+            <div className="flex items-start gap-3">
+              <label className="relative inline-flex items-center cursor-pointer mt-0.5 shrink-0">
+                <input type="hidden" name="gpsVerificationEnabled" value="false" />
+                <input
+                  type="checkbox"
+                  name="gpsVerificationEnabled"
+                  value="true"
+                  defaultChecked={company.gpsVerificationEnabled}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-sky-500 rounded-full peer peer-checked:bg-sky-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4" />
+              </label>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Enable GPS visit verification</span>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Records the technician's GPS location when logging a visit and flags visits logged too far from the customer's address.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Allowed radius</label>
+              <div className="flex items-center gap-2">
+                <input
+                  name="gpsVerificationRadiusM"
+                  type="number"
+                  min="50"
+                  max="5000"
+                  step="50"
+                  defaultValue={company.gpsVerificationRadiusM}
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <span className="text-sm text-gray-500">meters</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Visits logged beyond this distance are flagged in the Technician Scorecards report.</p>
+            </div>
+
+            <Button type="submit" size="sm">Save GPS Settings</Button>
           </form>
         </CardBody>
       </Card>

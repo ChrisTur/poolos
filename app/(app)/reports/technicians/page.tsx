@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { ChevronLeft, Star, CalendarDays, FlaskConical, AlertTriangle, User } from "lucide-react"
+import { ChevronLeft, Star, CalendarDays, FlaskConical, AlertTriangle, User, MapPin } from "lucide-react"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { formatCurrency } from "@/lib/utils"
 
@@ -36,11 +36,15 @@ export default async function TechnicianScorecardsPage({
   const { period = "30d" } = await searchParams
   const periodStart = getPeriodStart(period)
 
-  const [techs, visits, chemUsage, openIssues] = await Promise.all([
+  const [techs, company, visits, chemUsage, openIssues] = await Promise.all([
     db.user.findMany({
       where: { companyId, isActive: true },
       orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
       select: { id: true, firstName: true, lastName: true, email: true, role: true },
+    }),
+    db.company.findUnique({
+      where: { id: companyId },
+      select: { gpsVerificationEnabled: true, gpsVerificationRadiusM: true },
     }),
     db.serviceVisit.findMany({
       where: {
@@ -55,6 +59,7 @@ export default async function TechnicianScorecardsPage({
         visitedAt: true,
         rating: true,
         feedbackComment: true,
+        distanceFromCustomerM: true,
       },
     }),
     db.chemicalUsage.findMany({
@@ -76,15 +81,22 @@ export default async function TechnicianScorecardsPage({
 
   // ── Aggregate per technician ──────────────────────────────────────────────
 
+  const gpsEnabled = company?.gpsVerificationEnabled ?? false
+  const gpsRadius  = company?.gpsVerificationRadiusM ?? 300
+
   const visitsByTech  = new Map<string, typeof visits>()
   const chemByTech    = new Map<string, number>()   // total chemical cost
   const issuesByTech  = new Map<string, number>()   // count of open issues reported by tech
+  const gpsFlagsByTech = new Map<string, number>()  // count of visits outside GPS radius
 
   for (const v of visits) {
     const tid = v.technicianId!
     const list = visitsByTech.get(tid) ?? []
     list.push(v)
     visitsByTech.set(tid, list)
+    if (gpsEnabled && v.distanceFromCustomerM != null && v.distanceFromCustomerM > gpsRadius) {
+      gpsFlagsByTech.set(tid, (gpsFlagsByTech.get(tid) ?? 0) + 1)
+    }
   }
 
   for (const c of chemUsage) {
@@ -107,8 +119,9 @@ export default async function TechnicianScorecardsPage({
     const totalChem   = chemByTech.get(tech.id) ?? 0
     const avgChemCost = totalVisits > 0 ? totalChem / totalVisits : 0
     const openIssueCount = issuesByTech.get(tech.id) ?? 0
+    const gpsFlagCount   = gpsFlagsByTech.get(tech.id) ?? 0
 
-    return { tech, totalVisits, avgRating, avgChemCost, totalChem, openIssueCount, ratedCount: ratedVisits.length }
+    return { tech, totalVisits, avgRating, avgChemCost, totalChem, openIssueCount, ratedCount: ratedVisits.length, gpsFlagCount }
   }).sort((a, b) => b.totalVisits - a.totalVisits)
 
   const totalVisitsAll = scorecards.reduce((s, c) => s + c.totalVisits, 0)
@@ -175,7 +188,7 @@ export default async function TechnicianScorecardsPage({
         </Card>
       ) : (
         <div className="grid sm:grid-cols-2 gap-4">
-          {scorecards.map(({ tech, totalVisits, avgRating, avgChemCost, totalChem, openIssueCount, ratedCount }) => (
+          {scorecards.map(({ tech, totalVisits, avgRating, avgChemCost, totalChem, openIssueCount, ratedCount, gpsFlagCount }) => (
             <Card key={tech.id}>
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -188,12 +201,20 @@ export default async function TechnicianScorecardsPage({
                     </p>
                     <p className="text-xs text-gray-400 capitalize">{tech.role}</p>
                   </div>
-                  {openIssueCount > 0 && (
-                    <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-0.5 shrink-0">
-                      <AlertTriangle className="w-3 h-3" />
-                      {openIssueCount} open
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {gpsEnabled && gpsFlagCount > 0 && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-100 rounded-full px-2 py-0.5">
+                        <MapPin className="w-3 h-3" />
+                        {gpsFlagCount} GPS
+                      </span>
+                    )}
+                    {openIssueCount > 0 && (
+                      <span className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-0.5">
+                        <AlertTriangle className="w-3 h-3" />
+                        {openIssueCount} open
+                      </span>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardBody>

@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildVisitCompletionHtml, buildReviewRequestHtml } from "@/lib/email"
-import { geocodeAddress, nearestNeighborOrder, nearestNeighborOrderFromStart } from "@/lib/geocode"
+import { geocodeAddress, haversineKm, nearestNeighborOrder, nearestNeighborOrderFromStart } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
   const { companyId } = await requirePermission("routes.manage")
@@ -228,12 +228,40 @@ export async function logVisit(formData: FormData) {
   const salt        = formData.get("salt")       ? parseFloat(formData.get("salt")       as string) : null
   const saltwater   = formData.get("saltwater") === "true"
   const notes       = (formData.get("notes") as string) || null
+  const visitLat    = formData.get("visitLat")  ? parseFloat(formData.get("visitLat")  as string) : null
+  const visitLng    = formData.get("visitLng")  ? parseFloat(formData.get("visitLng")  as string) : null
+  const contractId  = (formData.get("contractId")  as string) || null
+  const poolBodyId  = (formData.get("poolBodyId")  as string) || null
 
   // Resolve which technician's name to use in notifications
   let technicianName = session.name as string
   if (technicianId) {
     const tech = await db.user.findUnique({ where: { id: technicianId }, select: { firstName: true, lastName: true } })
     if (tech) technicianName = `${tech.firstName} ${tech.lastName}`
+  }
+
+  // GPS distance: geocode customer address (use cache if available), compute distance from technician's location
+  let distanceFromCustomerM: number | null = null
+  if (visitLat != null && visitLng != null) {
+    const custGeo = await db.customer.findUnique({
+      where: { id: customerId },
+      select: { lat: true, lng: true, address: true, city: true, state: true, zip: true },
+    })
+    if (custGeo) {
+      let cLat = custGeo.lat
+      let cLng = custGeo.lng
+      if (cLat == null || cLng == null) {
+        const geo = await geocodeAddress(`${custGeo.address}, ${custGeo.city}, ${custGeo.state} ${custGeo.zip}`)
+        if (geo) {
+          cLat = geo.lat
+          cLng = geo.lng
+          await db.customer.update({ where: { id: customerId }, data: { lat: geo.lat, lng: geo.lng } })
+        }
+      }
+      if (cLat != null && cLng != null) {
+        distanceFromCustomerM = Math.round(haversineKm({ lat: visitLat, lng: visitLng }, { lat: cLat, lng: cLng }) * 1000)
+      }
+    }
   }
 
   const visit = await db.serviceVisit.create({
@@ -250,8 +278,31 @@ export async function logVisit(formData: FormData) {
       cya,
       salt,
       saltwater,
+      visitLat,
+      visitLng,
+      distanceFromCustomerM,
+      contractId,
+      poolBodyId,
     },
   })
+
+  // If a service contract was applied, increment its usage counter
+  if (contractId) {
+    const contract = await db.serviceContract.findFirst({
+      where: { id: contractId, companyId, status: "active" },
+      select: { id: true, usedVisits: true, totalVisits: true },
+    })
+    if (contract) {
+      const newUsed = contract.usedVisits + 1
+      await db.serviceContract.update({
+        where: { id: contractId },
+        data: {
+          usedVisits: newUsed,
+          status: newUsed >= contract.totalVisits ? "completed" : "active",
+        },
+      })
+    }
+  }
 
   // On completed visits: store a CustomerMessage in the thread, optionally email the customer
   if (status === "completed") {

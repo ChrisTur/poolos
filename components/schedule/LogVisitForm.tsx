@@ -4,7 +4,7 @@ import { useState, useMemo, useRef, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { logVisit } from "@/lib/actions/routes"
 import { getUploadUrl } from "@/lib/actions/attachments"
-import { getRecentReadings, type RecentReading } from "@/lib/actions/customers"
+import { getRecentReadings, getCustomerContractsAndBodies, type RecentReading } from "@/lib/actions/customers"
 import { runDosing } from "@/lib/chemistry"
 import Button from "@/components/ui/Button"
 import {
@@ -113,6 +113,20 @@ function WaterTestHistory({ readings, loading }: { readings: RecentReading[]; lo
   )
 }
 
+// ── Geolocation helper ────────────────────────────────────────────────────────
+
+function getGeolocation(): Promise<{ lat: number; lng: number } | null> {
+  if (typeof navigator === "undefined" || !navigator.geolocation) return Promise.resolve(null)
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 5000)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { clearTimeout(timer); resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }) },
+      () => { clearTimeout(timer); resolve(null) },
+      { timeout: 5000, maximumAge: 60000 },
+    )
+  })
+}
+
 // ── Main form ─────────────────────────────────────────────────────────────────
 
 type RouteWithAssignment = Route & { assignedUserId?: string | null }
@@ -170,12 +184,24 @@ export default function LogVisitForm({
   const [recentReadings,  setRecentReadings]  = useState<RecentReading[]>([])
   const [readingsPending, startReadingsTransition] = useTransition()
 
-  // Pre-load recent readings for defaultCustomerId on mount
+  type ContractOption = { id: string; name: string; totalVisits: number; usedVisits: number }
+  type PoolBodyOption = { id: string; name: string; type: string }
+  const [activeContracts, setActiveContracts] = useState<ContractOption[]>([])
+  const [activePoolBodies, setActivePoolBodies] = useState<PoolBodyOption[]>([])
+  const [contractId,  setContractId]  = useState("")
+  const [poolBodyId,  setPoolBodyId]  = useState("")
+
+  // Pre-load recent readings + contracts/bodies for defaultCustomerId on mount
   useEffect(() => {
     if (defaultCustomerId) {
       startReadingsTransition(async () => {
-        const readings = await getRecentReadings(defaultCustomerId)
+        const [readings, { contracts, poolBodies }] = await Promise.all([
+          getRecentReadings(defaultCustomerId),
+          getCustomerContractsAndBodies(defaultCustomerId),
+        ])
         setRecentReadings(readings)
+        setActiveContracts(contracts)
+        setActivePoolBodies(poolBodies)
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -189,14 +215,23 @@ export default function LogVisitForm({
   function handleCustomerChange(id: string) {
     setCustomerId(id)
     setRecentReadings([])
+    setActiveContracts([])
+    setActivePoolBodies([])
+    setContractId("")
+    setPoolBodyId("")
     const c = customers.find((x) => x.id === id)
     const saltEquipment = c?.equipment?.some((e) => e.type === "salt_system") ?? false
     if (saltEquipment || c?.poolType?.toLowerCase().includes("salt")) setSaltwater(true)
     else setSaltwater(false)
     if (id) {
       startReadingsTransition(async () => {
-        const readings = await getRecentReadings(id)
+        const [readings, { contracts, poolBodies }] = await Promise.all([
+          getRecentReadings(id),
+          getCustomerContractsAndBodies(id),
+        ])
         setRecentReadings(readings)
+        setActiveContracts(contracts)
+        setActivePoolBodies(poolBodies)
       })
     }
   }
@@ -299,6 +334,15 @@ export default function LogVisitForm({
     formData.set("saltwater", String(saltwater))
     formData.set("chemicalUsages", JSON.stringify(computedChemicalUsages()))
 
+    const geo = await getGeolocation()
+    if (geo) {
+      formData.set("visitLat", String(geo.lat))
+      formData.set("visitLng", String(geo.lng))
+    }
+
+    if (contractId)  formData.set("contractId",  contractId)
+    if (poolBodyId)  formData.set("poolBodyId",  poolBodyId)
+
     for (const file of photos) {
       try {
         const { url, key } = await getUploadUrl(file.name, file.type)
@@ -320,6 +364,8 @@ export default function LogVisitForm({
       setTemplateChecked(new Set())
       setChemicalRows([])
       setChemOpen(false)
+      setContractId("")
+      setPoolBodyId("")
       formRef.current?.reset()
       if (customerId) handleCustomerChange(customerId)
       if (redirectTo) {
@@ -458,6 +504,42 @@ export default function LogVisitForm({
             <option value="">Unassigned</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>{u.firstName} {u.lastName}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Pool body selector — only when customer has multiple bodies */}
+      {activePoolBodies.length > 1 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Body of water</label>
+          <select
+            value={poolBodyId}
+            onChange={(e) => setPoolBodyId(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">— Not specified —</option>
+            {activePoolBodies.map((b) => (
+              <option key={b.id} value={b.id}>{b.name} ({b.type.replace("_", " ")})</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Service contract selector — only when customer has active contracts */}
+      {activeContracts.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Apply to contract</label>
+          <select
+            value={contractId}
+            onChange={(e) => setContractId(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">— None —</option>
+            {activeContracts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.totalVisits - c.usedVisits} visit{c.totalVisits - c.usedVisits !== 1 ? "s" : ""} left)
+              </option>
             ))}
           </select>
         </div>
