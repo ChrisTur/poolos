@@ -1,9 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
 import Link from "next/link"
 import { Waves, RefreshCw } from "lucide-react"
-import * as Sentry from "@sentry/nextjs"
 
 export default function Error({
   error,
@@ -12,9 +10,6 @@ export default function Error({
   error: Error & { digest?: string }
   unstable_retry: () => void
 }) {
-  useEffect(() => {
-    Sentry.captureException(error)
-  }, [error])
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-4 text-center">
