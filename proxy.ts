@@ -14,7 +14,6 @@ const publicPrefixes = [
   "/chemistry",
   "/api/auth",
   "/api/health",
-  "/monitoring",
   "/opengraph-image",
   "/pay/",
   "/portal/",
