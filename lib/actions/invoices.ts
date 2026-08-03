@@ -32,26 +32,32 @@ export async function createInvoice(formData: FormData) {
   const quantities   = formData.getAll("quantity") as string[]
   const unitPrices   = formData.getAll("unitPrice") as string[]
 
-  const num = await lastInvoiceNum(companyId)
-  const invoice = await db.invoice.create({
-    data: {
-      companyId,
-      customerId,
-      invoiceNumber: invoiceNum(num + 1),
-      dueDate,
-      notes,
-      serviceType,
-      status: "draft",
-      payToken: crypto.randomUUID(),
-      items: {
-        create: descriptions.map((desc, i) => ({
-          description: desc,
-          quantity: parseFloat(quantities[i] || "1"),
-          unitPrice: parseFloat(unitPrices[i] || "0"),
-        })),
+  let invoice
+  try {
+    const num = await lastInvoiceNum(companyId)
+    invoice = await db.invoice.create({
+      data: {
+        companyId,
+        customerId,
+        invoiceNumber: invoiceNum(num + 1),
+        dueDate,
+        notes,
+        serviceType,
+        status: "draft",
+        payToken: crypto.randomUUID(),
+        items: {
+          create: descriptions.map((desc, i) => ({
+            description: desc,
+            quantity: parseFloat(quantities[i] || "1"),
+            unitPrice: parseFloat(unitPrices[i] || "0"),
+          })),
+        },
       },
-    },
-  })
+    })
+  } catch (err) {
+    console.error("[createInvoice] failed:", err)
+    throw err
+  }
 
   revalidatePath("/invoices")
   redirect(`/invoices/${invoice.id}`)
