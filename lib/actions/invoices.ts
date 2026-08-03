@@ -8,13 +8,13 @@ import { sendReceiptEmail } from "@/lib/actions/emails"
 import { stripe } from "@/lib/stripe"
 
 async function lastInvoiceNum(companyId: string): Promise<number> {
-  const last = await db.invoice.findFirst({
-    where: { companyId },
-    orderBy: { invoiceNumber: "desc" },
-    select: { invoiceNumber: true },
-  })
-  if (!last) return 0
-  return parseInt(last.invoiceNumber.replace("INV-", "")) || 0
+  const rows = await db.$queryRaw<Array<{ max: number | null }>>`
+    SELECT MAX(CAST(SUBSTRING("invoiceNumber" FROM 5) AS INTEGER)) AS max
+    FROM "Invoice"
+    WHERE "companyId" = ${companyId}
+      AND "invoiceNumber" ~ '^INV-[0-9]+$'
+  `
+  return rows[0]?.max ?? 0
 }
 
 function invoiceNum(n: number) {
@@ -38,15 +38,15 @@ export async function createInvoice(formData: FormData) {
     unitPrice: parseFloat(unitPrices[i] || "0"),
   }))
 
+  const baseNum = await lastInvoiceNum(companyId)
   let invoice
   for (let attempt = 0; attempt < 5; attempt++) {
-    const num = await lastInvoiceNum(companyId)
     try {
       invoice = await db.invoice.create({
         data: {
           companyId,
           customerId,
-          invoiceNumber: invoiceNum(num + 1),
+          invoiceNumber: invoiceNum(baseNum + 1 + attempt),
           dueDate,
           notes,
           serviceType,
@@ -57,8 +57,7 @@ export async function createInvoice(formData: FormData) {
       })
       break
     } catch (err: unknown) {
-      const isNumberConflict = (err as { code?: string })?.code === "P2002"
-      if (isNumberConflict && attempt < 4) continue
+      if ((err as { code?: string })?.code === "P2002" && attempt < 4) continue
       throw err
     }
   }
