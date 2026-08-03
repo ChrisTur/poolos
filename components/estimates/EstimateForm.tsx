@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useActionState } from "react"
+import { useState } from "react"
 import { Plus, Trash2, LayoutTemplate } from "lucide-react"
 import Button from "@/components/ui/Button"
+import SubmitButton from "@/components/ui/SubmitButton"
 import CustomerCombobox from "@/components/ui/CustomerCombobox"
 import { formatCurrency } from "@/lib/utils"
 import type { Customer } from "@/app/generated/prisma/client"
@@ -68,11 +69,6 @@ export default function EstimateForm({
     setSelectedTemplate("")
   }
 
-  const [, formAction, pending] = useActionState(async (_: unknown, formData: FormData) => {
-    await action(formData)
-    return null
-  }, null)
-
   const addItem = () => setItems((prev) => [...prev, { description: "", quantity: "1", unitPrice: "" }])
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i))
   const updateItem = (i: number, field: keyof LineItem, value: string) =>
@@ -85,7 +81,7 @@ export default function EstimateForm({
   const label = submitLabel ?? (hideCustomerSelect ? "Update Estimate" : "Create Estimate")
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={action} className="space-y-6">
       {!hideCustomerSelect && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Customer *</label>
@@ -242,9 +238,7 @@ export default function EstimateForm({
       </div>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending} className="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500">
-          {pending ? "Saving…" : label}
-        </Button>
+        <SubmitButton label={label} className="bg-amber-600 hover:bg-amber-700 focus:ring-amber-500" />
         <Button type="button" variant="secondary" onClick={() => history.back()}>
           Cancel
         </Button>
