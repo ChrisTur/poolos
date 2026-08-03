@@ -8,13 +8,14 @@ import { sendReceiptEmail } from "@/lib/actions/emails"
 import { stripe } from "@/lib/stripe"
 
 async function lastInvoiceNum(companyId: string): Promise<number> {
-  const last = await db.invoice.findFirst({
+  const invoices = await db.invoice.findMany({
     where: { companyId },
-    orderBy: { invoiceNumber: "desc" },
     select: { invoiceNumber: true },
   })
-  if (!last) return 0
-  return parseInt(last.invoiceNumber.replace("INV-", ""), 10) || 0
+  return invoices.reduce((max, { invoiceNumber }) => {
+    const n = parseInt(invoiceNumber.replace("INV-", ""), 10)
+    return isNaN(n) ? max : Math.max(max, n)
+  }, 0)
 }
 
 function invoiceNum(n: number) {
