@@ -8,13 +8,13 @@ import { sendReceiptEmail } from "@/lib/actions/emails"
 import { stripe } from "@/lib/stripe"
 
 async function lastInvoiceNum(companyId: string): Promise<number> {
-  const rows = await db.$queryRaw<Array<{ max: number | null }>>`
-    SELECT MAX(CAST(SUBSTRING("invoiceNumber" FROM 5) AS INTEGER)) AS max
-    FROM "Invoice"
-    WHERE "companyId" = ${companyId}
-      AND "invoiceNumber" ~ '^INV-[0-9]+$'
-  `
-  return rows[0]?.max ?? 0
+  const last = await db.invoice.findFirst({
+    where: { companyId },
+    orderBy: { invoiceNumber: "desc" },
+    select: { invoiceNumber: true },
+  })
+  if (!last) return 0
+  return parseInt(last.invoiceNumber.replace("INV-", ""), 10) || 0
 }
 
 function invoiceNum(n: number) {
