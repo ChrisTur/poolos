@@ -39,15 +39,15 @@ export async function createInvoice(formData: FormData) {
     unitPrice: parseFloat(unitPrices[i] || "0"),
   }))
 
-  const baseNum = await lastInvoiceNum(companyId)
   let invoice
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 10; attempt++) {
     try {
+      const nextNum = await lastInvoiceNum(companyId)
       invoice = await db.invoice.create({
         data: {
           companyId,
           customerId,
-          invoiceNumber: invoiceNum(baseNum + 1 + attempt),
+          invoiceNumber: invoiceNum(nextNum + 1),
           dueDate,
           notes,
           serviceType,
@@ -58,7 +58,7 @@ export async function createInvoice(formData: FormData) {
       })
       break
     } catch (err: unknown) {
-      if ((err as { code?: string })?.code === "P2002" && attempt < 4) continue
+      if ((err as { code?: string })?.code === "P2002" && attempt < 9) continue
       throw err
     }
   }
@@ -285,8 +285,6 @@ export async function generateMonthlyInvoices(formData: FormData) {
   // Due date = Nth day of next month
   const dueDate = new Date(year, month, Math.min(dueDay, 28))
 
-  let nextNum = await lastInvoiceNum(companyId)
-
   const company = await db.company.findUnique({
     where: { id: companyId },
     select: { stripeAccountId: true },
@@ -295,23 +293,33 @@ export async function generateMonthlyInvoices(formData: FormData) {
   let autoCharged = 0
 
   for (const customer of toCreate) {
-    nextNum++
     const token = crypto.randomUUID()
-    const invoice = await db.invoice.create({
-      data: {
-        companyId,
-        customerId: customer.id,
-        invoiceNumber: invoiceNum(nextNum),
-        dueDate,
-        issuedAt: startOfMonth,
-        status: "draft",
-        serviceType: "monthly",
-        payToken: token,
-        items: {
-          create: [{ description: "Monthly pool service", quantity: 1, unitPrice: customer.monthlyRate! }],
-        },
-      },
-    })
+    let invoice
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        const num = await lastInvoiceNum(companyId)
+        invoice = await db.invoice.create({
+          data: {
+            companyId,
+            customerId: customer.id,
+            invoiceNumber: invoiceNum(num + 1),
+            dueDate,
+            issuedAt: startOfMonth,
+            status: "draft",
+            serviceType: "monthly",
+            payToken: token,
+            items: {
+              create: [{ description: "Monthly pool service", quantity: 1, unitPrice: customer.monthlyRate! }],
+            },
+          },
+        })
+        break
+      } catch (err: unknown) {
+        if ((err as { code?: string })?.code === "P2002" && attempt < 9) continue
+        throw err
+      }
+    }
+    if (!invoice) throw new Error("Failed to generate unique invoice number")
 
     // Auto-charge customers with a saved card
     if (
