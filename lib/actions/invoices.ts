@@ -32,31 +32,35 @@ export async function createInvoice(formData: FormData) {
   const quantities   = formData.getAll("quantity") as string[]
   const unitPrices   = formData.getAll("unitPrice") as string[]
 
+  const itemsData = descriptions.map((desc, i) => ({
+    description: desc,
+    quantity: parseFloat(quantities[i] || "1"),
+    unitPrice: parseFloat(unitPrices[i] || "0"),
+  }))
+
   let invoice
-  try {
+  for (let attempt = 0; attempt < 5; attempt++) {
     const num = await lastInvoiceNum(companyId)
-    invoice = await db.invoice.create({
-      data: {
-        companyId,
-        customerId,
-        invoiceNumber: invoiceNum(num + 1),
-        dueDate,
-        notes,
-        serviceType,
-        status: "draft",
-        payToken: crypto.randomUUID(),
-        items: {
-          create: descriptions.map((desc, i) => ({
-            description: desc,
-            quantity: parseFloat(quantities[i] || "1"),
-            unitPrice: parseFloat(unitPrices[i] || "0"),
-          })),
+    try {
+      invoice = await db.invoice.create({
+        data: {
+          companyId,
+          customerId,
+          invoiceNumber: invoiceNum(num + 1),
+          dueDate,
+          notes,
+          serviceType,
+          status: "draft",
+          payToken: crypto.randomUUID(),
+          items: { create: itemsData },
         },
-      },
-    })
-  } catch (err) {
-    console.error("[createInvoice] failed:", err)
-    throw err
+      })
+      break
+    } catch (err: unknown) {
+      const isNumberConflict = (err as { code?: string })?.code === "P2002"
+      if (isNumberConflict && attempt < 4) continue
+      throw err
+    }
   }
 
   revalidatePath("/invoices")
