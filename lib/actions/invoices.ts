@@ -63,6 +63,8 @@ export async function createInvoice(formData: FormData) {
     }
   }
 
+  if (!invoice) throw new Error("Failed to generate a unique invoice number")
+
   revalidatePath("/invoices")
   redirect(`/invoices/${invoice.id}`)
 }
