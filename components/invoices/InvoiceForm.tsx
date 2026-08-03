@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useFormStatus } from "react-dom"
 import { Plus, Trash2, Sparkles } from "lucide-react"
 import Button from "@/components/ui/Button"
+import SubmitButton from "@/components/ui/SubmitButton"
 import CustomerCombobox from "@/components/ui/CustomerCombobox"
 import { formatCurrency } from "@/lib/utils"
 import type { Customer } from "@/app/generated/prisma/client"
@@ -53,15 +53,6 @@ interface InvoiceFormProps {
   initialServiceType?: string
   hideCustomerSelect?: boolean
   submitLabel?: string
-}
-
-function SubmitButton({ label }: { label: string }) {
-  const { pending } = useFormStatus()
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? "Saving…" : label}
-    </Button>
-  )
 }
 
 function calcDueDate(days: number): string {

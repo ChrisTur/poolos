@@ -191,14 +191,6 @@ export async function convertEstimateToInvoice(estimateId: string) {
   })
   if (!estimate || estimate.status === "converted") return
 
-  // Compute next invoice number
-  const lastInv = await db.invoice.findFirst({
-    where: { companyId },
-    orderBy: { invoiceNumber: "desc" },
-    select: { invoiceNumber: true },
-  })
-  const lastNum = lastInv ? parseInt(lastInv.invoiceNumber.replace("INV-", "")) || 0 : 0
-
   // Compute default due date from company settings
   const company = await db.company.findUnique({ where: { id: companyId }, select: { defaultDueDays: true } })
   const customer = await db.customer.findUnique({ where: { id: estimate.customerId }, select: { dueDays: true } })
@@ -206,24 +198,43 @@ export async function convertEstimateToInvoice(estimateId: string) {
   const dueDate = new Date()
   dueDate.setDate(dueDate.getDate() + dueDays)
 
-  const invoice = await db.invoice.create({
-    data: {
-      companyId,
-      customerId: estimate.customerId,
-      invoiceNumber: `INV-${String(lastNum + 1).padStart(4, "0")}`,
-      dueDate,
-      notes: estimate.notes,
-      serviceType: estimate.serviceType,
-      status: "draft",
-      items: {
-        create: estimate.items.map((item) => ({
-          description: item.description,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-        })),
-      },
-    },
+  const allInvoices = await db.invoice.findMany({
+    where: { companyId },
+    select: { invoiceNumber: true },
   })
+  const baseNum = allInvoices.reduce((max, { invoiceNumber }) => {
+    const n = parseInt(invoiceNumber.replace("INV-", ""), 10)
+    return isNaN(n) ? max : Math.max(max, n)
+  }, 0)
+
+  const itemsData = estimate.items.map((item) => ({
+    description: item.description,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+  }))
+
+  let invoice
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      invoice = await db.invoice.create({
+        data: {
+          companyId,
+          customerId: estimate.customerId,
+          invoiceNumber: `INV-${String(baseNum + 1 + attempt).padStart(4, "0")}`,
+          dueDate,
+          notes: estimate.notes,
+          serviceType: estimate.serviceType,
+          status: "draft",
+          items: { create: itemsData },
+        },
+      })
+      break
+    } catch (err: unknown) {
+      if ((err as { code?: string })?.code === "P2002" && attempt < 4) continue
+      throw err
+    }
+  }
+  if (!invoice) throw new Error("Failed to generate a unique invoice number")
 
   await db.estimate.update({
     where: { id: estimateId },
