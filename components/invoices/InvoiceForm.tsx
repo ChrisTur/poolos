@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect, useActionState } from "react"
+import { useState, useEffect } from "react"
+import { useFormStatus } from "react-dom"
 import { Plus, Trash2, Sparkles } from "lucide-react"
 import Button from "@/components/ui/Button"
 import CustomerCombobox from "@/components/ui/CustomerCombobox"
@@ -54,6 +55,15 @@ interface InvoiceFormProps {
   submitLabel?: string
 }
 
+function SubmitButton({ label }: { label: string }) {
+  const { pending } = useFormStatus()
+  return (
+    <Button type="submit" disabled={pending}>
+      {pending ? "Saving…" : label}
+    </Button>
+  )
+}
+
 function calcDueDate(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
@@ -81,10 +91,6 @@ export default function InvoiceForm({
     initialDueDate ?? calcDueDate(defaultDueDays)
   )
 
-  const [, formAction, pending] = useActionState(async (_: unknown, formData: FormData) => {
-    await action(formData)
-    return null
-  }, null)
 
   const isMonthlyType = (type: string) => type === "monthly" || type === ""
 
@@ -155,7 +161,7 @@ export default function InvoiceForm({
   const label = submitLabel ?? (hideCustomerSelect ? "Update Invoice" : "Create Invoice")
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form action={action} className="space-y-6">
       {/* Customer selector — hidden in edit mode */}
       {!hideCustomerSelect && (
         <div>
@@ -333,9 +339,7 @@ export default function InvoiceForm({
       </div>
 
       <div className="flex gap-3">
-        <Button type="submit" disabled={pending}>
-          {pending ? "Saving…" : label}
-        </Button>
+        <SubmitButton label={label} />
         <Button type="button" variant="secondary" onClick={() => history.back()}>
           Cancel
         </Button>
