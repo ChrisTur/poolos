@@ -6,6 +6,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     invoice: {
       findFirst:  vi.fn(),
+      findMany:   vi.fn(),
       findUnique: vi.fn(),
       create:     vi.fn(),
       update:     vi.fn(),
@@ -68,7 +69,7 @@ describe("invoice number generation", () => {
     const { db } = await import("@/lib/db")
 
     // First invoice for a company (no existing invoices)
-    vi.mocked(db.invoice.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(db.invoice.findMany).mockResolvedValueOnce([])
     vi.mocked(db.invoice.create).mockResolvedValueOnce({ id: "inv-1" } as never)
 
     const fd = new FormData()
@@ -88,7 +89,7 @@ describe("invoice number generation", () => {
   it("increments from the last invoice number", async () => {
     const { db } = await import("@/lib/db")
 
-    vi.mocked(db.invoice.findFirst).mockResolvedValueOnce({ invoiceNumber: "INV-0042" } as never)
+    vi.mocked(db.invoice.findMany).mockResolvedValueOnce([{ invoiceNumber: "INV-0042" }] as never)
     vi.mocked(db.invoice.create).mockResolvedValueOnce({ id: "inv-43" } as never)
 
     const fd = new FormData()
@@ -108,7 +109,7 @@ describe("invoice number generation", () => {
   it("creates line items from FormData arrays", async () => {
     const { db } = await import("@/lib/db")
 
-    vi.mocked(db.invoice.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(db.invoice.findMany).mockResolvedValueOnce([])
     vi.mocked(db.invoice.create).mockResolvedValueOnce({ id: "inv-1" } as never)
 
     const fd = new FormData()
@@ -134,7 +135,7 @@ describe("invoice number generation", () => {
   it("creates invoice in draft status with a payToken", async () => {
     const { db } = await import("@/lib/db")
 
-    vi.mocked(db.invoice.findFirst).mockResolvedValueOnce(null)
+    vi.mocked(db.invoice.findMany).mockResolvedValueOnce([])
     vi.mocked(db.invoice.create).mockResolvedValueOnce({ id: "inv-1" } as never)
 
     const fd = new FormData()
