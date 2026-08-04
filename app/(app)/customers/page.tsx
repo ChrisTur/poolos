@@ -42,11 +42,7 @@ export default async function CustomersPage({
     }),
     db.customer.findMany({
       where: { companyId },
-      orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-      include: {
-        _count: { select: { invoices: true, serviceVisits: true } },
-        tags: { include: { tag: true } },
-      },
+      select: { id: true, firstName: true, lastName: true, email: true },
     }),
     db.tag.findMany({ where: { companyId }, orderBy: { name: "asc" } }),
   ])

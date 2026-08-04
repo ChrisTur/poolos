@@ -20,32 +20,41 @@ export default async function InvoicesPage({
   await markOverdueInvoices(companyId)
   const { status, from, to, serviceType, generated, reminded, failed: reminderFailed } = await searchParams
 
-  const invoices = await db.invoice.findMany({
-    where: {
-      companyId,
-      ...(status && status !== "all" ? { status } : {}),
-      ...(serviceType ? { serviceType } : {}),
-      ...(from || to ? {
-        issuedAt: {
-          ...(from ? { gte: new Date(from) } : {}),
-          ...(to   ? { lte: new Date(to + "T23:59:59") } : {}),
-        },
-      } : {}),
+  const dateFilter = (from || to) ? {
+    issuedAt: {
+      ...(from ? { gte: new Date(from) } : {}),
+      ...(to   ? { lte: new Date(to + "T23:59:59") } : {}),
     },
-    orderBy: status === "overdue" ? { dueDate: "asc" } : { createdAt: "desc" },
-    include: {
-      customer: true,
-      items: true,
-      payments: true,
-    },
-  })
+  } : {}
+
+  const [invoices, draftCount, sentCount, overdueCount, paidCount] = await Promise.all([
+    db.invoice.findMany({
+      where: {
+        companyId,
+        ...(status && status !== "all" ? { status } : {}),
+        ...(serviceType ? { serviceType } : {}),
+        ...dateFilter,
+      },
+      orderBy: status === "overdue" ? { dueDate: "asc" } : { createdAt: "desc" },
+      include: {
+        customer: true,
+        items: true,
+        payments: true,
+      },
+      take: 100,
+    }),
+    db.invoice.count({ where: { companyId, status: "draft" } }),
+    db.invoice.count({ where: { companyId, status: "sent" } }),
+    db.invoice.count({ where: { companyId, status: "overdue" } }),
+    db.invoice.count({ where: { companyId, status: "paid" } }),
+  ])
 
   const totals = {
-    all: invoices.length,
-    draft: invoices.filter((i) => i.status === "draft").length,
-    sent: invoices.filter((i) => i.status === "sent").length,
-    paid: invoices.filter((i) => i.status === "paid").length,
-    overdue: invoices.filter((i) => i.status === "overdue").length,
+    all:     draftCount + sentCount + overdueCount + paidCount,
+    draft:   draftCount,
+    sent:    sentCount,
+    paid:    paidCount,
+    overdue: overdueCount,
   }
 
   // eslint-disable-next-line react-hooks/purity
@@ -98,7 +107,9 @@ export default async function InvoicesPage({
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {invoices.length} {status && status !== "all" ? status : "total"}
+            {status && status !== "all"
+              ? `${invoices.length} ${status}`
+              : `${totals.all} total`}
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { cookies } from "next/headers"
 import { randomBytes } from "crypto"
+import { cache } from "react"
 
 export const COOKIE_NAME = "poolos_session"
 
@@ -51,7 +52,7 @@ export async function createSession(data: {
   return { token, expiresAt }
 }
 
-export async function getSession(): Promise<SessionUser | null> {
+export const getSession = cache(async (): Promise<SessionUser | null> => {
   const jar = await cookies()
   const token = jar.get(COOKIE_NAME)?.value
   if (!token) return null
@@ -75,7 +76,7 @@ export async function getSession(): Promise<SessionUser | null> {
     companyName:        session.companyName,
     mustChangePassword: session.mustChangePassword,
   }
-}
+})
 
 export async function deleteSession(token: string): Promise<void> {
   await db.session.deleteMany({ where: { token } }).catch(() => {})
