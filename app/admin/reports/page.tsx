@@ -1,251 +1,431 @@
 import { db } from "@/lib/db"
 import Card from "@/components/ui/Card"
-import { formatCurrency } from "@/lib/utils"
+import Link from "next/link"
+import { formatCurrency, formatDate } from "@/lib/utils"
+import { PLANS, type PlanId } from "@/lib/plans"
+import { DollarSign, TrendingUp, Users, BarChart3, AlertTriangle, Clock, XCircle, Receipt } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
-function getStartDate(period: string | undefined): Date | undefined {
+const PLAN_ORDER: PlanId[] = ["starter", "pro", "unlimited"]
+
+function monthKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+}
+function monthLabel(key: string) {
+  const [y, m] = key.split("-").map(Number)
+  return new Date(y, m - 1, 1).toLocaleString("default", { month: "short", year: "2-digit" })
+}
+function last12Months(): string[] {
   const now = new Date()
-  if (period === "30d") return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30)
-  if (period === "90d") return new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90)
-  if (period === "ytd") return new Date(now.getFullYear(), 0, 1)
-  return undefined
-}
-
-function itemTotal(items: { quantity: number; unitPrice: number }[]) {
-  return items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-}
-function pymtTotal(payments: { amount: number }[]) {
-  return payments.reduce((s, p) => s + p.amount, 0)
-}
-
-function getMonthlyRevenue(invoices: { status: string; paidAt: Date | null; createdAt: Date; items: { quantity: number; unitPrice: number }[] }[]) {
-  const now = new Date()
-  const months: { key: string; label: string; value: number }[] = []
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    months.push({
-      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
-      label: d.toLocaleString("default", { month: "short", year: "2-digit" }),
-      value: 0,
-    })
+  const keys: string[] = []
+  for (let i = 11; i >= 0; i--) {
+    keys.push(monthKey(new Date(now.getFullYear(), now.getMonth() - i, 1)))
   }
-  for (const inv of invoices) {
-    if (inv.status !== "paid") continue
-    const d = new Date(inv.paidAt ?? inv.createdAt)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-    const bucket = months.find((m) => m.key === key)
-    if (bucket) bucket.value += itemTotal(inv.items)
-  }
-  return months
+  return keys
 }
 
-const PERIOD_LABELS: Record<string, string> = {
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-  ytd: "Year to date",
-  all: "All time",
-}
-
-export default async function AdminReportsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ company?: string; period?: string }>
-}) {
-  const { company: selectedId, period = "30d" } = await searchParams
-  const startDate = getStartDate(period)
-
-  const allCompanies = await db.company.findMany({
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  })
-
-  const companyWhere = selectedId && selectedId !== "all" ? { companyId: selectedId } : {}
-  const dateWhere = startDate ? { createdAt: { gte: startDate } } : {}
-  const visitDateWhere = startDate ? { visitedAt: { gte: startDate } } : {}
-  const visitCompanyWhere = selectedId && selectedId !== "all" ? { customer: { companyId: selectedId } } : {}
-
-  const [
-    activeCustomers,
-    totalCustomers,
-    invoices,
-    completedVisits,
-    skippedVisits,
-    totalVisits,
-  ] = await Promise.all([
-    db.customer.count({ where: { ...companyWhere, status: "active" } }),
-    db.customer.count({ where: { ...companyWhere } }),
-    db.invoice.findMany({
-      where: { ...companyWhere, ...dateWhere },
-      include: { items: true, payments: true },
+export default async function AdminReportsPage() {
+  const [companies, platformExpenses] = await Promise.all([
+    db.company.findMany({
+    select: {
+      id: true,
+      name: true,
+      plan: true,
+      isActive: true,
+      stripeSubStatus: true,
+      createdAt: true,
+      trialEndsAt: true,
+    },
+      orderBy: { createdAt: "desc" },
     }),
-    db.serviceVisit.count({ where: { ...visitCompanyWhere, ...visitDateWhere, status: "completed" } }),
-    db.serviceVisit.count({ where: { ...visitCompanyWhere, ...visitDateWhere, status: "skipped" } }),
-    db.serviceVisit.count({ where: { ...visitCompanyWhere, ...visitDateWhere } }),
+    db.platformExpense.findMany({
+      select: { amount: true, isRecurring: true, frequency: true },
+    }),
   ])
 
-  const byStatus = {
-    draft: invoices.filter((i) => i.status === "draft"),
-    sent: invoices.filter((i) => i.status === "sent"),
-    overdue: invoices.filter((i) => i.status === "overdue"),
-    paid: invoices.filter((i) => i.status === "paid"),
-    cancelled: invoices.filter((i) => i.status === "cancelled"),
+  const now = new Date()
+
+  // ── MRR / ARR ──────────────────────────────────────────────────────────────
+
+  const stripeMrr = companies
+    .filter((c) => c.stripeSubStatus === "active")
+    .reduce((s, c) => s + (PLANS[c.plan as PlanId]?.priceMonthly ?? 0), 0)
+
+  const planMrr = companies
+    .filter((c) => c.isActive && c.plan !== "trial")
+    .reduce((s, c) => s + (PLANS[c.plan as PlanId]?.priceMonthly ?? 0), 0)
+
+  const payingCount = companies.filter((c) => c.isActive && c.plan !== "trial").length
+  const arpu = payingCount > 0 ? planMrr / payingCount : 0
+
+  // ── Platform expenses / burn ───────────────────────────────────────────────
+
+  const monthlyBurn = platformExpenses.reduce((s, e) => {
+    if (!e.isRecurring) return s
+    return s + (e.frequency === "annual" ? e.amount / 12 : e.amount)
+  }, 0)
+  const netMrr = stripeMrr - monthlyBurn
+  const marginPct = stripeMrr > 0 ? Math.round((netMrr / stripeMrr) * 100) : null
+
+  // ── Plan distribution ──────────────────────────────────────────────────────
+
+  const planBreakdown = PLAN_ORDER.map((id) => {
+    const members = companies.filter((c) => c.isActive && c.plan === id)
+    const mrr = members.reduce((s) => s + (PLANS[id]?.priceMonthly ?? 0), 0)
+    return { id, label: PLANS[id].label, badge: PLANS[id].badge, count: members.length, mrr }
+  })
+
+  const trialCompanies = companies.filter((c) => c.isActive && c.plan === "trial")
+
+  // ── Monthly new signups (last 12 months) ───────────────────────────────────
+
+  const months = last12Months()
+  const signupsByMonth: Record<string, { total: number; converted: number }> = {}
+  for (const key of months) signupsByMonth[key] = { total: 0, converted: 0 }
+
+  for (const c of companies) {
+    const key = monthKey(c.createdAt)
+    if (!signupsByMonth[key]) continue
+    signupsByMonth[key].total++
+    if (c.plan !== "trial" || c.stripeSubStatus === "active") {
+      signupsByMonth[key].converted++
+    }
   }
 
-  const revenue = byStatus.paid.reduce((s, inv) => s + itemTotal(inv.items), 0)
-  const outstanding = byStatus.sent.reduce((s, inv) => s + Math.max(0, itemTotal(inv.items) - pymtTotal(inv.payments)), 0)
-  const overdueAmt = byStatus.overdue.reduce((s, inv) => s + Math.max(0, itemTotal(inv.items) - pymtTotal(inv.payments)), 0)
-  const collected = invoices.reduce((s, inv) => s + pymtTotal(inv.payments), 0)
+  const maxSignups = Math.max(...months.map((k) => signupsByMonth[k].total), 1)
 
-  const monthly = getMonthlyRevenue(invoices)
-  const maxMonthly = Math.max(...monthly.map((m) => m.value), 1)
+  // ── Totals for conversion funnel ───────────────────────────────────────────
 
-  const selectedName = selectedId && selectedId !== "all"
-    ? allCompanies.find((c) => c.id === selectedId)?.name ?? "Unknown"
-    : "All Companies"
+  const totalEver = companies.length
+  const totalPaying = companies.filter((c) => c.plan !== "trial").length
+  const conversionRate = totalEver > 0 ? Math.round((totalPaying / totalEver) * 100) : 0
 
-  const selectCls = "text-sm text-gray-900 border border-gray-300 rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white"
+  // ── At-risk ────────────────────────────────────────────────────────────────
+
+  const pastDue = companies.filter((c) => c.stripeSubStatus === "past_due")
+
+  const trialsExpiringSoon = companies.filter((c) => {
+    if (c.plan !== "trial" || !c.trialEndsAt) return false
+    const daysLeft = (c.trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    return daysLeft >= 0 && daysLeft <= 7
+  }).map((c) => ({
+    ...c,
+    daysLeft: Math.ceil((c.trialEndsAt!.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)),
+  }))
+
+  const expiredTrials = companies.filter((c) => {
+    if (c.plan !== "trial" || !c.trialEndsAt) return false
+    return c.trialEndsAt < now && c.isActive
+  })
+
+  const inactive = companies.filter((c) => !c.isActive).slice(0, 10)
 
   return (
-    <div className="space-y-5 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Reports</h1>
-
-      {/* Filters */}
-      <form method="GET" className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-        <select name="company" defaultValue={selectedId || "all"} className={`${selectCls} flex-1 sm:flex-none sm:w-56`}>
-          <option value="all">All Companies</option>
-          {allCompanies.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
-        <select name="period" defaultValue={period} className={`${selectCls} flex-1 sm:flex-none`}>
-          <option value="30d">Last 30 days</option>
-          <option value="90d">Last 90 days</option>
-          <option value="ytd">Year to date</option>
-          <option value="all">All time</option>
-        </select>
-        <button
-          type="submit"
-          className="px-5 py-2.5 text-sm font-medium text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors"
-        >
-          Apply
-        </button>
-      </form>
-
-      <p className="text-sm text-gray-500">
-        <span className="font-medium text-gray-700">{selectedName}</span>
-        {" · "}
-        {PERIOD_LABELS[period] ?? "All time"}
-      </p>
-
-      {/* Revenue metric cards */}
+    <div className="space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Revenue</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {[
-            { label: "Collected", value: formatCurrency(revenue), sub: `${byStatus.paid.length} paid invoices`, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Outstanding", value: formatCurrency(outstanding), sub: `${byStatus.sent.length} sent invoices`, color: "text-sky-600", bg: "bg-sky-50" },
-            { label: "Overdue", value: formatCurrency(overdueAmt), sub: `${byStatus.overdue.length} overdue invoices`, color: "text-red-600", bg: "bg-red-50" },
-            { label: "Total Billed", value: formatCurrency(revenue + outstanding + overdueAmt), sub: `${invoices.length} invoices total`, color: "text-indigo-600", bg: "bg-indigo-50" },
-          ].map(({ label, value, sub, color, bg }) => (
-            <Card key={label} className="p-3 sm:p-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Revenue & Growth</h1>
+        <p className="text-sm text-gray-400 mt-1">PoolOS subscription metrics — not pool company data</p>
+      </div>
+
+      {/* ── MRR / ARR KPIs ─────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {[
+          {
+            label: "Stripe MRR",
+            value: formatCurrency(stripeMrr),
+            sub: "Stripe-confirmed active subs",
+            icon: DollarSign,
+            color: "text-emerald-600 bg-emerald-50",
+            note: stripeMrr < planMrr ? `${formatCurrency(planMrr - stripeMrr)} unbilled` : null,
+          },
+          {
+            label: "Plan MRR",
+            value: formatCurrency(planMrr),
+            sub: `${payingCount} paying companies`,
+            icon: TrendingUp,
+            color: "text-sky-600 bg-sky-50",
+            note: null,
+          },
+          {
+            label: "ARR",
+            value: formatCurrency(stripeMrr * 12),
+            sub: "MRR × 12",
+            icon: BarChart3,
+            color: "text-indigo-600 bg-indigo-50",
+            note: null,
+          },
+          {
+            label: "ARPU",
+            value: payingCount > 0 ? formatCurrency(arpu) : "—",
+            sub: "Avg revenue / paying company",
+            icon: Users,
+            color: "text-purple-600 bg-purple-50",
+            note: null,
+          },
+          {
+            label: "Net MRR",
+            value: stripeMrr > 0 ? formatCurrency(netMrr) : "—",
+            sub: marginPct !== null ? `${marginPct}% margin after burn` : "No Stripe subs yet",
+            icon: Receipt,
+            color: netMrr >= 0 ? "text-teal-600 bg-teal-50" : "text-red-600 bg-red-50",
+            note: monthlyBurn > 0 ? `${formatCurrency(monthlyBurn)}/mo burn` : null,
+          },
+        ].map(({ label, value, sub, icon: Icon, color, note }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-200 px-4 py-3.5">
+            <div className="flex items-start justify-between gap-2 mb-1">
               <p className="text-xs text-gray-500 font-medium">{label}</p>
-              <p className={`text-lg sm:text-2xl font-bold mt-1 ${color}`}>{value}</p>
-              <p className="text-xs text-gray-400 mt-1">{sub}</p>
-            </Card>
-          ))}
-        </div>
+              <span className={`p-1.5 rounded-lg shrink-0 ${color}`}>
+                <Icon className="w-3.5 h-3.5" />
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+            {note && <p className="text-xs text-amber-500 mt-0.5">{note}</p>}
+          </div>
+        ))}
       </div>
 
-      {/* Customers + Visits */}
-      <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-        <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customers</h2>
-          <Card className="divide-y divide-gray-50">
-            {[
-              { label: "Active", value: activeCustomers, color: "text-green-600" },
-              { label: "Total", value: totalCustomers, color: "text-gray-900" },
-              { label: "Inactive", value: totalCustomers - activeCustomers, color: "text-gray-400" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex items-center justify-between px-4 sm:px-5 py-3">
-                <span className="text-sm text-gray-600">{label}</span>
-                <span className={`text-sm font-semibold ${color}`}>{value}</span>
-              </div>
-            ))}
-          </Card>
-        </div>
+      {/* ── Plan breakdown + Conversion funnel ─────────────────────────────── */}
+      <div className="grid lg:grid-cols-2 gap-5">
 
-        <div>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Service Visits</h2>
-          <Card className="divide-y divide-gray-50">
-            {[
-              { label: "Completed", value: completedVisits, color: "text-green-600" },
-              { label: "Skipped", value: skippedVisits, color: "text-red-500" },
-              { label: "Total", value: totalVisits, color: "text-gray-900" },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="flex items-center justify-between px-4 sm:px-5 py-3">
-                <span className="text-sm text-gray-600">{label}</span>
-                <span className={`text-sm font-semibold ${color}`}>{value}</span>
-              </div>
-            ))}
-          </Card>
-        </div>
-      </div>
-
-      {/* Invoice breakdown */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Invoice Breakdown</h2>
-        <Card className="divide-y divide-gray-50">
-          {(["paid", "sent", "overdue", "draft", "cancelled"] as const).map((status) => {
-            const group = byStatus[status]
-            const total = group.reduce((s, inv) => s + itemTotal(inv.items), 0)
-            const statusColors: Record<string, string> = {
-              paid: "bg-green-100 text-green-800",
-              sent: "bg-sky-100 text-sky-800",
-              overdue: "bg-red-100 text-red-800",
-              draft: "bg-gray-100 text-gray-700",
-              cancelled: "bg-gray-100 text-gray-400",
-            }
-            return (
-              <div key={status} className="flex items-center justify-between px-4 sm:px-5 py-3">
+        {/* Plan breakdown */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900 text-sm">Revenue by Plan</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {planBreakdown.map(({ id, label, badge, count, mrr }) => (
+              <div key={id} className="flex items-center justify-between px-5 py-3.5">
                 <div className="flex items-center gap-3">
-                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusColors[status]}`}>
-                    {status}
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${badge}`}>
+                    {label}
                   </span>
-                  <span className="text-sm text-gray-500">{group.length} invoices</span>
+                  <span className="text-sm text-gray-500">{count} {count === 1 ? "company" : "companies"}</span>
                 </div>
-                <span className="text-sm font-semibold text-gray-900">{formatCurrency(total)}</span>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-gray-900">{mrr > 0 ? formatCurrency(mrr) : "—"}/mo</p>
+                  {planMrr > 0 && mrr > 0 && (
+                    <p className="text-xs text-gray-400">{Math.round((mrr / planMrr) * 100)}% of MRR</p>
+                  )}
+                </div>
               </div>
-            )
-          })}
+            ))}
+            <div className="flex items-center justify-between px-5 py-3.5 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                  Trial
+                </span>
+                <span className="text-sm text-gray-500">{trialCompanies.length} {trialCompanies.length === 1 ? "company" : "companies"}</span>
+              </div>
+              <p className="text-sm font-semibold text-gray-400">$0/mo</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Conversion funnel */}
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900 text-sm">Trial Conversion</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {[
+              { label: "Total signups ever", value: totalEver, color: "text-gray-900" },
+              { label: "Converted to paid", value: totalPaying, color: "text-emerald-600" },
+              { label: "Conversion rate", value: `${conversionRate}%`, color: conversionRate >= 20 ? "text-emerald-600" : "text-amber-500" },
+              { label: "Active trials", value: trialCompanies.length, color: "text-sky-600" },
+              { label: "Expired (still active)", value: expiredTrials.length, color: expiredTrials.length > 0 ? "text-red-500" : "text-gray-400" },
+              { label: "Inactive / churned", value: inactive.length + (companies.length - inactive.length - companies.filter(c => c.isActive).length), color: "text-gray-500" },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="flex items-center justify-between px-5 py-3">
+                <span className="text-sm text-gray-600">{label}</span>
+                <span className={`text-sm font-semibold ${color}`}>{value}</span>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
 
-      {/* Monthly revenue bar chart */}
-      <div>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Monthly Revenue (Paid)</h2>
-        <Card className="p-4 sm:p-5">
-          {monthly.every((m) => m.value === 0) ? (
-            <p className="text-sm text-gray-400 text-center py-6">No paid invoices in this period.</p>
+      {/* ── Monthly signups chart (last 12 months) ─────────────────────────── */}
+      <Card>
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900 text-sm">New Signups — Last 12 Months</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Dark = converted to paid · Light = still on trial / total</p>
+        </div>
+        <div className="p-5">
+          {months.every((k) => signupsByMonth[k].total === 0) ? (
+            <p className="text-sm text-gray-400 text-center py-6">No signups yet.</p>
           ) : (
-            <div className="space-y-3">
-              {monthly.map((m) => (
-                <div key={m.key} className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 w-12 shrink-0">{m.label}</span>
-                  <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
-                    <div
-                      className="bg-sky-500 h-full rounded-full transition-all"
-                      style={{ width: `${Math.round((m.value / maxMonthly) * 100)}%` }}
-                    />
+            <div className="space-y-2.5">
+              {months.map((key) => {
+                const { total, converted } = signupsByMonth[key]
+                const totalPct = Math.round((total / maxSignups) * 100)
+                const convertedPct = total > 0 ? Math.round((converted / total) * 100) : 0
+                return (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-12 shrink-0 text-right">{monthLabel(key)}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden relative">
+                      <div
+                        className="absolute inset-y-0 left-0 bg-sky-200 rounded-full"
+                        style={{ width: `${totalPct}%` }}
+                      />
+                      <div
+                        className="absolute inset-y-0 left-0 bg-sky-600 rounded-full"
+                        style={{ width: `${totalPct * (convertedPct / 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 w-20 shrink-0 text-right">
+                      {total > 0 ? `${total} signup${total !== 1 ? "s" : ""}` : "—"}
+                      {converted > 0 && total > 0 && (
+                        <span className="text-gray-400"> · {converted} paid</span>
+                      )}
+                    </span>
                   </div>
-                  <span className="text-xs font-medium text-gray-700 w-20 text-right shrink-0">
-                    {m.value > 0 ? formatCurrency(m.value) : "—"}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
-        </Card>
+        </div>
+      </Card>
+
+      {/* ── At-risk panel ──────────────────────────────────────────────────── */}
+      {(pastDue.length > 0 || trialsExpiringSoon.length > 0 || expiredTrials.length > 0) && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400" />
+            Needs Attention
+          </h2>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+            {pastDue.length > 0 && (
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <XCircle className="w-4 h-4 text-red-500" />
+                  <h3 className="font-semibold text-gray-900 text-sm">Past Due ({pastDue.length})</h3>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {pastDue.slice(0, 5).map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/admin/companies/${c.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-sm text-gray-700 truncate">{c.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium shrink-0 ml-2">
+                        {PLANS[c.plan as PlanId]?.label ?? c.plan}
+                      </span>
+                    </Link>
+                  ))}
+                  {pastDue.length > 5 && (
+                    <p className="px-5 py-2 text-xs text-gray-400">+{pastDue.length - 5} more</p>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {trialsExpiringSoon.length > 0 && (
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-500" />
+                  <h3 className="font-semibold text-gray-900 text-sm">Trials Expiring (7d) ({trialsExpiringSoon.length})</h3>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {trialsExpiringSoon.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/admin/companies/${c.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-sm text-gray-700 truncate">{c.name}</span>
+                      <span className="text-xs text-amber-600 font-medium shrink-0 ml-2">
+                        {c.daysLeft}d left
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {expiredTrials.length > 0 && (
+              <Card>
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-500" />
+                  <h3 className="font-semibold text-gray-900 text-sm">Expired Trials ({expiredTrials.length})</h3>
+                </div>
+                <div className="divide-y divide-gray-50">
+                  {expiredTrials.slice(0, 5).map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/admin/companies/${c.id}`}
+                      className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="text-sm text-gray-700 truncate">{c.name}</span>
+                      <span className="text-xs text-orange-600 font-medium shrink-0 ml-2">
+                        {c.trialEndsAt ? formatDate(c.trialEndsAt) : "—"}
+                      </span>
+                    </Link>
+                  ))}
+                  {expiredTrials.length > 5 && (
+                    <p className="px-5 py-2 text-xs text-gray-400">+{expiredTrials.length - 5} more</p>
+                  )}
+                </div>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Inactive / churned ─────────────────────────────────────────────── */}
+      {inactive.length > 0 && (
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Inactive / Churned</h2>
+          <Card>
+            <div className="divide-y divide-gray-50">
+              {inactive.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/admin/companies/${c.id}`}
+                  className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">{c.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Signed up {formatDate(c.createdAt)}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-3">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PLANS[c.plan as PlanId]?.badge ?? "bg-gray-100 text-gray-600"}`}>
+                      {PLANS[c.plan as PlanId]?.label ?? c.plan}
+                    </span>
+                    {c.stripeSubStatus && (
+                      <span className="text-xs text-gray-400">{c.stripeSubStatus}</span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── Burn rate prompt ───────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+        <Receipt className="w-5 h-5 text-gray-400 shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-700">
+            Monthly burn: <span className="font-semibold text-gray-900">{monthlyBurn > 0 ? formatCurrency(monthlyBurn) : "not set"}</span>
+            {monthlyBurn > 0 && marginPct !== null && (
+              <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${netMrr >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                {marginPct}% margin
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">Track cloud, email, SEM, and other operating costs to see true profit margin.</p>
+        </div>
+        <Link
+          href="/admin/expenses"
+          className="shrink-0 text-sm font-semibold text-sky-600 hover:text-sky-700 transition-colors"
+        >
+          Manage →
+        </Link>
       </div>
     </div>
   )

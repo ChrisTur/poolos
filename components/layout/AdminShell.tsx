@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy, Shield, FlaskConical } from "lucide-react"
+import { Menu, X, Waves, LayoutDashboard, Building2, Users, BarChart2, CreditCard, Megaphone, Inbox, Settings, ListChecks, Zap, BookOpen, Gift, LogOut, LifeBuoy, Shield, FlaskConical, Receipt } from "lucide-react"
 import { cn } from "@/lib/utils"
 import NotificationBell from "./NotificationBell"
 import type { AdminNotification } from "@/lib/notifications"
@@ -18,6 +18,7 @@ const platformNav = [
   { href: "/admin/support",   label: "Support",   icon: LifeBuoy },
   { href: "/admin/contact",   label: "Inbox",     icon: Inbox },
   { href: "/admin/reports",   label: "Reports",   icon: BarChart2 },
+  { href: "/admin/expenses",  label: "Expenses",  icon: Receipt },
 ]
 
 const marketingNav = [
