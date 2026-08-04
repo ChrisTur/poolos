@@ -15,8 +15,21 @@ const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export const metadata: Metadata = {
   title: "Features — PoolOS Pool Service Software",
-  description: "Complete pool service management: scheduling, invoicing, chemical tracking, customer portal, equipment management, and more.",
+  description: "Complete pool service management: scheduling, invoicing, chemical tracking, customer portal, equipment management, and more. 40+ features built for pool companies.",
   alternates: { canonical: `${BASE}/features` },
+  openGraph: {
+    title: "PoolOS Features — Everything a Pool Company Needs",
+    description: "Routes, invoicing, chemical tracking, customer portal, equipment management, and more — 40+ features built specifically for pool service businesses.",
+    url: `${BASE}/features`,
+    type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PoolOS Features" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PoolOS Features — Everything a Pool Company Needs",
+    description: "40+ features built for pool service companies: routes, invoicing, chemical tracking, customer portal, and more.",
+    images: ["/opengraph-image"],
+  },
 }
 
 type Feature = { icon: React.ElementType; title: string; description: string }

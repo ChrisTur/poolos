@@ -7,7 +7,21 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/pricing", "/chemistry", "/register", "/login", "/privacy", "/terms", "/contact"],
+        allow: [
+          "/",
+          "/features",
+          "/pricing",
+          "/why",
+          "/chemistry",
+          "/blog",
+          "/blog/",
+          "/pro/",
+          "/contact",
+          "/register",
+          "/login",
+          "/privacy",
+          "/terms",
+        ],
         disallow: [
           "/admin",
           "/api/",
@@ -20,8 +34,10 @@ export default function robots(): MetadataRoute.Robots {
           "/routes",
           "/schedule",
           "/settings",
-          "/pay/",      // token-based invoice pay — not useful to index
-          "/portal/",   // token-based customer portal — not useful to index
+          "/pay/",     // token-based invoice pay — not useful to index
+          "/portal/",  // token-based customer portal — not useful to index
+          "/feedback/",
+          "/waitlist",
         ],
       },
     ],

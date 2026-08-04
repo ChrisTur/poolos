@@ -17,13 +17,29 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const post = await db.blogPost.findUnique({
     where: { slug, isPublished: true },
-    select: { title: true, excerpt: true },
+    select: { title: true, excerpt: true, coverImage: true, publishedAt: true },
   })
   if (!post) return {}
+
+  const url = `${BASE}/blog/${slug}`
   return {
     title: `${post.title} — PoolOS Blog`,
     description: post.excerpt ?? undefined,
-    alternates: { canonical: `${BASE}/blog/${slug}` },
+    alternates: { canonical: url },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt ?? undefined,
+      url,
+      type: "article",
+      ...(post.publishedAt ? { publishedTime: post.publishedAt.toISOString() } : {}),
+      ...(post.coverImage ? { images: [{ url: post.coverImage, width: 1200, height: 630, alt: post.title }] } : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt ?? undefined,
+      ...(post.coverImage ? { images: [post.coverImage] } : {}),
+    },
   }
 }
 
@@ -35,8 +51,24 @@ export default async function BlogPostPage({ params }: Props) {
   })
   if (!post) notFound()
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description: post.excerpt ?? undefined,
+    url: `${BASE}/blog/${slug}`,
+    ...(post.coverImage ? { image: post.coverImage } : {}),
+    ...(post.publishedAt ? { datePublished: post.publishedAt.toISOString() } : {}),
+    publisher: {
+      "@type": "Organization",
+      name: "PoolOS",
+      url: BASE,
+    },
+  }
+
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <MarketingNav />
       <main>
         <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
