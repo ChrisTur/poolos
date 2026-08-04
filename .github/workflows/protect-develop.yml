@@ -9,15 +9,15 @@ jobs:
   check-source-branch:
     runs-on: ubuntu-latest
     steps:
-      - name: Only allow feature/* or bugfix/* into develop
+      - name: Only allow feature/*, bugfix/*, or dependabot/* into develop
         run: |
           echo "PR source branch: ${{ github.head_ref }}"
           case "${{ github.head_ref }}" in
-            feature/*|bugfix/*)
+            feature/*|bugfix/*|dependabot/*)
               echo "✅ Valid source branch — OK to merge into develop."
               ;;
             *)
-              echo "❌ Only 'feature/*' or 'bugfix/*' branches can merge into 'develop'. Got: ${{ github.head_ref }}"
+              echo "❌ Only 'feature/*', 'bugfix/*', or 'dependabot/*' branches can merge into 'develop'. Got: ${{ github.head_ref }}"
               exit 1
               ;;
           esac
