@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { resend, buildContactReplyHtml } from "@/lib/email"
 import { requireSuperAdmin } from "@/lib/session"
 import { revalidatePath } from "next/cache"
+import { rateLimit } from "@/lib/rate-limit"
+import { headers } from "next/headers"
 
 export async function submitContactForm(_: unknown, formData: FormData) {
   const name    = (formData.get("name")    as string | null)?.trim()
@@ -19,6 +21,13 @@ export async function submitContactForm(_: unknown, formData: FormData) {
   }
   if (body.length > 5000) {
     return { error: "Message is too long (max 5000 characters)." }
+  }
+
+  const hdrs = await headers()
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"
+  const contactLimit = await rateLimit(`contact:${ip}`, 5, 60 * 60 * 1000)
+  if (!contactLimit.allowed) {
+    return { error: "Too many messages sent. Please try again later." }
   }
 
   await db.contactMessage.create({ data: { name, email, subject, body } })

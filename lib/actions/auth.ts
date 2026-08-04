@@ -4,12 +4,17 @@ import { db } from "@/lib/db"
 import { getSession, createSession, deleteSession, setSessionCookie, clearSessionCookie, COOKIE_NAME } from "@/lib/auth"
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
-import { cookies } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
 import crypto from "crypto"
 import { rateLimit } from "@/lib/rate-limit"
 import { isPasswordBreached } from "@/lib/hibp"
 import { authLog } from "@/lib/logger"
+
+async function getClientIp(): Promise<string> {
+  const hdrs = await headers()
+  return hdrs.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown"
+}
 
 function slugify(name: string) {
   return name
@@ -29,6 +34,12 @@ async function uniqueSlug(base: string) {
 }
 
 export async function registerCompany(formData: FormData) {
+  const ip = await getClientIp()
+  const regLimit = await rateLimit(`register:${ip}`, 5, 60 * 60 * 1000)
+  if (!regLimit.allowed) {
+    return { error: "Too many registration attempts. Please try again later." }
+  }
+
   const companyName    = formData.get("companyName")    as string
   const firstName      = formData.get("firstName")      as string
   const lastName       = formData.get("lastName")       as string
