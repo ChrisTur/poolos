@@ -1036,3 +1036,23 @@ model RecurringExpense {
 
   @@index([companyId])
 }
+
+// PoolOS platform-level expenses (cloud, email, SEM, SaaS tools, etc.)
+// Separate from pool-company Expense records which are tenant-scoped.
+model PlatformExpense {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  date        DateTime
+  category    String   // cloud | email | sem | saas | payroll | other
+  description String
+  amount      Float
+  vendor      String?
+  notes       String?
+  isRecurring Boolean  @default(false)
+  frequency   String?  // monthly | annual (only when isRecurring = true)
+
+  @@index([date])
+  @@index([category])
+}

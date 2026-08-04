@@ -3,7 +3,7 @@ import Card from "@/components/ui/Card"
 import Link from "next/link"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { PLANS, type PlanId } from "@/lib/plans"
-import { DollarSign, TrendingUp, Users, BarChart3, AlertTriangle, Clock, XCircle } from "lucide-react"
+import { DollarSign, TrendingUp, Users, BarChart3, AlertTriangle, Clock, XCircle, Receipt } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -26,7 +26,8 @@ function last12Months(): string[] {
 }
 
 export default async function AdminReportsPage() {
-  const companies = await db.company.findMany({
+  const [companies, platformExpenses] = await Promise.all([
+    db.company.findMany({
     select: {
       id: true,
       name: true,
@@ -36,8 +37,12 @@ export default async function AdminReportsPage() {
       createdAt: true,
       trialEndsAt: true,
     },
-    orderBy: { createdAt: "desc" },
-  })
+      orderBy: { createdAt: "desc" },
+    }),
+    db.platformExpense.findMany({
+      select: { amount: true, isRecurring: true, frequency: true },
+    }),
+  ])
 
   const now = new Date()
 
@@ -53,6 +58,15 @@ export default async function AdminReportsPage() {
 
   const payingCount = companies.filter((c) => c.isActive && c.plan !== "trial").length
   const arpu = payingCount > 0 ? planMrr / payingCount : 0
+
+  // ── Platform expenses / burn ───────────────────────────────────────────────
+
+  const monthlyBurn = platformExpenses.reduce((s, e) => {
+    if (!e.isRecurring) return s
+    return s + (e.frequency === "annual" ? e.amount / 12 : e.amount)
+  }, 0)
+  const netMrr = stripeMrr - monthlyBurn
+  const marginPct = stripeMrr > 0 ? Math.round((netMrr / stripeMrr) * 100) : null
 
   // ── Plan distribution ──────────────────────────────────────────────────────
 
@@ -115,7 +129,7 @@ export default async function AdminReportsPage() {
       </div>
 
       {/* ── MRR / ARR KPIs ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {[
           {
             label: "Stripe MRR",
@@ -148,6 +162,14 @@ export default async function AdminReportsPage() {
             icon: Users,
             color: "text-purple-600 bg-purple-50",
             note: null,
+          },
+          {
+            label: "Net MRR",
+            value: stripeMrr > 0 ? formatCurrency(netMrr) : "—",
+            sub: marginPct !== null ? `${marginPct}% margin after burn` : "No Stripe subs yet",
+            icon: Receipt,
+            color: netMrr >= 0 ? "text-teal-600 bg-teal-50" : "text-red-600 bg-red-50",
+            note: monthlyBurn > 0 ? `${formatCurrency(monthlyBurn)}/mo burn` : null,
           },
         ].map(({ label, value, sub, icon: Icon, color, note }) => (
           <div key={label} className="bg-white rounded-xl border border-gray-200 px-4 py-3.5">
@@ -383,6 +405,28 @@ export default async function AdminReportsPage() {
           </Card>
         </div>
       )}
+
+      {/* ── Burn rate prompt ───────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-5 py-4">
+        <Receipt className="w-5 h-5 text-gray-400 shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-gray-700">
+            Monthly burn: <span className="font-semibold text-gray-900">{monthlyBurn > 0 ? formatCurrency(monthlyBurn) : "not set"}</span>
+            {monthlyBurn > 0 && marginPct !== null && (
+              <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${netMrr >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                {marginPct}% margin
+              </span>
+            )}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">Track cloud, email, SEM, and other operating costs to see true profit margin.</p>
+        </div>
+        <Link
+          href="/admin/expenses"
+          className="shrink-0 text-sm font-semibold text-sky-600 hover:text-sky-700 transition-colors"
+        >
+          Manage →
+        </Link>
+      </div>
     </div>
   )
 }
