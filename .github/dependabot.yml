@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # npm dependencies
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    target-branch: develop
+    open-pull-requests-limit: 5
+    groups:
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+      next:
+        patterns: ["next", "eslint-config-next"]
+      stripe:
+        patterns: ["stripe", "@stripe/*"]
+      radix:
+        patterns: ["@radix-ui/*"]
+    ignore:
+      # Only take patch/minor updates automatically; major = manual review
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    target-branch: develop
+    open-pull-requests-limit: 5
