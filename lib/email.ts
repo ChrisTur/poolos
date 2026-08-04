@@ -3,6 +3,11 @@ import { Resend } from "resend"
 export const resend = new Resend(process.env.RESEND_API_KEY)
 export const FROM = process.env.EMAIL_FROM ?? "PoolOS <billing@poolos.biz>"
 
+// Extracts the bare email address from FROM ("Name <email>" → "email").
+export function extractFromEmail(): string {
+  return FROM.match(/<(.+)>/)?.[1] ?? FROM
+}
+
 interface PaymentLinks {
   venmoHandle?: string | null
   paypalHandle?: string | null

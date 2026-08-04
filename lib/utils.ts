@@ -28,3 +28,20 @@ export function invoiceTotal(items: { quantity: number; unitPrice: number }[]) {
 export function paymentTotal(payments: { amount: number }[]) {
   return payments.reduce((sum, p) => sum + p.amount, 0)
 }
+
+// Date inputs return YYYY-MM-DD — parse as local midnight to avoid UTC shift.
+export function parseDate(raw: string): Date {
+  const [y, m, d] = raw.split("-").map(Number)
+  return new Date(y, m - 1, d)
+}
+
+export function parseLineItems(formData: FormData, suffix = ""): { description: string; quantity: number; unitPrice: number }[] {
+  const descriptions = formData.getAll(`description${suffix}`) as string[]
+  const quantities   = formData.getAll(`quantity${suffix}`) as string[]
+  const unitPrices   = formData.getAll(`unitPrice${suffix}`) as string[]
+  return descriptions.map((desc, i) => ({
+    description: desc,
+    quantity:    parseFloat(quantities[i] || "1"),
+    unitPrice:   parseFloat(unitPrices[i]  || "0"),
+  }))
+}

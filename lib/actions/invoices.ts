@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { sendReceiptEmail } from "@/lib/actions/emails"
 import { stripe } from "@/lib/stripe"
+import { invoiceTotal, paymentTotal, parseLineItems } from "@/lib/utils"
 
 async function lastInvoiceNum(companyId: string): Promise<number> {
   const invoices = await db.invoice.findMany({
@@ -25,32 +26,21 @@ function invoiceNum(n: number) {
 export async function createInvoice(formData: FormData) {
   const { companyId } = await requirePermission("invoices.manage")
 
-  const customerId   = formData.get("customerId") as string
-  const dueDate      = new Date(formData.get("dueDate") as string)
-  const notes        = (formData.get("notes") as string) || null
-  const serviceType  = (formData.get("serviceType") as string) || null
-  const descriptions = formData.getAll("description") as string[]
-  const quantities   = formData.getAll("quantity") as string[]
-  const unitPrices   = formData.getAll("unitPrice") as string[]
+  const customerId  = formData.get("customerId") as string
+  const dueDate     = new Date(formData.get("dueDate") as string)
+  const notes       = (formData.get("notes") as string) || null
+  const serviceType = (formData.get("serviceType") as string) || null
+  const itemsData   = parseLineItems(formData)
 
-  const itemsData = descriptions.map((desc, i) => ({
-    description: desc,
-    quantity: parseFloat(quantities[i] || "1"),
-    unitPrice: parseFloat(unitPrices[i] || "0"),
-  }))
-
-  console.log("[createInvoice] start", { companyId, customerId })
   let invoice
   for (let attempt = 0; attempt < 10; attempt++) {
     try {
       const nextNum = await lastInvoiceNum(companyId)
-      const candidate = invoiceNum(nextNum + 1)
-      console.log(`[createInvoice] attempt ${attempt}: nextNum=${nextNum} candidate=${candidate}`)
       invoice = await db.invoice.create({
         data: {
           companyId,
           customerId,
-          invoiceNumber: candidate,
+          invoiceNumber: invoiceNum(nextNum + 1),
           dueDate,
           notes,
           serviceType,
@@ -61,9 +51,7 @@ export async function createInvoice(formData: FormData) {
       })
       break
     } catch (err: unknown) {
-      const code = (err as { code?: string })?.code
-      console.error(`[createInvoice] attempt ${attempt} error code=${code}`, err)
-      if (code === "P2002" && attempt < 9) continue
+      if ((err as { code?: string })?.code === "P2002" && attempt < 9) continue
       throw err
     }
   }
@@ -94,8 +82,8 @@ export async function markInvoicePaid(id: string, formData: FormData) {
 
   const method = (formData.get("method") as string) || null
 
-  const total   = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-  const paid    = inv.payments.reduce((s, p) => s + p.amount, 0)
+  const total   = invoiceTotal(inv.items)
+  const paid    = paymentTotal(inv.payments)
   const balance = Math.round((total - paid) * 100) / 100
 
   if (balance > 0) {
@@ -138,9 +126,7 @@ export async function addPayment(invoiceId: string, formData: FormData) {
     include: { items: true, payments: true, customer: true },
   })
   if (invoice) {
-    const total = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-    const paid = invoice.payments.reduce((s, p) => s + p.amount, 0)
-    if (paid >= total) {
+    if (paymentTotal(invoice.payments) >= invoiceTotal(invoice.items)) {
       await db.invoice.update({ where: { id: invoiceId }, data: { status: "paid", paidAt: new Date() } })
     }
   }
@@ -158,28 +144,14 @@ export async function updateInvoice(id: string, formData: FormData) {
   const inv = await db.invoice.findFirst({ where: { id, companyId } })
   if (!inv) return
 
-  const dueDate      = new Date(formData.get("dueDate") as string)
-  const notes        = (formData.get("notes") as string) || null
-  const serviceType  = (formData.get("serviceType") as string) || null
-  const descriptions = formData.getAll("description") as string[]
-  const quantities   = formData.getAll("quantity") as string[]
-  const unitPrices   = formData.getAll("unitPrice") as string[]
+  const dueDate     = new Date(formData.get("dueDate") as string)
+  const notes       = (formData.get("notes") as string) || null
+  const serviceType = (formData.get("serviceType") as string) || null
 
   await db.invoiceItem.deleteMany({ where: { invoiceId: id } })
   await db.invoice.update({
     where: { id },
-    data: {
-      dueDate,
-      notes,
-      serviceType,
-      items: {
-        create: descriptions.map((desc, i) => ({
-          description: desc,
-          quantity: parseFloat(quantities[i] || "1"),
-          unitPrice: parseFloat(unitPrices[i] || "0"),
-        })),
-      },
-    },
+    data: { dueDate, notes, serviceType, items: { create: parseLineItems(formData) } },
   })
 
   revalidatePath(`/invoices/${id}`)
@@ -199,9 +171,7 @@ export async function deletePayment(paymentId: string, invoiceId: string) {
     include: { items: true, payments: true },
   })
   if (updated && inv.status === "paid") {
-    const total = updated.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-    const paid = updated.payments.reduce((s, p) => s + p.amount, 0)
-    if (paid < total) {
+    if (paymentTotal(updated.payments) < invoiceTotal(updated.items)) {
       const newStatus = updated.dueDate < new Date() ? "overdue" : "sent"
       await db.invoice.update({ where: { id: invoiceId }, data: { status: newStatus, paidAt: null } })
     }
@@ -231,9 +201,7 @@ export async function markOverdueInvoices(companyId: string) {
       const graceDeadline = new Date(inv.dueDate)
       graceDeadline.setDate(graceDeadline.getDate() + (company.lateFeeGraceDays ?? 0))
       if (now >= graceDeadline) {
-        const subtotal = inv.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-        const paid     = inv.payments.reduce((s, p) => s + p.amount, 0)
-        const balance  = Math.max(0, subtotal - paid)
+        const balance  = Math.max(0, invoiceTotal(inv.items) - paymentTotal(inv.payments))
         if (balance > 0) {
           const fee = Math.round(balance * (company.lateFeePercent / 100) * 100) / 100
           if (fee > 0) {

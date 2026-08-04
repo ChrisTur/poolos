@@ -4,12 +4,7 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-
-function parseDate(raw: string): Date {
-  // Date inputs return YYYY-MM-DD — parse as local midnight to avoid UTC shift
-  const [y, m, d] = raw.split("-").map(Number)
-  return new Date(y, m - 1, d)
-}
+import { parseDate } from "@/lib/utils"
 
 export async function createExpense(formData: FormData) {
   const { companyId } = await requirePermission("expenses.manage")
