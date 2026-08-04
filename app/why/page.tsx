@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     url: `${BASE}/why`,
     type: "website",
   },
+  twitter: {
+    card: "summary",
+    title: "Why We Built PoolOS — Our Mission & Story",
+    description: "We built PoolOS because pool companies deserve software that evolves at the speed of their business.",
+  },
 }
 
 export default function WhyPage() {

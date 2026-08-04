@@ -9,9 +9,20 @@ import { BookOpen } from "lucide-react"
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
 export const metadata: Metadata = {
-  title: "Blog — PoolOS Pool Service Software",
-  description: "Tips, guides, and updates from the PoolOS team.",
+  title: "Blog — Pool Service Business Tips & Guides | PoolOS",
+  description: "Pool service business tips, scheduling guides, chemical dosing advice, and software updates from the PoolOS team. Grow your pool company with expert insights.",
   alternates: { canonical: `${BASE}/blog` },
+  openGraph: {
+    title: "Pool Service Business Tips & Guides — PoolOS Blog",
+    description: "Expert tips on running a pool service business: scheduling, invoicing, chemical tracking, and growing your customer base.",
+    url: `${BASE}/blog`,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Pool Service Business Tips & Guides — PoolOS Blog",
+    description: "Pool service business tips, chemical guides, and software updates from the PoolOS team.",
+  },
 }
 
 export default async function BlogListPage() {

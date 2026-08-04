@@ -17,7 +17,16 @@ export const metadata: Metadata = {
   alternates: { canonical: `${BASE}/pricing` },
   openGraph: {
     title: "PoolOS Pricing — Pool Service Management Software",
+    description: "Starter $49/mo · Pro $99/mo · Unlimited $199/mo. Start free for 14 days. No credit card required.",
+    url: `${BASE}/pricing`,
+    type: "website",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PoolOS Pricing" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PoolOS Pricing — Pool Service Management Software",
     description: "Starter $49/mo · Pro $99/mo · Unlimited $199/mo. Start free for 14 days.",
+    images: ["/opengraph-image"],
   },
 }
 

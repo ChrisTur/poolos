@@ -3,12 +3,22 @@ import MarketingNav from "@/components/marketing/MarketingNav"
 import MarketingFooter from "@/components/marketing/MarketingFooter"
 import Calculator from "./Calculator"
 
+const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
+
 export const metadata: Metadata = {
   title:       "Pool Water Chemistry Calculator — Free Dosing Guide",
   description: "Free pool chemical dosing calculator. Enter your pool size and test readings to get exact amounts of chlorine, pH adjusters, alkalinity, calcium, and stabilizer to add.",
+  alternates:  { canonical: `${BASE}/chemistry` },
   openGraph: {
-    title:       "Pool Water Chemistry Calculator",
-    description: "Enter your pool's readings and get exact chemical dosing instructions — free.",
+    title:       "Pool Water Chemistry Calculator — Free Dosing Guide",
+    description: "Enter your pool size and current test readings to get exact chemical dosing instructions — free.",
+    url:         `${BASE}/chemistry`,
+    type:        "website",
+  },
+  twitter: {
+    card:        "summary",
+    title:       "Free Pool Water Chemistry Calculator",
+    description: "Enter your readings and get exact chemical dosing instructions for chlorine, pH, alkalinity, calcium, and more.",
   },
 }
 
