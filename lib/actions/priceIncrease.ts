@@ -3,7 +3,7 @@
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
-import { resend, FROM, buildRateIncreaseHtml } from "@/lib/email"
+import { resend, extractFromEmail, buildRateIncreaseHtml } from "@/lib/email"
 
 export type PriceIncreasePayload = {
   customerIds: string[]
@@ -60,7 +60,7 @@ export async function applyPriceIncrease(
 
   let emailed = 0
   if (sendEmail) {
-    const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+    const fromEmail = extractFromEmail()
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ""
 
     for (const c of customers) {

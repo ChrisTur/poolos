@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
-import { resend, FROM, buildTrialConversionHtml, trialConversionSubject } from "@/lib/email"
+import { resend, extractFromEmail, buildTrialConversionHtml, trialConversionSubject } from "@/lib/email"
 
 function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 50)
@@ -185,7 +185,7 @@ export async function sendTrialConversionEmail(
     upgradeUrl,
   })
 
-  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+  const fromEmail = extractFromEmail()
   const subject = trialConversionSubject(owner.firstName, daysLeft)
 
   const { data, error } = await resend.emails.send({

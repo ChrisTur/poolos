@@ -4,16 +4,18 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { resend, FROM, buildEstimateHtml } from "@/lib/email"
+import { resend, extractFromEmail, buildEstimateHtml } from "@/lib/email"
+import { invoiceTotal, parseLineItems } from "@/lib/utils"
 
 async function lastEstimateNum(companyId: string): Promise<number> {
-  const last = await db.estimate.findFirst({
+  const estimates = await db.estimate.findMany({
     where: { companyId },
-    orderBy: { estimateNumber: "desc" },
     select: { estimateNumber: true },
   })
-  if (!last) return 0
-  return parseInt(last.estimateNumber.replace("EST-", "")) || 0
+  return estimates.reduce((max, { estimateNumber }) => {
+    const n = parseInt(estimateNumber.replace("EST-", ""), 10)
+    return isNaN(n) ? max : Math.max(max, n)
+  }, 0)
 }
 
 function estimateNum(n: number) {
@@ -27,9 +29,6 @@ export async function createEstimate(formData: FormData) {
   const validUntil  = formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : null
   const notes       = (formData.get("notes") as string) || null
   const serviceType = (formData.get("serviceType") as string) || null
-  const descriptions = formData.getAll("description") as string[]
-  const quantities   = formData.getAll("quantity") as string[]
-  const unitPrices   = formData.getAll("unitPrice") as string[]
 
   const num = await lastEstimateNum(companyId)
   const estimate = await db.estimate.create({
@@ -41,13 +40,7 @@ export async function createEstimate(formData: FormData) {
       notes,
       serviceType,
       status: "draft",
-      items: {
-        create: descriptions.map((desc, i) => ({
-          description: desc,
-          quantity: parseFloat(quantities[i] || "1"),
-          unitPrice: parseFloat(unitPrices[i] || "0"),
-        })),
-      },
+      items: { create: parseLineItems(formData) },
     },
   })
 
@@ -60,28 +53,14 @@ export async function updateEstimate(id: string, formData: FormData) {
   const est = await db.estimate.findFirst({ where: { id, companyId } })
   if (!est) return
 
-  const validUntil   = formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : null
-  const notes        = (formData.get("notes") as string) || null
-  const serviceType  = (formData.get("serviceType") as string) || null
-  const descriptions = formData.getAll("description") as string[]
-  const quantities   = formData.getAll("quantity") as string[]
-  const unitPrices   = formData.getAll("unitPrice") as string[]
+  const validUntil  = formData.get("validUntil") ? new Date(formData.get("validUntil") as string) : null
+  const notes       = (formData.get("notes") as string) || null
+  const serviceType = (formData.get("serviceType") as string) || null
 
   await db.estimateItem.deleteMany({ where: { estimateId: id } })
   await db.estimate.update({
     where: { id },
-    data: {
-      validUntil,
-      notes,
-      serviceType,
-      items: {
-        create: descriptions.map((desc, i) => ({
-          description: desc,
-          quantity: parseFloat(quantities[i] || "1"),
-          unitPrice: parseFloat(unitPrices[i] || "0"),
-        })),
-      },
-    },
+    data: { validUntil, notes, serviceType, items: { create: parseLineItems(formData) } },
   })
 
   revalidatePath(`/estimates/${id}`)
@@ -117,7 +96,7 @@ export async function sendEstimateEmail(estimateId: string, formData: FormData) 
   if (!estimate) redirect(`/estimates/${estimateId}?emailError=not_found`)
   if (!estimate.customer.email) redirect(`/estimates/${estimateId}?emailError=no_email`)
 
-  const total = estimate.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+  const total = invoiceTotal(estimate.items)
   const portalUrl = estimate.customer.portalToken
     ? `${process.env.AUTH_URL ?? ""}/portal/${estimate.customer.portalToken}/estimates/${estimateId}`
     : null
@@ -147,8 +126,7 @@ export async function sendEstimateEmail(estimateId: string, formData: FormData) 
     portalUrl,
   })
 
-  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
-  const from = `${estimate.company.name} <${fromEmail}>`
+  const from = `${estimate.company.name} <${extractFromEmail()}>`
   const bcc  = estimate.company.bccEmail ?? undefined
   const replyTo = estimate.company.replyToEmail ?? undefined
   const subject = `Estimate ${estimate.estimateNumber} from ${estimate.company.name}`

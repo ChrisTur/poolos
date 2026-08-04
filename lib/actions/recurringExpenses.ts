@@ -4,11 +4,7 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-
-function parseDate(raw: string): Date {
-  const [y, m, d] = raw.split("-").map(Number)
-  return new Date(y, m - 1, d)
-}
+import { parseDate } from "@/lib/utils"
 
 function nextDueDate(frequency: string, from: Date = new Date()): Date {
   const d = new Date(from)

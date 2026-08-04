@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { resend, FROM, buildVisitCompletionHtml, buildReviewRequestHtml } from "@/lib/email"
+import { resend, extractFromEmail, buildVisitCompletionHtml, buildReviewRequestHtml } from "@/lib/email"
 import { geocodeAddress, haversineKm, nearestNeighborOrder, nearestNeighborOrderFromStart } from "@/lib/geocode"
 
 export async function createRoute(formData: FormData) {
@@ -355,7 +355,7 @@ export async function logVisit(formData: FormData) {
           feedbackUrl,
         })
 
-        const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+        const fromEmail = extractFromEmail()
         const subject = `Service completed — ${new Date(visit.visitedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
 
         let emailStatus: "sent" | "failed" = "sent"
@@ -410,7 +410,7 @@ export async function logVisit(formData: FormData) {
           where: { customerId, customer: { companyId }, status: "completed" },
         })
         if (completedCount >= company.reviewRequestAfterVisits) {
-          const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+          const fromEmail = extractFromEmail()
           const reviewSubject = `Quick favor — leave us a review?`
           const { data: reviewData, error: reviewError } = await resend.emails.send({
             from: `${company.name} <${fromEmail}>`,

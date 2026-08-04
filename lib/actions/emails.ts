@@ -3,7 +3,8 @@
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { redirect } from "next/navigation"
-import { resend, FROM, buildInvoiceHtml, buildReceiptHtml } from "@/lib/email"
+import { resend, extractFromEmail, buildInvoiceHtml, buildReceiptHtml } from "@/lib/email"
+import { invoiceTotal, paymentTotal } from "@/lib/utils"
 
 async function fetchInvoiceForEmail(invoiceId: string, companyId: string) {
   const invoice = await db.invoice.findFirst({
@@ -57,9 +58,8 @@ function buildEmailData(invoice: NonNullable<Awaited<ReturnType<typeof fetchInvo
 }
 
 function buildSendParams(invoice: NonNullable<Awaited<ReturnType<typeof fetchInvoiceForEmail>>>) {
-  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
   return {
-    from: `${invoice.company.name} <${fromEmail}>`,
+    from: `${invoice.company.name} <${extractFromEmail()}>`,
     bcc: invoice.company.bccEmail ?? undefined,
     replyTo: invoice.company.replyToEmail ?? undefined,
   }
@@ -156,8 +156,8 @@ export async function sendReceiptEmail(invoiceId: string) {
   })
   if (!invoice || !invoice.customer.email) return
 
-  const total = invoice.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-  const paid = invoice.payments.reduce((s, p) => s + p.amount, 0)
+  const total = invoiceTotal(invoice.items)
+  const paid = paymentTotal(invoice.payments)
   const lastPayment = invoice.payments.at(-1)
 
   const html = buildReceiptHtml({

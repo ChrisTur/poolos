@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import { requirePermission, requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-import { resend, FROM, buildCustomerMessageHtml } from "@/lib/email"
+import { resend, extractFromEmail, buildCustomerMessageHtml } from "@/lib/email"
 
 export async function createCustomer(formData: FormData) {
   const { companyId } = await requirePermission("customers.edit")
@@ -133,7 +133,7 @@ export async function broadcastMessage(
 
   if (!company) return { sent: 0, skipped: 0, error: "Company not found." }
 
-  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+  const fromEmail = extractFromEmail()
   const withEmail = customers.filter((c) => c.email)
   const noEmail = customers.length - withEmail.length
 
@@ -224,7 +224,7 @@ export async function sendUpsellCampaign(
   })
   if (!company) return { sent: 0, skipped: 0, error: "Company not found." }
 
-  const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+  const fromEmail = extractFromEmail()
   const withEmail = targets.filter((c) => c.email)
   const noEmail = targets.length - withEmail.length
 
@@ -315,7 +315,7 @@ export async function sendMessage(_: unknown, formData: FormData) {
       portalUrl,
       sentByName: senderName,
     })
-    const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+    const fromEmail = extractFromEmail()
     try {
       await resend.emails.send({
         from: `${company.name} <${fromEmail}>`,
