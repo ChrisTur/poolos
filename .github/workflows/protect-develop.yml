@@ -8,6 +8,7 @@ on:
 jobs:
   check-source-branch:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Only allow feature/* or bugfix/* into develop
         run: |

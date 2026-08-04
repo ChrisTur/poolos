@@ -4,28 +4,20 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import { parseLineItems } from "@/lib/utils"
 
 export async function createTemplate(formData: FormData) {
   const { companyId } = await requirePermission("estimates.manage")
 
   const name        = formData.get("name") as string
   const description = (formData.get("description") as string) || null
-  const descriptions = formData.getAll("description[]") as string[]
-  const quantities   = formData.getAll("quantity[]") as string[]
-  const unitPrices   = formData.getAll("unitPrice[]") as string[]
 
   await db.estimateTemplate.create({
     data: {
       companyId,
       name,
       description,
-      items: {
-        create: descriptions.map((desc, i) => ({
-          description: desc,
-          quantity:  parseFloat(quantities[i] || "1"),
-          unitPrice: parseFloat(unitPrices[i]  || "0"),
-        })),
-      },
+      items: { create: parseLineItems(formData, "[]") },
     },
   })
 
@@ -40,9 +32,6 @@ export async function updateTemplate(id: string, formData: FormData) {
 
   const name        = formData.get("name") as string
   const description = (formData.get("description") as string) || null
-  const descriptions = formData.getAll("description[]") as string[]
-  const quantities   = formData.getAll("quantity[]") as string[]
-  const unitPrices   = formData.getAll("unitPrice[]") as string[]
 
   await db.estimateTemplateItem.deleteMany({ where: { templateId: id } })
   await db.estimateTemplate.update({
@@ -50,13 +39,7 @@ export async function updateTemplate(id: string, formData: FormData) {
     data: {
       name,
       description,
-      items: {
-        create: descriptions.map((desc, i) => ({
-          description: desc,
-          quantity:  parseFloat(quantities[i] || "1"),
-          unitPrice: parseFloat(unitPrices[i]  || "0"),
-        })),
-      },
+      items: { create: parseLineItems(formData, "[]") },
     },
   })
 

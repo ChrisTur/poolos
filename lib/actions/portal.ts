@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
-import { resend, FROM, buildPortalReplyNotificationHtml } from "@/lib/email"
+import { resend, extractFromEmail, buildPortalReplyNotificationHtml } from "@/lib/email"
 
 export async function sendPortalMessage(_: unknown, formData: FormData) {
   const token = formData.get("token") as string
@@ -44,7 +44,7 @@ export async function sendPortalMessage(_: unknown, formData: FormData) {
       customerLastName: customer.lastName,
       message: body,
     })
-    const fromEmail = FROM.match(/<(.+)>/)?.[1] ?? FROM
+    const fromEmail = extractFromEmail()
     try {
       await resend.emails.send({
         from: `${customer.company.name} via PoolOS <${fromEmail}>`,

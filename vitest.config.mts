@@ -11,7 +11,7 @@ export default defineConfig({
     exclude: [".claude/**", "node_modules/**"],
     coverage: {
       provider: "v8",
-      include: ["lib/actions/**", "app/api/**"],
+      include: ["lib/actions/**", "lib/utils.ts", "app/api/**"],
       exclude: ["app/api/health/**"],
     },
   },

@@ -2,6 +2,7 @@
 
 import { db } from "@/lib/db"
 import { resend, FROM } from "@/lib/email"
+import { invoiceTotal, formatCurrency } from "@/lib/utils"
 import { redirect } from "next/navigation"
 
 async function loadCustomerByToken(token: string) {
@@ -46,14 +47,6 @@ export async function approveEstimate(formData: FormData) {
     redirect(`/portal/${token}/estimates/${estimateId}?error=expired`)
   }
 
-  // Compute next invoice number
-  const lastInv = await db.invoice.findFirst({
-    where:   { companyId: customer.companyId },
-    orderBy: { invoiceNumber: "desc" },
-    select:  { invoiceNumber: true },
-  })
-  const lastNum = lastInv ? parseInt(lastInv.invoiceNumber.replace("INV-", "")) || 0 : 0
-
   const customerDueDays = await db.customer.findUnique({
     where:  { id: customer.id },
     select: { dueDays: true },
@@ -62,24 +55,43 @@ export async function approveEstimate(formData: FormData) {
   const dueDate = new Date()
   dueDate.setDate(dueDate.getDate() + dueDays)
 
-  const invoice = await db.invoice.create({
-    data: {
-      companyId:     customer.companyId,
-      customerId:    customer.id,
-      invoiceNumber: `INV-${String(lastNum + 1).padStart(4, "0")}`,
-      dueDate,
-      notes:         estimate.notes,
-      serviceType:   estimate.serviceType,
-      status:        "draft",
-      items: {
-        create: estimate.items.map((item) => ({
-          description: item.description,
-          quantity:    item.quantity,
-          unitPrice:   item.unitPrice,
-        })),
-      },
-    },
+  const allInvoices = await db.invoice.findMany({
+    where:  { companyId: customer.companyId },
+    select: { invoiceNumber: true },
   })
+  const baseNum = allInvoices.reduce((max, { invoiceNumber }) => {
+    const n = parseInt(invoiceNumber.replace("INV-", ""), 10)
+    return isNaN(n) ? max : Math.max(max, n)
+  }, 0)
+
+  const itemsData = estimate.items.map((item) => ({
+    description: item.description,
+    quantity:    item.quantity,
+    unitPrice:   item.unitPrice,
+  }))
+
+  let invoice
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      invoice = await db.invoice.create({
+        data: {
+          companyId:     customer.companyId,
+          customerId:    customer.id,
+          invoiceNumber: `INV-${String(baseNum + 1 + attempt).padStart(4, "0")}`,
+          dueDate,
+          notes:         estimate.notes,
+          serviceType:   estimate.serviceType,
+          status:        "draft",
+          items:         { create: itemsData },
+        },
+      })
+      break
+    } catch (err: unknown) {
+      if ((err as { code?: string })?.code === "P2002" && attempt < 4) continue
+      throw err
+    }
+  }
+  if (!invoice) throw new Error("Failed to generate a unique invoice number")
 
   const now = new Date()
   await db.estimate.update({
@@ -96,7 +108,7 @@ export async function approveEstimate(formData: FormData) {
 
   // Notify company
   if (customer.company.replyToEmail) {
-    const total = estimate.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+    const total = invoiceTotal(estimate.items)
     const baseUrl = process.env.AUTH_URL ?? ""
     await resend.emails.send({
       from:    FROM,
@@ -175,10 +187,6 @@ export async function denyEstimate(formData: FormData) {
 
 // ── Notification email (internal — to company) ────────────────────────────────
 
-function fmt(n: number) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n)
-}
-
 function buildEstimateNotificationHtml(data: {
   approved: boolean
   customerName: string
@@ -203,7 +211,7 @@ function buildEstimateNotificationHtml(data: {
     </div>
     <div style="padding:24px">
       <p style="margin:0 0 16px;font-size:15px;color:#374151">
-        <strong>${data.customerName}</strong> has ${label.toLowerCase()} estimate <strong>${data.estimateNumber}</strong>${data.total ? ` (${fmt(data.total)})` : ""}.
+        <strong>${data.customerName}</strong> has ${label.toLowerCase()} estimate <strong>${data.estimateNumber}</strong>${data.total ? ` (${formatCurrency(data.total)})` : ""}.
       </p>
       ${data.signedByName ? `<p style="margin:0 0 16px;font-size:14px;color:#6b7280">Signed by: <strong>${data.signedByName}</strong></p>` : ""}
       ${data.reason ? `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:14px;color:#991b1b">${data.reason}</div>` : ""}
