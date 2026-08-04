@@ -407,7 +407,7 @@ model Invoice {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  invoiceNumber String   @unique
+  invoiceNumber String
   status        String   @default("draft")
   serviceType   String?  // monthly | repair | equipment | chemical | installation | other
   dueDate       DateTime
@@ -427,6 +427,8 @@ model Invoice {
   items     InvoiceItem[]
   payments  Payment[]
   emailLogs EmailLog[]
+
+  @@unique([companyId, invoiceNumber])
 }
 
 model InvoiceItem {
@@ -454,7 +456,7 @@ model Estimate {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  estimateNumber    String    @unique
+  estimateNumber    String
   status            String    @default("draft") // draft | sent | accepted | declined | converted
   serviceType       String?   // monthly | repair | equipment | chemical | installation | other
   validUntil        DateTime?
@@ -475,6 +477,8 @@ model Estimate {
   company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   items EstimateItem[]
+
+  @@unique([companyId, estimateNumber])
 }
 
 model EstimateItem {

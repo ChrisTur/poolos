@@ -39,15 +39,18 @@ export async function createInvoice(formData: FormData) {
     unitPrice: parseFloat(unitPrices[i] || "0"),
   }))
 
+  console.log("[createInvoice] start", { companyId, customerId })
   let invoice
   for (let attempt = 0; attempt < 10; attempt++) {
     try {
       const nextNum = await lastInvoiceNum(companyId)
+      const candidate = invoiceNum(nextNum + 1)
+      console.log(`[createInvoice] attempt ${attempt}: nextNum=${nextNum} candidate=${candidate}`)
       invoice = await db.invoice.create({
         data: {
           companyId,
           customerId,
-          invoiceNumber: invoiceNum(nextNum + 1),
+          invoiceNumber: candidate,
           dueDate,
           notes,
           serviceType,
@@ -58,7 +61,9 @@ export async function createInvoice(formData: FormData) {
       })
       break
     } catch (err: unknown) {
-      if ((err as { code?: string })?.code === "P2002" && attempt < 9) continue
+      const code = (err as { code?: string })?.code
+      console.error(`[createInvoice] attempt ${attempt} error code=${code}`, err)
+      if (code === "P2002" && attempt < 9) continue
       throw err
     }
   }
