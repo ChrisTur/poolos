@@ -1083,3 +1083,54 @@ export function buildReviewRequestHtml(data: {
 </body>
 </html>`
 }
+
+export function buildWelcomeHtml(data: { firstName: string; appUrl: string }): string {
+  const { firstName, appUrl } = data
+  const steps = [
+    { n: 1, label: "Complete your company profile", desc: "Add your phone and address so they appear on invoices.", href: `${appUrl}/settings/company` },
+    { n: 2, label: "Add your first customer",        desc: "Create a customer profile to start tracking their pool.", href: `${appUrl}/customers/new` },
+    { n: 3, label: "Create a service route",         desc: "Group customers into a weekly route for your technicians.", href: `${appUrl}/routes` },
+    { n: 4, label: "Send your first invoice",        desc: "Generate and send an invoice to get paid faster.",        href: `${appUrl}/invoices/new` },
+  ]
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <div style="max-width:520px;margin:40px auto;padding:0 16px">
+    <div style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+      <div style="background:#0ea5e9;padding:24px;text-align:center">
+        <p style="margin:0;font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.5px">PoolOS</p>
+      </div>
+      <div style="padding:32px 28px">
+        <p style="font-size:22px;font-weight:700;color:#111827;margin:0 0 8px">Welcome, ${firstName}! 👋</p>
+        <p style="font-size:14px;color:#6b7280;margin:0 0 28px;line-height:1.6">
+          Your PoolOS account is ready. Here are the four steps to get your business set up &mdash; most people finish in under 10 minutes.
+        </p>
+        ${steps.map((s) => `
+        <a href="${s.href}" style="display:block;text-decoration:none;margin-bottom:12px;padding:14px 16px;border:1px solid #e5e7eb;border-radius:10px;background:#fafafa">
+          <table width="100%" cellpadding="0" cellspacing="0"><tr>
+            <td width="36" valign="middle">
+              <div style="width:28px;height:28px;border-radius:50%;background:#0ea5e9;color:#fff;font-size:13px;font-weight:700;text-align:center;line-height:28px">${s.n}</div>
+            </td>
+            <td valign="middle">
+              <p style="margin:0;font-size:14px;font-weight:600;color:#111827">${s.label}</p>
+              <p style="margin:3px 0 0;font-size:13px;color:#6b7280">${s.desc}</p>
+            </td>
+          </tr></table>
+        </a>`).join("")}
+        <div style="text-align:center;margin:28px 0 0">
+          <a href="${appUrl}/customers/new" style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:13px 32px;border-radius:9px">
+            Add your first customer &rarr;
+          </a>
+        </div>
+      </div>
+      <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 28px;text-align:center;font-size:12px;color:#9ca3af">
+        PoolOS &middot; Pool Service Management Software<br>
+        Questions? Reply to this email or visit <a href="${appUrl}/contact" style="color:#0ea5e9;text-decoration:none">poolos.biz/contact</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`
+}
+
