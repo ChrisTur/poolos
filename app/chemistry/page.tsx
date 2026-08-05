@@ -5,6 +5,33 @@ import Calculator from "./Calculator"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      name: "Pool Water Chemistry Calculator",
+      url: `${BASE}/chemistry`,
+      description: "Free pool chemical dosing calculator. Enter pool size and current test readings to get exact chemical amounts for chlorine, pH, alkalinity, calcium, and stabilizer.",
+      applicationCategory: "UtilitiesApplication",
+      operatingSystem: "Web",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    },
+    {
+      "@type": "HowTo",
+      name: "How to Balance Pool Water Chemistry",
+      description: "Step-by-step guide to testing and balancing pool water chemistry using the PoolOS dosing calculator.",
+      step: [
+        { "@type": "HowToStep", name: "Test your pool water", text: "Use a test kit or strips to measure free chlorine, pH, total alkalinity, calcium hardness, and CYA." },
+        { "@type": "HowToStep", name: "Enter your pool size", text: "Select your pool size in gallons so the calculator can scale the chemical doses correctly." },
+        { "@type": "HowToStep", name: "Enter your current readings", text: "Input each parameter reading from your test kit into the calculator fields." },
+        { "@type": "HowToStep", name: "Review dosing recommendations", text: "The calculator shows exact amounts of each chemical to add to bring every parameter into the ideal range." },
+        { "@type": "HowToStep", name: "Add chemicals and retest", text: "Add the recommended amounts, circulate water for at least 30 minutes, then retest to confirm levels are balanced." },
+      ],
+    },
+  ],
+}
+
 export const metadata: Metadata = {
   title:       "Pool Water Chemistry Calculator — Free Dosing Guide",
   description: "Free pool chemical dosing calculator. Enter your pool size and test readings to get exact amounts of chlorine, pH adjusters, alkalinity, calcium, and stabilizer to add.",
@@ -34,6 +61,7 @@ const PARAMS = [
 export default function ChemistryPage() {
   return (
     <div className="min-h-screen bg-gray-50">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <MarketingNav />
 
       <main>

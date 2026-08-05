@@ -33,7 +33,7 @@ const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 export const metadata: Metadata = {
   title: "PoolOS — Pool Service Management Software",
   description:
-    "Pool service management software for scheduling, invoicing, chemical tracking, and customer communication. Start free for 14 days — no credit card required.",
+    "Pool management software for pool service companies. Routes, invoicing, chemical tracking, and a customer portal — all in one place. Start free for 14 days, no credit card required.",
   alternates: {
     canonical: BASE,
   },
@@ -104,6 +104,12 @@ const jsonLd = {
       name: "PoolOS",
       url: BASE,
       logo: `${BASE}/opengraph-image`,
+      sameAs: ["https://x.com/poolos"],
+    },
+    {
+      "@type": "WebSite",
+      url: BASE,
+      name: "PoolOS",
     },
     {
       "@type": "FAQPage",

@@ -10,6 +10,34 @@ import PromoBannerBar from "@/components/PromoBannerBar"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "PoolOS",
+      url: BASE,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web, iOS, Android",
+      offers: [
+        { "@type": "Offer", name: "Starter", price: "49", priceCurrency: "USD", description: "Up to 50 customers" },
+        { "@type": "Offer", name: "Pro",     price: "99", priceCurrency: "USD", description: "Up to 200 customers, unlimited staff" },
+        { "@type": "Offer", name: "Unlimited", price: "199", priceCurrency: "USD", description: "No customer or staff limits" },
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        { "@type": "Question", name: "What happens when my trial ends?", acceptedAnswer: { "@type": "Answer", text: "After 14 days you'll be prompted to choose a plan. Your data is never deleted — customers, routes, and invoices are all waiting when you're ready to subscribe." } },
+        { "@type": "Question", name: "Can I switch plans later?", acceptedAnswer: { "@type": "Answer", text: "Yes, anytime from your billing settings. Stripe prorates the change automatically so you only pay for what you use." } },
+        { "@type": "Question", name: "Do you offer annual billing?", acceptedAnswer: { "@type": "Answer", text: "Yes — pay annually and get 2 months free (≈17% off). Toggle between monthly and annual right at checkout." } },
+        { "@type": "Question", name: "Is there a contract or commitment?", acceptedAnswer: { "@type": "Answer", text: "No contracts. Monthly plans cancel anytime with no further charges. Annual plans are billed upfront and won't auto-renew if cancelled." } },
+        { "@type": "Question", name: "What counts toward the customer limit?", acceptedAnswer: { "@type": "Answer", text: "Active customer profiles. Archived customers don't count. Starter supports up to 50 active customers; Pro up to 200; Unlimited has no cap." } },
+      ],
+    },
+  ],
+}
+
 export const metadata: Metadata = {
   title: "Pricing — PoolOS Pool Service Software",
   description:
@@ -79,6 +107,7 @@ export default async function PricingPage() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <MarketingNav />
       {banner && <PromoBannerBar banner={banner} />}
 
@@ -86,6 +115,7 @@ export default async function PricingPage() {
         {/* Hero */}
         <section className="py-16 sm:py-20 text-center px-4">
           <div className="max-w-2xl mx-auto">
+            <p className="text-sm font-semibold text-sky-600 uppercase tracking-widest mb-3">Pool Service Management Software</p>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
               Simple, transparent pricing
             </h1>

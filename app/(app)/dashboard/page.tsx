@@ -6,7 +6,6 @@ import Link from "next/link"
 import { Users, MapPin, DollarSign, AlertCircle, CheckCircle, Droplets } from "lucide-react"
 import { statusBadge } from "@/components/ui/Badge"
 import { visitNeedsAttention, chemStatus, CHEM_RANGES, STATUS_BG } from "@/lib/chemistry"
-import { cookies } from "next/headers"
 import SetupChecklist, { type SetupStep } from "@/components/dashboard/SetupChecklist"
 import { Zap } from "lucide-react"
 
@@ -15,9 +14,6 @@ export const dynamic = "force-dynamic"
 export default async function DashboardPage() {
   const { companyId, companyName } = await requireSession()
   const today = new Date().getDay()
-
-  const cookieStore = await cookies()
-  const onboardingDismissed = cookieStore.get("poolos_onboarding_dismissed")?.value === "1"
 
   const [customerCount, routeCount, recentVisits, overdueInvoices, unpaidInvoices, todayRoutes, recentChemVisits, company, invoiceCount] =
     await Promise.all([
@@ -57,7 +53,7 @@ export default async function DashboardPage() {
         include: { customer: { select: { id: true, firstName: true, lastName: true } } },
         take: 100,
       }),
-      db.company.findUnique({ where: { id: companyId }, select: { phone: true, stripeAccountId: true, plan: true, trialEndsAt: true } }),
+      db.company.findUnique({ where: { id: companyId }, select: { phone: true, stripeAccountId: true, plan: true, trialEndsAt: true, onboardingDismissedAt: true } }),
       db.invoice.count({ where: { companyId } }),
     ])
 
@@ -77,6 +73,12 @@ export default async function DashboardPage() {
 
   const setupSteps: SetupStep[] = [
     {
+      label: "Complete your company profile",
+      description: "Add your phone number so it appears on invoices and customer emails.",
+      href: "/settings/company",
+      done: company?.phone != null,
+    },
+    {
       label: "Add your first customer",
       description: "Create a customer profile to start tracking their pool and sending invoices.",
       href: "/customers/new",
@@ -89,22 +91,16 @@ export default async function DashboardPage() {
       done: routeCount > 0,
     },
     {
-      label: "Complete your company profile",
-      description: "Add your phone number so it appears on invoices and customer emails.",
-      href: "/settings/company",
-      done: company?.phone != null,
+      label: "Send your first invoice",
+      description: "Generate and send an invoice to collect payment from a customer.",
+      href: "/invoices/new",
+      done: invoiceCount > 0,
     },
     {
       label: "Set up online payments",
       description: "Connect Stripe so customers can pay invoices with a credit card.",
       href: "/settings/payments",
       done: company?.stripeAccountId != null,
-    },
-    {
-      label: "Send your first invoice",
-      description: "Generate and send an invoice to collect payment from a customer.",
-      href: "/invoices/new",
-      done: invoiceCount > 0,
     },
   ]
 
@@ -122,7 +118,7 @@ export default async function DashboardPage() {
         <p className="text-sm text-gray-500 mt-1">{companyName} · {DAY_NAMES[today]}</p>
       </div>
 
-      {!onboardingDismissed && <SetupChecklist steps={setupSteps} />}
+      {!company?.onboardingDismissedAt && <SetupChecklist steps={setupSteps} />}
 
       {/* Trial upgrade card */}
       {company?.plan === "trial" && (
