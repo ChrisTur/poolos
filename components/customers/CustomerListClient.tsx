@@ -25,14 +25,17 @@ type CustomerItem = {
   _count: { invoices: number; serviceVisits: number }
 }
 
+// Lean type for broadcast — only fields BroadcastModal actually reads
+type BroadcastTarget = { id: string; firstName: string; lastName: string; email: string | null }
+
 interface Props {
   customers: CustomerItem[]
-  allCustomers: CustomerItem[] // unfiltered — used for "message all"
+  allCustomers: BroadcastTarget[] // unfiltered — used for "message all"
 }
 
 export default function CustomerListClient({ customers, allCustomers }: Props) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [modalCustomers, setModalCustomers] = useState<CustomerItem[] | null>(null)
+  const [modalCustomers, setModalCustomers] = useState<BroadcastTarget[] | null>(null)
 
   const allSelected = customers.length > 0 && customers.every((c) => selectedIds.has(c.id))
 
