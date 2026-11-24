@@ -69,9 +69,6 @@ export async function createDuePlatformExpenses(): Promise<void> {
       }
     }
   }
-
-  revalidatePath("/admin/expenses")
-  revalidatePath("/admin/reports")
 }
 
 export type ExpenseFormState = { error?: string } | null
