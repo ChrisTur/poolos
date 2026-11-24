@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation"
 import Link from "next/link"
 import { db } from "@/lib/db"
-import { markContactRead, deleteContactMessage } from "@/lib/actions/contact"
-import { ArrowLeft, Clock, CornerDownRight, Trash2 } from "lucide-react"
+import { deleteContactMessage, markAsSpam, unmarkSpam } from "@/lib/actions/contact"
+import { requireSuperAdmin } from "@/lib/session"
+import { ArrowLeft, Clock, CornerDownRight, Trash2, ShieldAlert, ShieldCheck } from "lucide-react"
 import ContactReplyForm from "./ContactReplyForm"
 
 export const metadata = { title: "Contact Message — PoolOS Admin" }
@@ -12,13 +13,14 @@ export default async function ContactDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireSuperAdmin()
   const { id } = await params
   const msg = await db.contactMessage.findUnique({ where: { id } })
   if (!msg) notFound()
 
-  // Auto-mark as read when opened
+  // Auto-mark as read when opened (but not spam) — done inline to avoid revalidatePath during render
   if (msg.status === "new") {
-    await markContactRead(id)
+    await db.contactMessage.update({ where: { id }, data: { status: "read" } })
   }
 
   const fmtDate = (d: Date) =>
@@ -66,6 +68,22 @@ export default async function ContactDetailPage({
         </div>
       </div>
 
+      {/* Spam banner */}
+      {msg.status === "spam" && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 mb-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-sm font-medium text-red-700">This message was marked as spam.</p>
+          </div>
+          <form action={async () => { "use server"; await unmarkSpam(id); redirect(`/admin/contact/${id}`) }}>
+            <button type="submit" className="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-green-700 hover:bg-green-50 border border-red-200 hover:border-green-200 px-3 py-1.5 rounded-lg transition-colors">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Not spam
+            </button>
+          </form>
+        </div>
+      )}
+
       {/* Previous reply (if any) */}
       {msg.replyBody && (
         <div className="bg-green-50 border border-green-200 rounded-xl px-5 py-4 mb-4">
@@ -79,20 +97,30 @@ export default async function ContactDetailPage({
         </div>
       )}
 
-      {/* Reply form */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
-        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
-          <p className="text-sm font-medium text-gray-700">
-            {msg.status === "replied" ? "Send another reply" : "Reply"} → <span className="text-gray-500 font-normal">{msg.email}</span>
-          </p>
+      {/* Reply form — hide for spam */}
+      {msg.status !== "spam" && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <p className="text-sm font-medium text-gray-700">
+              {msg.status === "replied" ? "Send another reply" : "Reply"} → <span className="text-gray-500 font-normal">{msg.email}</span>
+            </p>
+          </div>
+          <div className="p-5">
+            <ContactReplyForm id={msg.id} />
+          </div>
         </div>
-        <div className="p-5">
-          <ContactReplyForm id={msg.id} />
-        </div>
-      </div>
+      )}
 
       {/* Danger zone */}
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-2">
+        {msg.status !== "spam" && (
+          <form action={async () => { "use server"; await markAsSpam(id); redirect(`/admin/contact/${id}`) }}>
+            <button type="submit" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              Mark as spam
+            </button>
+          </form>
+        )}
         <form
           action={async () => {
             "use server"
