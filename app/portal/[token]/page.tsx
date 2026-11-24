@@ -168,9 +168,14 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
         {/* Outstanding invoices */}
         {outstanding.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-              Invoices to pay
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Invoices to pay
+              </h2>
+              <Link href={`/portal/${token}/invoices`} className="text-xs text-sky-600 hover:underline">
+                View all
+              </Link>
+            </div>
             <div className="space-y-3">
               {outstanding.map((inv) => {
                 const total   = invoiceTotal(inv.items)
@@ -367,9 +372,14 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
         {/* Payment history */}
         {history.length > 0 && (
           <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">
-              Payment history
-            </h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Payment history
+              </h2>
+              <Link href={`/portal/${token}/invoices`} className="text-xs text-sky-600 hover:underline">
+                View all
+              </Link>
+            </div>
             <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-50">
               {history.map((inv) => (
                 <div key={inv.id} className="px-5 py-3 flex items-center justify-between gap-3">

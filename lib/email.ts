@@ -1081,6 +1081,59 @@ export function buildReviewRequestHtml(data: {
 </html>`
 }
 
+export function buildVisitRequestNotificationHtml(data: {
+  companyName: string
+  customerFirstName: string
+  customerLastName: string
+  preferredDate: Date | null
+  serviceType: string | null
+  notes: string | null
+  scheduleUrl: string
+}): string {
+  const dateStr = data.preferredDate
+    ? new Date(data.preferredDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    : "No preference specified"
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f9fafb;margin:0;padding:12px 8px">
+  <div style="max-width:520px;width:100%;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1)">
+    <div style="background:#0c4a6e;padding:20px 24px">
+      <span style="font-size:18px;font-weight:700;color:#ffffff">${data.companyName}</span>
+      <div style="font-size:13px;color:#bae6fd;margin-top:4px">New Visit Request</div>
+    </div>
+    <div style="padding:24px">
+      <p style="font-size:15px;color:#111827;margin:0 0 16px">
+        <strong>${data.customerFirstName} ${data.customerLastName}</strong> submitted a visit request through their portal.
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <tr>
+          <td style="padding:8px 0;color:#6b7280;width:130px;vertical-align:top">Preferred date</td>
+          <td style="padding:8px 0;color:#111827;font-weight:500">${dateStr}</td>
+        </tr>
+        ${data.serviceType ? `<tr>
+          <td style="padding:8px 0;color:#6b7280;vertical-align:top">Service type</td>
+          <td style="padding:8px 0;color:#111827;font-weight:500">${data.serviceType}</td>
+        </tr>` : ""}
+        ${data.notes ? `<tr>
+          <td style="padding:8px 0;color:#6b7280;vertical-align:top">Notes</td>
+          <td style="padding:8px 0;color:#374151;white-space:pre-wrap">${data.notes}</td>
+        </tr>` : ""}
+      </table>
+      <div style="text-align:center;margin-top:24px">
+        <a href="${data.scheduleUrl}" style="display:inline-block;background:#0ea5e9;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px">
+          View in Schedule →
+        </a>
+      </div>
+    </div>
+    <div style="background:#f9fafb;border-top:1px solid #f3f4f6;padding:16px 24px;text-align:center;font-size:12px;color:#9ca3af">
+      ${data.companyName} · Powered by PoolOS
+    </div>
+  </div>
+</body>
+</html>`
+}
+
 export function buildWelcomeHtml(data: { firstName: string; appUrl: string }): string {
   const { firstName, appUrl } = data
   const steps = [

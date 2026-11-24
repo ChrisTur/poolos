@@ -4,7 +4,7 @@ import { useActionState } from "react"
 import { useRouter } from "next/navigation"
 import { completeOnboarding } from "@/lib/actions/company"
 import Button from "@/components/ui/Button"
-import { MapPin, Phone } from "lucide-react"
+import { MapPin, Phone, Mail } from "lucide-react"
 import StateSelect from "@/components/ui/StateSelect"
 
 const steps = ["Company details", "Address", "Done"]
@@ -53,6 +53,17 @@ export default function OnboardingPage() {
             placeholder="Business phone (optional)"
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
           />
+          <div>
+            <input
+              name="replyToEmail"
+              type="email"
+              placeholder="Reply-to email (you@yourcompany.com)"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+              <Mail className="w-3 h-3" /> Customers who reply to invoices and emails will reach this address.
+            </p>
+          </div>
           <input
             name="website"
             type="url"

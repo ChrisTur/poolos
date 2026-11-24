@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, ChevronRight, Zap, Mail, AlertTriangle, CheckCircle, Download } from "lucide-react"
+import { Plus, ChevronRight, ChevronLeft, Zap, Mail, AlertTriangle, CheckCircle, Download, Search } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { statusBadge } from "@/components/ui/Badge"
@@ -11,14 +11,27 @@ import { sendBulkOverdueReminders } from "@/lib/actions/emails"
 
 export const dynamic = "force-dynamic"
 
+const PAGE_SIZE = 50
+
+function buildUrl(params: Record<string, string | undefined>) {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v) p.set(k, v)
+  }
+  return `/invoices?${p.toString()}`
+}
+
 export default async function InvoicesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; from?: string; to?: string; serviceType?: string; generated?: string; reminded?: string; failed?: string }>
+  searchParams: Promise<{ status?: string; from?: string; to?: string; serviceType?: string; q?: string; page?: string; generated?: string; reminded?: string; failed?: string }>
 }) {
   const { companyId } = await requireSession()
   await markOverdueInvoices(companyId)
-  const { status, from, to, serviceType, generated, reminded, failed: reminderFailed } = await searchParams
+  const { status, from, to, serviceType, q, page: pageParam, generated, reminded, failed: reminderFailed } = await searchParams
+
+  const page = Math.max(1, parseInt(pageParam || "1") || 1)
+  const skip = (page - 1) * PAGE_SIZE
 
   const dateFilter = (from || to) ? {
     issuedAt: {
@@ -27,22 +40,36 @@ export default async function InvoicesPage({
     },
   } : {}
 
-  const [invoices, draftCount, sentCount, overdueCount, paidCount] = await Promise.all([
+  const customerFilter = q ? {
+    customer: {
+      OR: [
+        { firstName: { contains: q, mode: "insensitive" as const } },
+        { lastName: { contains: q, mode: "insensitive" as const } },
+      ],
+    },
+  } : {}
+
+  const baseWhere = {
+    companyId,
+    ...(status && status !== "all" ? { status } : {}),
+    ...(serviceType ? { serviceType } : {}),
+    ...dateFilter,
+    ...customerFilter,
+  }
+
+  const [invoices, filteredTotal, draftCount, sentCount, overdueCount, paidCount] = await Promise.all([
     db.invoice.findMany({
-      where: {
-        companyId,
-        ...(status && status !== "all" ? { status } : {}),
-        ...(serviceType ? { serviceType } : {}),
-        ...dateFilter,
-      },
+      where: baseWhere,
       orderBy: status === "overdue" ? { dueDate: "asc" } : { createdAt: "desc" },
       include: {
         customer: true,
         items: true,
         payments: true,
       },
-      take: 100,
+      take: PAGE_SIZE,
+      skip,
     }),
+    db.invoice.count({ where: baseWhere }),
     db.invoice.count({ where: { companyId, status: "draft" } }),
     db.invoice.count({ where: { companyId, status: "sent" } }),
     db.invoice.count({ where: { companyId, status: "overdue" } }),
@@ -56,6 +83,8 @@ export default async function InvoicesPage({
     paid:    paidCount,
     overdue: overdueCount,
   }
+
+  const totalPages = Math.ceil(filteredTotal / PAGE_SIZE)
 
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now()
@@ -72,6 +101,8 @@ export default async function InvoicesPage({
     { key: "overdue", label: "Overdue" },
     { key: "paid", label: "Paid" },
   ]
+
+  const hasFilters = !!(from || to || serviceType || q)
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -91,15 +122,16 @@ export default async function InvoicesPage({
         </div>
       )}
 
-      {(from || to || serviceType) && (
+      {hasFilters && (
         <div className="rounded-lg bg-sky-50 border border-sky-200 px-4 py-2.5 text-sm text-sky-800 flex items-center justify-between gap-2">
           <span>
             Filtered
+            {q ? ` · Customer: "${q}"` : ""}
             {serviceType ? ` · Service type: ${serviceType}` : ""}
             {from ? ` · From ${from}` : ""}
             {to   ? ` · To ${to}` : ""}
           </span>
-          <Link href="/invoices" className="text-sky-600 hover:text-sky-900 font-medium whitespace-nowrap">Clear ×</Link>
+          <Link href={`/invoices${status && status !== "all" ? `?status=${status}` : ""}`} className="text-sky-600 hover:text-sky-900 font-medium whitespace-nowrap">Clear ×</Link>
         </div>
       )}
 
@@ -107,9 +139,8 @@ export default async function InvoicesPage({
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Invoices</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {status && status !== "all"
-              ? `${invoices.length} ${status}`
-              : `${totals.all} total`}
+            {filteredTotal} {status && status !== "all" ? status : "total"}
+            {totalPages > 1 && ` · page ${page} of ${totalPages}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -135,7 +166,25 @@ export default async function InvoicesPage({
         </div>
       </div>
 
-      {/* Status tabs — larger tap targets on mobile */}
+      {/* Search */}
+      <form method="GET" className="flex gap-2">
+        {status && status !== "all" && <input type="hidden" name="status" value={status} />}
+        {from && <input type="hidden" name="from" value={from} />}
+        {to && <input type="hidden" name="to" value={to} />}
+        {serviceType && <input type="hidden" name="serviceType" value={serviceType} />}
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search by customer…"
+            className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+        </div>
+        <Button type="submit" size="sm" variant="secondary">Search</Button>
+      </form>
+
+      {/* Status tabs */}
       <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
         {statusTabs.map((tab) => {
           const active = (status ?? "all") === tab.key
@@ -143,7 +192,7 @@ export default async function InvoicesPage({
           return (
             <Link
               key={tab.key}
-              href={`/invoices?status=${tab.key}`}
+              href={buildUrl({ status: tab.key, q, from, to, serviceType })}
               className={`flex-none px-3 py-2 sm:py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 active
                   ? isOverdueTab ? "bg-red-600 text-white" : "bg-sky-600 text-white"
@@ -165,7 +214,7 @@ export default async function InvoicesPage({
           <div className="flex items-center gap-2 text-sm text-red-800">
             <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
             <span>
-              {invoices.length} overdue invoice{invoices.length !== 1 ? "s" : ""}
+              {filteredTotal} overdue invoice{filteredTotal !== 1 ? "s" : ""}
               {overdueWithEmail < invoices.length && ` · ${invoices.length - overdueWithEmail} customer${invoices.length - overdueWithEmail !== 1 ? "s" : ""} have no email`}
             </span>
           </div>
@@ -286,6 +335,31 @@ export default async function InvoicesPage({
           </div>
         )}
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 py-1">
+          <span className="text-sm text-gray-500">
+            {skip + 1}–{Math.min(skip + PAGE_SIZE, filteredTotal)} of {filteredTotal}
+          </span>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link href={buildUrl({ status, q, from, to, serviceType, page: String(page - 1) })}>
+                <Button size="sm" variant="secondary">
+                  <ChevronLeft className="w-4 h-4" /> Prev
+                </Button>
+              </Link>
+            )}
+            {page < totalPages && (
+              <Link href={buildUrl({ status, q, from, to, serviceType, page: String(page + 1) })}>
+                <Button size="sm" variant="secondary">
+                  Next <ChevronRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

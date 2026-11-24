@@ -3,11 +3,18 @@
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
+import { resend, extractFromEmail, buildVisitRequestNotificationHtml } from "@/lib/email"
 
 export async function createVisitRequest(token: string, formData: FormData) {
   const customer = await db.customer.findUnique({
     where: { portalToken: token },
-    select: { id: true, companyId: true },
+    select: {
+      id: true,
+      companyId: true,
+      firstName: true,
+      lastName: true,
+      company: { select: { name: true, replyToEmail: true } },
+    },
   })
   if (!customer) return { error: "Customer not found." }
 
@@ -24,6 +31,25 @@ export async function createVisitRequest(token: string, formData: FormData) {
       notes,
     },
   })
+
+  // Notify company — fire-and-forget
+  if (customer.company.replyToEmail) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
+    resend.emails.send({
+      from: `PoolOS <${extractFromEmail()}>`,
+      to: customer.company.replyToEmail,
+      subject: `Visit request from ${customer.firstName} ${customer.lastName}`,
+      html: buildVisitRequestNotificationHtml({
+        companyName: customer.company.name,
+        customerFirstName: customer.firstName,
+        customerLastName: customer.lastName,
+        preferredDate: preferredDate ? new Date(preferredDate) : null,
+        serviceType,
+        notes,
+        scheduleUrl: `${appUrl}/schedule`,
+      }),
+    }).catch(() => {})
+  }
 
   return { success: true }
 }
