@@ -53,7 +53,7 @@ export default async function DashboardPage() {
         include: { customer: { select: { id: true, firstName: true, lastName: true } } },
         take: 100,
       }),
-      db.company.findUnique({ where: { id: companyId }, select: { phone: true, stripeAccountId: true, plan: true, trialEndsAt: true, onboardingDismissedAt: true } }),
+      db.company.findUnique({ where: { id: companyId }, select: { phone: true, replyToEmail: true, logoUrl: true, stripeAccountId: true, plan: true, trialEndsAt: true, onboardingDismissedAt: true } }),
       db.invoice.count({ where: { companyId } }),
     ])
 
@@ -77,6 +77,19 @@ export default async function DashboardPage() {
       description: "Add your phone number so it appears on invoices and customer emails.",
       href: "/settings/company",
       done: company?.phone != null,
+    },
+
+    {
+      label: "Set your reply-to email",
+      description: "Customers who reply to invoices and notifications will reach this address.",
+      href: "/settings/company",
+      done: company?.replyToEmail != null,
+    },
+    {
+      label: "Upload your logo",
+      description: "Your logo appears on invoices, estimates, and the customer portal.",
+      href: "/settings/company",
+      done: company?.logoUrl != null,
     },
     {
       label: "Add your first customer",

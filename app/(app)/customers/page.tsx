@@ -138,6 +138,25 @@ export default async function CustomersPage({
         )
       })()}
 
+      {allCustomers.length === 0 && !q && !tagFilter && (
+        <div className="rounded-xl border-2 border-dashed border-gray-200 p-8 text-center">
+          <p className="text-sm font-medium text-gray-700 mb-1">No customers yet</p>
+          <p className="text-sm text-gray-400 mb-5">Add them one at a time or import a CSV from your old system.</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/customers/import">
+              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <Upload className="w-4 h-4" /> Import CSV
+              </button>
+            </Link>
+            <Link href="/customers/new">
+              <button className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-sky-600 text-sm font-medium text-white hover:bg-sky-700 transition-colors">
+                <Plus className="w-4 h-4" /> Add first customer
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       <CustomerListClient customers={customers} allCustomers={allCustomers} />
     </div>
   )

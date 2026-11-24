@@ -8,6 +8,7 @@ import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
 import crypto from "crypto"
+import { JOB_TEMPLATE_PRESETS } from "@/lib/job-template-presets"
 
 function checkbox(formData: FormData, name: string): boolean {
   return formData.getAll(name).includes("true")
@@ -19,14 +20,35 @@ export async function completeOnboarding(formData: FormData) {
   await db.company.update({
     where: { id: user.companyId },
     data: {
-      phone: (formData.get("phone") as string) || null,
-      address: (formData.get("address") as string) || null,
-      city: (formData.get("city") as string) || null,
-      state: (formData.get("state") as string) || null,
-      zip: (formData.get("zip") as string) || null,
-      website: (formData.get("website") as string) || null,
+      phone:        (formData.get("phone") as string) || null,
+      replyToEmail: (formData.get("replyToEmail") as string) || null,
+      address:      (formData.get("address") as string) || null,
+      city:         (formData.get("city") as string) || null,
+      state:        (formData.get("state") as string) || null,
+      zip:          (formData.get("zip") as string) || null,
+      website:      (formData.get("website") as string) || null,
     },
   })
+
+  // Seed default job templates if the company has none yet
+  const existing = await db.jobTemplate.count({ where: { companyId: user.companyId } })
+  if (existing === 0) {
+    for (const preset of JOB_TEMPLATE_PRESETS) {
+      await db.jobTemplate.create({
+        data: {
+          companyId:        user.companyId,
+          name:             preset.name,
+          description:      preset.description,
+          estimatedMinutes: preset.estimatedMinutes,
+          defaultNotes:     preset.defaultNotes,
+          isActive:         true,
+          steps: {
+            create: preset.steps.map((label, i) => ({ label, position: i })),
+          },
+        },
+      })
+    }
+  }
 
   redirect("/dashboard")
 }
