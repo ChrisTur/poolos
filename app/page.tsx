@@ -6,7 +6,6 @@ import {
   CalendarDays,
   FileText,
   Beaker,
-  LayoutDashboard,
   Camera,
   BarChart3,
   CheckCircle2,

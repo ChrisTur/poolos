@@ -93,7 +93,10 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
         <div className="max-w-2xl mx-auto px-4 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {customer.company.logoUrl ? (
-              <img src={customer.company.logoUrl} alt={customer.company.name} className="h-8 object-contain" />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
+                <img src={customer.company.logoUrl} alt={customer.company.name} className="h-8 object-contain" />
+              </>
             ) : (
               <span className="text-base font-bold text-gray-900">{customer.company.name}</span>
             )}
@@ -256,6 +259,7 @@ export default async function CustomerPortalPage({ params }: { params: Promise<{
                         {photos.length > 0 && (
                           <div className="flex gap-1.5 mt-2">
                             {photos.slice(0, 3).map((p) => (
+                              // eslint-disable-next-line @next/next/no-img-element -- GCS external URL
                               <img
                                 key={p.id}
                                 src={`${GCS}/${p.key}`}

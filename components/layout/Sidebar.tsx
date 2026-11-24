@@ -80,7 +80,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ open, onClose, planData, userName, userEmail, userRole, userPermissions = [] }: SidebarProps) {
-  const permSet = new Set(userPermissions)
+  const permSet = useMemo(() => new Set(userPermissions), [userPermissions])
   const firstName = userName?.split(" ")[0] ?? ""
   const initials = userName
     ? userName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()

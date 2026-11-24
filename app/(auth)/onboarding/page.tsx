@@ -1,15 +1,17 @@
 "use client"
 
 import { useActionState } from "react"
+import { useRouter } from "next/navigation"
 import { completeOnboarding } from "@/lib/actions/company"
 import Button from "@/components/ui/Button"
-import { CheckCircle, Building2, MapPin, Phone, Globe } from "lucide-react"
+import { MapPin, Phone } from "lucide-react"
 import StateSelect from "@/components/ui/StateSelect"
 
 const steps = ["Company details", "Address", "Done"]
 
 export default function OnboardingPage() {
-  const [state, action, pending] = useActionState(
+  const router = useRouter()
+  const [_state, action, pending] = useActionState(
     async (_: unknown, formData: FormData) => {
       await completeOnboarding(formData)
       return null
@@ -90,7 +92,7 @@ export default function OnboardingPage() {
           <Button
             type="button"
             variant="ghost"
-            onClick={() => window.location.href = "/dashboard"}
+            onClick={() => router.push("/dashboard")}
           >
             Skip for now
           </Button>

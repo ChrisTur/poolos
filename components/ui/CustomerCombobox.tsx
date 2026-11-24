@@ -91,6 +91,7 @@ export default function CustomerCombobox({
           placeholder="Search customers…"
           autoComplete="off"
           className={`w-full rounded-lg border border-gray-300 pl-9 ${selectedId ? "pr-8" : "pr-3"} py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 ${ring}`}
+          role="combobox"
           aria-expanded={open}
           aria-autocomplete="list"
           aria-controls={listId}

@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
-import ConfirmButton from "@/components/ui/ConfirmButton"
+
 import {
   createJobTemplate,
   updateJobTemplate,
@@ -11,7 +11,7 @@ import {
   addTemplateStep,
   deleteTemplateStep,
 } from "@/lib/actions/jobTemplates"
-import { Layers, Plus, Trash2, ToggleLeft, ToggleRight, Clock, ChevronDown } from "lucide-react"
+import { Layers, Plus, Clock } from "lucide-react"
 import JobTemplateEditor from "@/components/settings/JobTemplateEditor"
 
 export const dynamic = "force-dynamic"

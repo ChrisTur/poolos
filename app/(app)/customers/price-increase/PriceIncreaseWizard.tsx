@@ -4,7 +4,7 @@ import { useState, useTransition, useMemo } from "react"
 import { applyPriceIncrease } from "@/lib/actions/priceIncrease"
 import { formatCurrency } from "@/lib/utils"
 import Link from "next/link"
-import { CheckCircle2, ChevronRight, DollarSign, Mail, Users } from "lucide-react"
+import { CheckCircle2, DollarSign, Users } from "lucide-react"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 
 type Customer = {

@@ -65,7 +65,7 @@ Reply to this email or give us a call anytime.
 Thanks!`
 }
 
-export default function UpsellCampaign({ customers, templates }: Props) {
+export default function UpsellCampaign({ customers, templates: _templates }: Props) {
   const [isPending, startTransition] = useTransition()
   const [preset, setPreset]         = useState(PRESETS[0].label)
   const [sinceDate, setSinceDate]   = useState(PRESETS[0].sinceDate())

@@ -30,6 +30,7 @@ export default function PhotoSection({
         <div className="grid grid-cols-3 gap-2 mb-2">
           {previews.map((src, i) => (
             <div key={i} className="relative rounded-lg overflow-hidden aspect-square bg-gray-100">
+              {/* eslint-disable-next-line @next/next/no-img-element -- blob URL preview, next/image cannot optimize */}
               <img src={src} alt="" className="w-full h-full object-cover" />
               <button
                 type="button"

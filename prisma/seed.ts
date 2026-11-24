@@ -205,7 +205,7 @@ async function main() {
     },
   })
 
-  const customers = [c1, c2, c3, c4, c5, c6, c7, c8]
+  const _customers = [c1, c2, c3, c4, c5, c6, c7, c8]
 
   // ── Checklist items ────────────────────────────────────────────────────────
   await db.visitChecklistItem.createMany({
@@ -220,7 +220,7 @@ async function main() {
   })
 
   // ── Job templates ──────────────────────────────────────────────────────────
-  const jtWeekly = await db.jobTemplate.create({
+  const _jtWeekly = await db.jobTemplate.create({
     data: {
       companyId: company.id,
       name: "Weekly Maintenance",
@@ -237,7 +237,7 @@ async function main() {
     },
   })
 
-  const jtOpening = await db.jobTemplate.create({
+  const _jtOpening = await db.jobTemplate.create({
     data: {
       companyId: company.id,
       name: "Pool Opening",
@@ -254,7 +254,7 @@ async function main() {
     },
   })
 
-  const jtFilterClean = await db.jobTemplate.create({
+  const _jtFilterClean = await db.jobTemplate.create({
     data: {
       companyId: company.id,
       name: "Filter Clean",
@@ -487,7 +487,7 @@ async function main() {
     },
   })
 
-  const heater4 = await db.equipment.create({
+  const _heater4 = await db.equipment.create({
     data: {
       customerId: c4.id, type: "heater", brand: "Hayward", model: "H400FDN",
       installedAt: new Date("2020-03-10"),
@@ -707,7 +707,7 @@ async function main() {
   })
 
   // ── Inventory ──────────────────────────────────────────────────────────────
-  const [invChlor, invShock, invAlk, invMuri, invSalt, invStabs, invTablets] = await Promise.all([
+  const [invChlor, invShock, _invAlk, _invMuri, invSalt, _invStabs, invTablets] = await Promise.all([
     db.inventoryItem.create({ data: { companyId: company.id, name: "Liquid Chlorine", category: "chemical", unit: "gal", onHand: 12, lowStockThreshold: 5, reorderQty: 20, costPerUnit: 3.50, notes: "10% sodium hypochlorite" } }),
     db.inventoryItem.create({ data: { companyId: company.id, name: "Cal-Hypo Shock", category: "chemical", unit: "lbs", onHand: 8, lowStockThreshold: 10, reorderQty: 25, costPerUnit: 4.20 } }),
     db.inventoryItem.create({ data: { companyId: company.id, name: "Sodium Bicarbonate", category: "chemical", unit: "lbs", onHand: 25, lowStockThreshold: 10, reorderQty: 40, costPerUnit: 1.80 } }),

@@ -177,6 +177,7 @@ export default async function InvoiceDetailPage({
               <div className="flex items-start justify-between mb-8">
                 <div>
                   {company.logoUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- GCS external URL
                     <img src={company.logoUrl} alt={company.name} className="h-12 object-contain mb-2" />
                   )}
                   <p className="font-bold text-gray-900">{company.name}</p>
