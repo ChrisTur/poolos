@@ -131,7 +131,10 @@ export default async function PayInvoicePage({
         {/* Company header */}
         <div className="text-center">
           {invoice.company.logoUrl ? (
-            <img src={invoice.company.logoUrl} alt={invoice.company.name} className="h-10 mx-auto mb-2 object-contain" />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
+              <img src={invoice.company.logoUrl} alt={invoice.company.name} className="h-10 mx-auto mb-2 object-contain" />
+            </>
           ) : (
             <p className="text-lg font-bold text-gray-900 mb-2">{invoice.company.name}</p>
           )}

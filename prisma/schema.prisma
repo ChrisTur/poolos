@@ -49,8 +49,9 @@ model Company {
   cardFeePercent  Float   @default(2.9)
   cardFeeFixed    Float   @default(0.30)
 
-  tcAcceptedAt      DateTime?  // timestamp when owner accepted T&C at signup
-  marketingOptIn    Boolean @default(false)
+  tcAcceptedAt           DateTime?
+  marketingOptIn         Boolean @default(false)
+  onboardingDismissedAt  DateTime?
 
   reviewRequestEnabled      Boolean @default(false)
   reviewRequestAfterVisits  Int     @default(5)

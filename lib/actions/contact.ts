@@ -6,6 +6,7 @@ import { requireSuperAdmin } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { rateLimit } from "@/lib/rate-limit"
 import { headers } from "next/headers"
+import { isSpam } from "@/lib/spam-detect"
 
 export async function submitContactForm(_: unknown, formData: FormData) {
   const name    = (formData.get("name")    as string | null)?.trim()
@@ -30,19 +31,22 @@ export async function submitContactForm(_: unknown, formData: FormData) {
     return { error: "Too many messages sent. Please try again later." }
   }
 
-  await db.contactMessage.create({ data: { name, email, subject, body } })
+  const spam = isSpam({ name, email, subject, body })
+  await db.contactMessage.create({ data: { name, email, subject, body, status: spam ? "spam" : "new" } })
 
-  // Notify hello@poolos.biz so we don't miss inbound inquiries
-  try {
-    await resend.emails.send({
-      from:    "PoolOS <billing@poolos.biz>",
-      to:      "hello@poolos.biz",
-      replyTo: email,
-      subject: subject ? `Contact: ${subject}` : `New contact message from ${name}`,
-      html:    `<p><strong>From:</strong> ${name} &lt;${email}&gt;</p><p><strong>Message:</strong></p><blockquote style="border-left:3px solid #0ea5e9;padding-left:12px;color:#374151">${body.replace(/\n/g, "<br>")}</blockquote>`,
-    })
-  } catch {
-    // Don't fail the form if notification email fails — message is already saved
+  // Skip notification email for detected spam
+  if (!spam) {
+    try {
+      await resend.emails.send({
+        from:    "PoolOS <billing@poolos.biz>",
+        to:      "hello@poolos.biz",
+        replyTo: email,
+        subject: subject ? `Contact: ${subject}` : `New contact message from ${name}`,
+        html:    `<p><strong>From:</strong> ${name} &lt;${email}&gt;</p><p><strong>Message:</strong></p><blockquote style="border-left:3px solid #0ea5e9;padding-left:12px;color:#374151">${body.replace(/\n/g, "<br>")}</blockquote>`,
+      })
+    } catch {
+      // Don't fail the form if notification email fails — message is already saved
+    }
   }
 
   return { success: true }
@@ -99,4 +103,18 @@ export async function deleteContactMessage(id: string) {
   await requireSuperAdmin()
   await db.contactMessage.delete({ where: { id } })
   revalidatePath("/admin/contact")
+}
+
+export async function markAsSpam(id: string) {
+  await requireSuperAdmin()
+  await db.contactMessage.update({ where: { id }, data: { status: "spam" } })
+  revalidatePath("/admin/contact")
+  revalidatePath(`/admin/contact/${id}`)
+}
+
+export async function unmarkSpam(id: string) {
+  await requireSuperAdmin()
+  await db.contactMessage.update({ where: { id }, data: { status: "read" } })
+  revalidatePath("/admin/contact")
+  revalidatePath(`/admin/contact/${id}`)
 }

@@ -2,7 +2,8 @@ import { db } from "@/lib/db"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import AddExpenseForm from "./AddExpenseForm"
 import DeleteExpenseButton from "./DeleteExpenseButton"
-import { Receipt, RefreshCw } from "lucide-react"
+import Link from "next/link"
+import { Receipt, RefreshCw, Pencil } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -160,6 +161,13 @@ export default async function AdminExpensesPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="text-sm font-semibold text-gray-900">{formatCurrency(e.amount)}</span>
+                  <Link
+                    href={`/admin/expenses/${e.id}`}
+                    className="p-1.5 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-colors"
+                    title="Edit"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Link>
                   <DeleteExpenseButton id={e.id} />
                 </div>
               </div>

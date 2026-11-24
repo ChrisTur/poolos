@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { getUploadUrl, saveAttachment, deleteAttachment } from "@/lib/actions/attachments"
-import { Paperclip, X, Loader2, Image as ImageIcon, FileText } from "lucide-react"
+import { Paperclip, X, Loader2, FileText } from "lucide-react"
 
 type Attachment = {
   id: string
@@ -104,6 +104,7 @@ export default function FileUpload({
             <div key={a.id} className="relative group rounded-lg border border-gray-200 overflow-hidden bg-gray-50">
               {isImage(a.mimeType) ? (
                 <a href={fileUrl(a.key)} target="_blank" rel="noopener noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- GCS external domain, optimized at source */}
                   <img
                     src={fileUrl(a.key)}
                     alt={a.filename}

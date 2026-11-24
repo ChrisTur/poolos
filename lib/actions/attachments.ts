@@ -1,6 +1,6 @@
 "use server"
 
-import { bucket, publicUrl } from "@/lib/gcs"
+import { bucket } from "@/lib/gcs"
 import { db } from "@/lib/db"
 import { requirePermission } from "@/lib/session"
 import { revalidatePath } from "next/cache"
@@ -61,7 +61,7 @@ export async function deleteAttachment(id: string, customerId?: string) {
 }
 
 export async function getAttachmentUrl(key: string) {
-  const { companyId: _ } = await requirePermission("customers.edit") // auth gate
+  await requirePermission("customers.edit") // auth gate
 
   // Signed read URL valid for 1 hour
   const [url] = await bucket().file(key).getSignedUrl({

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState } from "react"
 import {
   DndContext,
   DragOverlay,
@@ -316,7 +316,7 @@ export default function RouteBoard({
     const activeId = String(active.id)
     const overId   = String(over.id)
 
-    const activeContainer = findContainer(activeId) // use pre-drag container from active.data if needed
+    const _activeContainer = findContainer(activeId) // use pre-drag container from active.data if needed
     let   overContainer   = findContainer(overId)
     if (!overContainer && overId.startsWith("route-")) overContainer = overId.replace("route-", "")
     if (!overContainer && overId === "unscheduled")    overContainer = "unscheduled"

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import Card, { CardHeader, CardBody } from "@/components/ui/Card"
 import { statusBadge } from "@/components/ui/Badge"
 import { DollarSign, Users, CalendarDays, TrendingUp, AlertTriangle, Clock, MapPin, Users2, ChevronRight, BarChart, Truck } from "lucide-react"
@@ -235,7 +235,7 @@ export default async function ReportsPage({
   const chartMax = Math.max(...chartData.map((d) => d.amount), 1)
 
   // ── Chemical health ─────────────────────────────────────────────────────────
-  const chemKeys = ["chlorine", "ph", "alkalinity", "calcium"] as const
+  const _chemKeys = ["chlorine", "ph", "alkalinity", "calcium"] as const
   const chemCustomers = customersWithChemistry.map((c) => {
     const v = c.serviceVisits[0] ?? null
     return { customer: c, visit: v }

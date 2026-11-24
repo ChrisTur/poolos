@@ -86,7 +86,10 @@ export default async function AdminCompanyDetailPage({
         <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Company Logo</h2></CardHeader>
         <CardBody className="space-y-4">
           {company.logoUrl ? (
-            <img src={company.logoUrl} alt="Company logo" className="h-16 object-contain rounded" />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
+              <img src={company.logoUrl} alt="Company logo" className="h-16 object-contain rounded" />
+            </>
           ) : (
             <div className="h-16 w-32 rounded border-2 border-dashed border-gray-200 flex items-center justify-center text-xs text-gray-400">
               No logo

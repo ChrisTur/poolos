@@ -128,8 +128,11 @@ export default async function CompanyPublicPage({ params }: Props) {
         {/* ── Hero ── */}
         <div className="relative h-[60vh] min-h-[380px] max-h-[560px] overflow-hidden bg-sky-900">
           {heroPhoto ? (
-            <img src={heroPhoto} alt={`${company.name} pool work`}
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
+              <img src={heroPhoto} alt={`${company.name} pool work`}
               className="absolute inset-0 w-full h-full object-cover" />
+            </>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-br from-sky-800 via-sky-700 to-cyan-600" />
           )}
@@ -148,8 +151,11 @@ export default async function CompanyPublicPage({ params }: Props) {
           {/* Company identity */}
           <div className="absolute bottom-0 left-0 right-0 px-6 sm:px-10 pb-10">
             {company.logoUrl && (
-              <img src={company.logoUrl} alt={`${company.name} logo`}
-                className="h-14 object-contain mb-4 drop-shadow-lg" />
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
+                <img src={company.logoUrl} alt={`${company.name} logo`}
+                  className="h-14 object-contain mb-4 drop-shadow-lg" />
+              </>
             )}
             <h1 className="text-3xl sm:text-5xl font-extrabold text-white leading-tight drop-shadow-md">
               {company.name}
@@ -251,6 +257,7 @@ export default async function CompanyPublicPage({ params }: Props) {
                 {galleryPhotos.map((photo) => (
                   <a key={photo.id} href={`${GCS}/${photo.key}`} target="_blank" rel="noopener noreferrer"
                     className="aspect-square overflow-hidden rounded-xl border border-gray-100 hover:border-sky-300 transition-colors block">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
                     <img src={`${GCS}/${photo.key}`} alt={photo.filename}
                       className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
                   </a>

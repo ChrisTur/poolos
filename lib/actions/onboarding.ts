@@ -1,16 +1,14 @@
 "use server"
 
-import { cookies } from "next/headers"
+import { db } from "@/lib/db"
+import { requireSession } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 
 export async function dismissOnboarding() {
-  const cookieStore = await cookies()
-  cookieStore.set("poolos_onboarding_dismissed", "1", {
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 365,
-    path: "/",
+  const { companyId } = await requireSession()
+  await db.company.update({
+    where: { id: companyId },
+    data: { onboardingDismissedAt: new Date() },
   })
   revalidatePath("/dashboard")
 }

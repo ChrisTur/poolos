@@ -13,9 +13,38 @@ import MarketingFooter from "@/components/marketing/MarketingFooter"
 
 const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "PoolOS",
+  url: BASE,
+  description: "Pool service management software with 40+ features: route scheduling, invoicing, chemical tracking, customer portal, equipment management, and team tools — built for pool companies.",
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, iOS, Android",
+  featureList: [
+    "Route scheduling and optimization",
+    "Invoicing and online payments",
+    "Chemical readings and dosing calculator",
+    "Customer portal with invoice pay",
+    "Equipment registry and service history",
+    "Team and technician management",
+    "Automated email notifications",
+    "Job templates and visit checklists",
+    "CSV data export",
+    "Profitability and revenue reports",
+  ],
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "USD",
+    lowPrice: "49",
+    highPrice: "199",
+    offerCount: "3",
+  },
+}
+
 export const metadata: Metadata = {
-  title: "Features — PoolOS Pool Service Software",
-  description: "Complete pool service management: scheduling, invoicing, chemical tracking, customer portal, equipment management, and more. 40+ features built for pool companies.",
+  title: "Features — PoolOS Pool Management Software",
+  description: "Complete pool management software: route scheduling, invoicing, chemical tracking, customer portal, equipment management, and more. 40+ features built for pool service companies.",
   alternates: { canonical: `${BASE}/features` },
   openGraph: {
     title: "PoolOS Features — Everything a Pool Company Needs",
@@ -366,13 +395,14 @@ export default function FeaturesPage() {
 
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <MarketingNav />
 
       <main>
         {/* ── Hero ── */}
         <section className="py-16 sm:py-24 bg-gradient-to-b from-white to-sky-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <p className="text-sm font-semibold text-sky-600 uppercase tracking-widest mb-4">Complete Feature Set</p>
+            <p className="text-sm font-semibold text-sky-600 uppercase tracking-widest mb-4">Pool Service Management Software</p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-5 leading-tight">
               Everything a pool company needs.<br className="hidden sm:block" />
               <span className="text-sky-600"> Nothing it doesn&apos;t.</span>

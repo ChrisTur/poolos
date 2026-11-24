@@ -26,9 +26,6 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner,
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const firstName = userName?.split(" ")[0] ?? ""
-  const initials = userName
-    ? userName.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase()
-    : "?"
 
   return (
     <div className="flex h-[100dvh] overflow-hidden bg-gray-50">

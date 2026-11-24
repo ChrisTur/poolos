@@ -5,7 +5,7 @@ import { getSession, createSession, deleteSession, setSessionCookie, clearSessio
 import bcrypt from "bcryptjs"
 import { redirect } from "next/navigation"
 import { cookies, headers } from "next/headers"
-import { resend, FROM, buildPasswordResetHtml } from "@/lib/email"
+import { resend, FROM, buildPasswordResetHtml, buildWelcomeHtml } from "@/lib/email"
 import crypto from "crypto"
 import { rateLimit } from "@/lib/rate-limit"
 import { isPasswordBreached } from "@/lib/hibp"
@@ -96,6 +96,15 @@ export async function registerCompany(formData: FormData) {
     mustChangePassword: false,
   })
   await setSessionCookie(token, expiresAt)
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
+  resend.emails.send({
+    from: FROM,
+    to: user.email,
+    subject: "Welcome to PoolOS — let's get you set up",
+    html: buildWelcomeHtml({ firstName: user.firstName, appUrl }),
+  }).catch(() => {})
+
   redirect("/onboarding")
 }
 

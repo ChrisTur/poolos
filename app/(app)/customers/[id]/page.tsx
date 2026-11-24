@@ -101,7 +101,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
     }),
   ])
 
-  const openIssueCount = issues.filter((i) => i.status !== "resolved").length
+  const _openIssueCount = issues.filter((i) => i.status !== "resolved").length
 
   if (!customer) notFound()
 
@@ -629,6 +629,7 @@ export default async function CustomerDetailPage({ params }: { params: Promise<{
                             target="_blank"
                             rel="noopener noreferrer"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
                             <img
                               src={`${gcsPublicBase}/${photo.key}`}
                               alt={photo.filename}
