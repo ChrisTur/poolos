@@ -1,12 +1,14 @@
 import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
-import { Plus, ChevronRight, FileEdit, LayoutTemplate } from "lucide-react"
+import { Plus, ChevronRight, ChevronLeft, FileEdit, LayoutTemplate, Search } from "lucide-react"
 import Card from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
 import { formatCurrency, formatDate } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
+
+const PAGE_SIZE = 50
 
 const STATUS_COLORS: Record<string, string> = {
   draft:     "bg-gray-100 text-gray-600",
@@ -25,36 +27,76 @@ const STATUS_TABS = [
   { key: "converted", label: "Converted" },
 ]
 
+function buildUrl(params: Record<string, string | undefined>) {
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(params)) {
+    if (v) p.set(k, v)
+  }
+  return `/estimates?${p.toString()}`
+}
+
 export default async function EstimatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>
+  searchParams: Promise<{ status?: string; q?: string; page?: string }>
 }) {
   const { companyId } = await requireSession()
-  const { status } = await searchParams
+  const { status, q, page: pageParam } = await searchParams
 
-  const estimates = await db.estimate.findMany({
-    where: status && status !== "all" ? { companyId, status } : { companyId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      customer: true,
-      items: true,
+  const page = Math.max(1, parseInt(pageParam || "1") || 1)
+  const skip = (page - 1) * PAGE_SIZE
+
+  const customerFilter = q ? {
+    customer: {
+      OR: [
+        { firstName: { contains: q, mode: "insensitive" as const } },
+        { lastName: { contains: q, mode: "insensitive" as const } },
+      ],
     },
-  })
+  } : {}
 
-  const counts = STATUS_TABS.reduce<Record<string, number>>((acc, tab) => {
-    acc[tab.key] = tab.key === "all"
-      ? estimates.length
-      : estimates.filter((e) => e.status === tab.key).length
-    return acc
-  }, {})
+  const baseWhere = {
+    companyId,
+    ...(status && status !== "all" ? { status } : {}),
+    ...customerFilter,
+  }
+
+  const [estimates, filteredTotal, draftCount, sentCount, acceptedCount, declinedCount, convertedCount] = await Promise.all([
+    db.estimate.findMany({
+      where: baseWhere,
+      orderBy: { createdAt: "desc" },
+      include: { customer: true, items: true },
+      take: PAGE_SIZE,
+      skip,
+    }),
+    db.estimate.count({ where: baseWhere }),
+    db.estimate.count({ where: { companyId, status: "draft" } }),
+    db.estimate.count({ where: { companyId, status: "sent" } }),
+    db.estimate.count({ where: { companyId, status: "accepted" } }),
+    db.estimate.count({ where: { companyId, status: "declined" } }),
+    db.estimate.count({ where: { companyId, status: "converted" } }),
+  ])
+
+  const counts: Record<string, number> = {
+    all:       draftCount + sentCount + acceptedCount + declinedCount + convertedCount,
+    draft:     draftCount,
+    sent:      sentCount,
+    accepted:  acceptedCount,
+    declined:  declinedCount,
+    converted: convertedCount,
+  }
+
+  const totalPages = Math.ceil(filteredTotal / PAGE_SIZE)
 
   return (
     <div className="space-y-4 sm:space-y-5">
       <div className="flex items-center justify-between gap-2">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Estimates</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{estimates.length} {status && status !== "all" ? status : "total"}</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {filteredTotal} {status && status !== "all" ? status : "total"}
+            {totalPages > 1 && ` · page ${page} of ${totalPages}`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/estimates/templates">
@@ -73,13 +115,33 @@ export default async function EstimatesPage({
         </div>
       </div>
 
+      {/* Search */}
+      <form method="GET" className="flex gap-2">
+        {status && status !== "all" && <input type="hidden" name="status" value={status} />}
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            name="q"
+            defaultValue={q}
+            placeholder="Search by customer…"
+            className="w-full pl-9 pr-3 py-2 text-sm text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+          />
+        </div>
+        <Button type="submit" size="sm" variant="secondary">Search</Button>
+        {q && (
+          <Link href={`/estimates${status && status !== "all" ? `?status=${status}` : ""}`}>
+            <Button size="sm" variant="secondary">Clear</Button>
+          </Link>
+        )}
+      </form>
+
       <div className="flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
         {STATUS_TABS.map((tab) => {
           const active = (status ?? "all") === tab.key
           return (
             <Link
               key={tab.key}
-              href={`/estimates?status=${tab.key}`}
+              href={buildUrl({ status: tab.key, q })}
               className={`flex-none px-3 py-2 sm:py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 active ? "bg-amber-600 text-white" : "text-gray-600 hover:bg-gray-100"
               }`}
@@ -186,6 +248,31 @@ export default async function EstimatesPage({
           </div>
         )}
       </Card>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between gap-3 py-1">
+          <span className="text-sm text-gray-500">
+            {skip + 1}–{Math.min(skip + PAGE_SIZE, filteredTotal)} of {filteredTotal}
+          </span>
+          <div className="flex gap-2">
+            {page > 1 && (
+              <Link href={buildUrl({ status, q, page: String(page - 1) })}>
+                <Button size="sm" variant="secondary">
+                  <ChevronLeft className="w-4 h-4" /> Prev
+                </Button>
+              </Link>
+            )}
+            {page < totalPages && (
+              <Link href={buildUrl({ status, q, page: String(page + 1) })}>
+                <Button size="sm" variant="secondary">
+                  Next <ChevronRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
