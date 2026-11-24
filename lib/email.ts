@@ -707,9 +707,6 @@ export function buildDunningHtml(data: {
   attemptCount?: number
 }) {
   const isRetry = (data.attemptCount ?? 1) > 1
-  const subject = isRetry
-    ? `Action required — your PoolOS payment still hasn't gone through`
-    : `Payment failed — update your PoolOS payment method`
 
   return `<!DOCTYPE html>
 <html lang="en">

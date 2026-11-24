@@ -4,7 +4,7 @@ import { updateCompany, uploadLogo, updatePublicPage, toggleGalleryPhoto, upload
 import StateSelect from "@/components/ui/StateSelect"
 import Card, { CardBody, CardHeader } from "@/components/ui/Card"
 import Button from "@/components/ui/Button"
-import ConfirmButton from "@/components/ui/ConfirmButton"
+
 import { Upload, Star, Globe, Image as ImageIcon, Trash2, MapPin } from "lucide-react"
 
 const GCS = process.env.NEXT_PUBLIC_GCS_PUBLIC_URL ?? ""
@@ -105,7 +105,10 @@ export default async function CompanySettingsPage() {
         <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Company Logo</h2></CardHeader>
         <CardBody className="space-y-4">
           {company.logoUrl ? (
-            <img src={company.logoUrl} alt="Company logo" className="h-16 object-contain rounded" />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
+              <img src={company.logoUrl} alt="Company logo" className="h-16 object-contain rounded" />
+            </>
           ) : (
             <div className="h-16 w-32 rounded border-2 border-dashed border-gray-200 flex items-center justify-center text-xs text-gray-400">
               No logo yet
@@ -508,6 +511,7 @@ export default async function CompanySettingsPage() {
                     : deleteGalleryPhoto.bind(null, photo.id)
                   return (
                     <div key={photo.id} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
                       <img src={`${GCS}/${photo.key}`} alt={photo.filename} className="w-full h-full object-cover" />
                       <form action={removeAction} className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button type="submit" title={isVisitPhoto ? "Remove from gallery" : "Delete photo"}
@@ -543,6 +547,7 @@ export default async function CompanySettingsPage() {
                     <form key={photo.id} action={toggleAction}>
                       <button type="submit" title="Add to gallery"
                         className="relative w-full aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-sky-300 transition-all">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- GCS external URL */}
                         <img src={`${GCS}/${photo.key}`} alt={photo.filename} className="w-full h-full object-cover" />
                       </button>
                     </form>

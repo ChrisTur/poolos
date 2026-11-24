@@ -21,7 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 import {
   GripVertical, MapPin, ChevronDown, ChevronUp, KeyRound,
-  Inbox, ArrowRightLeft, Plus, Check,
+  Inbox, ArrowRightLeft,
 } from "lucide-react"
 import { moveStopToRoute } from "@/lib/actions/routes"
 import type { Route, RouteStop, Customer } from "@/app/generated/prisma/client"
@@ -49,7 +49,6 @@ function SortableStop({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: stop.id })
 
-  const [moving, setMoving] = useState(false)
   const [showPicker, setShowPicker] = useState(false)
   const [saving, setSaving] = useState(false)
 

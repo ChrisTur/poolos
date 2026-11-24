@@ -24,11 +24,6 @@ const PRICE_IDS: Record<string, Record<string, string | undefined>> = {
   },
 }
 
-// Grace: only offer the Stripe-level trial to companies that are still within
-// their app-level trial window. Prevents double-dipping if a user upgrades,
-// cancels, and tries to re-subscribe.
-const TRIAL_DAYS = 14
-
 export async function createCheckoutSession(formData: FormData) {
   const { companyId } = await requirePermission("settings.billing")
   const planId = formData.get("planId") as string

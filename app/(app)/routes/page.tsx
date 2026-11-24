@@ -2,7 +2,7 @@ import { db } from "@/lib/db"
 import { requireSession } from "@/lib/session"
 import Link from "next/link"
 import Card from "@/components/ui/Card"
-import { statusBadge } from "@/components/ui/Badge"
+
 import { DAY_NAMES } from "@/lib/utils"
 import NewRouteForm from "@/components/routes/NewRouteForm"
 import RouteBoard from "@/components/routes/RouteBoard"

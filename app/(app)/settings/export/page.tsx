@@ -1,6 +1,6 @@
 import { requirePermission } from "@/lib/session"
 import { db } from "@/lib/db"
-import Link from "next/link"
+
 import {
   Download, Users, MapPin, CalendarDays, FileText,
   Receipt, Wrench, AlertTriangle, MessageSquare, Tag,

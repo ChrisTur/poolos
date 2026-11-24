@@ -28,7 +28,6 @@ const FREQUENCY_LABELS: Record<string, string> = {
 
 export default async function SchedulePage() {
   const { companyId } = await requireSession()
-  // eslint-disable-next-line react-hooks/purity
   const today = new Date()
   const thisYear  = today.getFullYear()
   const thisMonth = today.getMonth()
@@ -165,7 +164,7 @@ export default async function SchedulePage() {
             <h2 className="font-semibold text-gray-900 text-sm sm:text-base">Overdue / Due Soon</h2>
           </CardHeader>
           <div className="divide-y divide-gray-50">
-            {dueCustomers.map(({ customer: c, daysSince, freqDays, isOverdue, isDueSoon }) => (
+            {dueCustomers.map(({ customer: c, daysSince, freqDays: _freqDays, isOverdue, isDueSoon }) => (
               <div key={c.id} className="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
                 <div className="min-w-0">
                   <Link href={`/customers/${c.id}`} className="text-sm font-medium text-gray-900 hover:text-sky-600">
