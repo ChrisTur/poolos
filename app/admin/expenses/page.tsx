@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
 import { formatCurrency, formatDate } from "@/lib/utils"
+import { createDuePlatformExpenses } from "@/lib/actions/platform-expenses"
 import AddExpenseForm from "./AddExpenseForm"
 import DeleteExpenseButton from "./DeleteExpenseButton"
 import Link from "next/link"
@@ -26,6 +27,8 @@ const CATEGORY_BADGE: Record<string, string> = {
 }
 
 export default async function AdminExpensesPage() {
+  await createDuePlatformExpenses()
+
   const expenses = await db.platformExpense.findMany({
     orderBy: { date: "desc" },
   })

@@ -4,6 +4,76 @@ import { requireSuperAdmin } from "@/lib/session"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 
+// Called at the top of the admin expenses page — generates missing monthly
+// PlatformExpense records for any recurring expenses whose last record
+// predates the current month.
+export async function createDuePlatformExpenses(): Promise<void> {
+  const now = new Date()
+  const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+  const recurring = await db.platformExpense.findMany({
+    where: { isRecurring: true },
+    orderBy: { date: "asc" },
+  })
+
+  // Group by template key; keep all dates per group to find the most recent
+  type Group = { template: typeof recurring[0]; latestDate: Date }
+  const groups = new Map<string, Group>()
+  for (const exp of recurring) {
+    const key = `${exp.description}|||${exp.vendor ?? ""}|||${exp.amount}|||${exp.category}|||${exp.frequency}`
+    const expDate = new Date(exp.date)
+    if (!groups.has(key)) {
+      groups.set(key, { template: exp, latestDate: expDate })
+    } else {
+      const g = groups.get(key)!
+      if (expDate > g.latestDate) g.latestDate = expDate
+    }
+  }
+
+  for (const [, { template, latestDate }] of groups) {
+    if (template.frequency === "monthly") {
+      // Generate a record for each month between latestDate+1 and startOfCurrentMonth
+      let next = new Date(latestDate.getFullYear(), latestDate.getMonth() + 1, 1)
+      while (next <= startOfCurrentMonth) {
+        await db.platformExpense.create({
+          data: {
+            date:        next,
+            category:    template.category,
+            description: template.description,
+            amount:      template.amount,
+            vendor:      template.vendor,
+            notes:       template.notes,
+            isRecurring: true,
+            frequency:   "monthly",
+          },
+        })
+        next = new Date(next.getFullYear(), next.getMonth() + 1, 1)
+      }
+    } else if (template.frequency === "annual") {
+      // Generate a record for each year between latestDate+1y and current year
+      let nextYear = latestDate.getFullYear() + 1
+      while (nextYear <= now.getFullYear()) {
+        await db.platformExpense.create({
+          data: {
+            date:        new Date(nextYear, latestDate.getMonth(), 1),
+            category:    template.category,
+            description: template.description,
+            amount:      template.amount,
+            vendor:      template.vendor,
+            notes:       template.notes,
+            isRecurring: true,
+            frequency:   "annual",
+          },
+        })
+        nextYear++
+      }
+    }
+  }
+
+  revalidatePath("/admin/expenses")
+  revalidatePath("/admin/reports")
+}
+
 export type ExpenseFormState = { error?: string } | null
 
 function revalidate() {
