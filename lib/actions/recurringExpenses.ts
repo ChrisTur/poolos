@@ -80,29 +80,37 @@ export async function createDueRecurringExpenses(companyId: string): Promise<num
 
   if (due.length === 0) return 0
 
+  let created = 0
   for (const rec of due) {
-    await db.expense.create({
-      data: {
-        companyId,
-        date:        rec.nextDueAt,
-        category:    rec.category,
-        description: rec.description,
-        amount:      rec.amount,
-        vendor:      rec.vendor,
-        notes:       rec.notes ? `${rec.notes} (recurring)` : "(recurring)",
-      },
-    })
+    let nextDue = rec.nextDueAt
+    let lastCreated = nextDue
+    while (nextDue <= now) {
+      await db.expense.create({
+        data: {
+          companyId,
+          date:        nextDue,
+          category:    rec.category,
+          description: rec.description,
+          amount:      rec.amount,
+          vendor:      rec.vendor,
+          notes:       rec.notes ? `${rec.notes} (recurring)` : "(recurring)",
+        },
+      })
+      created++
+      lastCreated = nextDue
+      nextDue = nextDueDate(rec.frequency, nextDue)
+    }
 
     await db.recurringExpense.update({
       where: { id: rec.id },
       data: {
-        lastCreatedAt: rec.nextDueAt,
-        nextDueAt:     nextDueDate(rec.frequency, rec.nextDueAt),
+        lastCreatedAt: lastCreated,
+        nextDueAt:     nextDue,
       },
     })
   }
 
   revalidatePath("/expenses")
   revalidatePath("/reports")
-  return due.length
+  return created
 }
