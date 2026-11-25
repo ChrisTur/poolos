@@ -10,21 +10,20 @@ interface GoogleTokenResponse {
 }
 
 interface GoogleUserInfo {
-  sub:        string
-  email:      string
-  name:       string
-  given_name: string
+  sub:         string
+  email:       string
+  name:        string
+  given_name:  string
   family_name: string
-  picture?:   string
+  picture?:    string
 }
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://poolos.biz"
-
-function errorRedirect(msg: string) {
-  return NextResponse.redirect(`${APP_URL}/login?error=${encodeURIComponent(msg)}`)
+function errorRedirect(origin: string, msg: string) {
+  return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`)
 }
 
 export async function GET(req: NextRequest) {
+  const origin = new URL(req.url).origin
   const { searchParams } = req.nextUrl
   const code  = searchParams.get("code")
   const state = searchParams.get("state")
@@ -34,7 +33,7 @@ export async function GET(req: NextRequest) {
   jar.set("google_oauth_state", "", { maxAge: 0, path: "/" })
 
   if (!code || !state || state !== savedState) {
-    return errorRedirect("Invalid OAuth state. Please try again.")
+    return errorRedirect(origin, "Invalid OAuth state. Please try again.")
   }
 
   // Exchange code for tokens
@@ -45,12 +44,12 @@ export async function GET(req: NextRequest) {
       code,
       client_id:     process.env.GOOGLE_CLIENT_ID!,
       client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-      redirect_uri:  `${APP_URL}/api/auth/google/callback`,
+      redirect_uri:  `${origin}/api/auth/google/callback`,
       grant_type:    "authorization_code",
     }),
   })
 
-  if (!tokenRes.ok) return errorRedirect("Failed to authenticate with Google.")
+  if (!tokenRes.ok) return errorRedirect(origin, "Failed to authenticate with Google.")
 
   const tokens: GoogleTokenResponse = await tokenRes.json()
 
@@ -59,11 +58,11 @@ export async function GET(req: NextRequest) {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   })
 
-  if (!userInfoRes.ok) return errorRedirect("Failed to get user info from Google.")
+  if (!userInfoRes.ok) return errorRedirect(origin, "Failed to get user info from Google.")
 
   const googleUser: GoogleUserInfo = await userInfoRes.json()
 
-  if (!googleUser.email) return errorRedirect("Google account has no email address.")
+  if (!googleUser.email) return errorRedirect(origin, "Google account has no email address.")
 
   // Find existing user by googleId or email
   const existing = await db.user.findFirst({
@@ -73,7 +72,7 @@ export async function GET(req: NextRequest) {
 
   if (existing) {
     if (!existing.isActive || !existing.company.isActive) {
-      return errorRedirect("Your account is inactive. Please contact support.")
+      return errorRedirect(origin, "Your account is inactive. Please contact support.")
     }
 
     // Link googleId if signing in via email match for the first time
@@ -93,7 +92,7 @@ export async function GET(req: NextRequest) {
       mustChangePassword: false,
     })
     await setSessionCookie(token, expiresAt)
-    return NextResponse.redirect(`${APP_URL}/dashboard`)
+    return NextResponse.redirect(`${origin}/dashboard`)
   }
 
   // New user — store Google profile in a short-lived cookie, redirect to finish-signup
@@ -106,11 +105,11 @@ export async function GET(req: NextRequest) {
 
   jar.set("google_pending_profile", profile, {
     httpOnly: true,
-    secure: APP_URL.startsWith("https://"),
+    secure: origin.startsWith("https://"),
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 15, // 15 minutes to finish signup
   })
 
-  return NextResponse.redirect(`${APP_URL}/register/google-finish`)
+  return NextResponse.redirect(`${origin}/register/google-finish`)
 }
