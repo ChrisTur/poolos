@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
-import { createSession, setSessionCookie } from "@/lib/auth"
+import { createSession, COOKIE_NAME } from "@/lib/auth"
 
 interface GoogleTokenResponse {
   access_token: string
@@ -18,22 +18,20 @@ interface GoogleUserInfo {
   picture?:    string
 }
 
-function errorRedirect(origin: string, msg: string) {
-  return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`)
-}
-
 export async function GET(req: NextRequest) {
   const origin = new URL(req.url).origin
   const { searchParams } = req.nextUrl
   const code  = searchParams.get("code")
   const state = searchParams.get("state")
 
+  // Read state from request cookies (reading from next/headers works fine)
   const jar = await cookies()
   const savedState = jar.get("google_oauth_state")?.value
-  jar.set("google_oauth_state", "", { maxAge: 0, path: "/" })
 
   if (!code || !state || state !== savedState) {
-    return errorRedirect(origin, "Invalid OAuth state. Please try again.")
+    const res = NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Invalid OAuth state. Please try again.")}`)
+    res.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" })
+    return res
   }
 
   // Exchange code for tokens
@@ -49,20 +47,29 @@ export async function GET(req: NextRequest) {
     }),
   })
 
-  if (!tokenRes.ok) return errorRedirect(origin, "Failed to authenticate with Google.")
+  if (!tokenRes.ok) {
+    const res = NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Failed to authenticate with Google.")}`)
+    res.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" })
+    return res
+  }
 
   const tokens: GoogleTokenResponse = await tokenRes.json()
 
-  // Get user info
   const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   })
 
-  if (!userInfoRes.ok) return errorRedirect(origin, "Failed to get user info from Google.")
+  if (!userInfoRes.ok) {
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Failed to get user info from Google.")}`)
+  }
 
   const googleUser: GoogleUserInfo = await userInfoRes.json()
 
-  if (!googleUser.email) return errorRedirect(origin, "Google account has no email address.")
+  if (!googleUser.email) {
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Google account has no email address.")}`)
+  }
+
+  const isSecure = origin.startsWith("https://")
 
   // Find existing user by googleId or email
   const existing = await db.user.findFirst({
@@ -72,14 +79,12 @@ export async function GET(req: NextRequest) {
 
   if (existing) {
     if (!existing.isActive || !existing.company.isActive) {
-      return errorRedirect(origin, "Your account is inactive. Please contact support.")
+      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Your account is inactive. Please contact support.")}`)
     }
 
-    // Link googleId if signing in via email match for the first time
     if (!existing.googleId) {
       await db.user.update({ where: { id: existing.id }, data: { googleId: googleUser.sub } })
     }
-
     await db.user.update({ where: { id: existing.id }, data: { lastLoginAt: new Date() } })
 
     const { token, expiresAt } = await createSession({
@@ -91,8 +96,17 @@ export async function GET(req: NextRequest) {
       companyName:        existing.company.name,
       mustChangePassword: false,
     })
-    await setSessionCookie(token, expiresAt)
-    return NextResponse.redirect(`${origin}/dashboard`)
+
+    const res = NextResponse.redirect(`${origin}/dashboard`)
+    res.cookies.set(COOKIE_NAME, token, {
+      httpOnly: true,
+      secure:   isSecure,
+      sameSite: "lax",
+      path:     "/",
+      expires:  expiresAt,
+    })
+    res.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" })
+    return res
   }
 
   // New user — store Google profile in a short-lived cookie, redirect to finish-signup
@@ -103,13 +117,14 @@ export async function GET(req: NextRequest) {
     lastName:  googleUser.family_name ?? googleUser.name.split(" ").slice(1).join(" "),
   })
 
-  jar.set("google_pending_profile", profile, {
+  const res = NextResponse.redirect(`${origin}/register/google-finish`)
+  res.cookies.set("google_pending_profile", profile, {
     httpOnly: true,
-    secure: origin.startsWith("https://"),
+    secure:   isSecure,
     sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 15, // 15 minutes to finish signup
+    path:     "/",
+    maxAge:   60 * 15,
   })
-
-  return NextResponse.redirect(`${origin}/register/google-finish`)
+  res.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" })
+  return res
 }
