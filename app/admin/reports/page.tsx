@@ -3,7 +3,7 @@ import Card from "@/components/ui/Card"
 import Link from "next/link"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { PLANS, type PlanId } from "@/lib/plans"
-import { DollarSign, TrendingUp, Users, BarChart3, AlertTriangle, Clock, XCircle, Receipt } from "lucide-react"
+import { DollarSign, TrendingUp, Users, BarChart3, AlertTriangle, Clock, XCircle, Receipt, Download } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -28,19 +28,28 @@ function last12Months(): string[] {
 export default async function AdminReportsPage() {
   const [companies, platformExpenses] = await Promise.all([
     db.company.findMany({
-    select: {
-      id: true,
-      name: true,
-      plan: true,
-      isActive: true,
-      stripeSubStatus: true,
-      createdAt: true,
-      trialEndsAt: true,
-    },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        isActive: true,
+        stripeSubStatus: true,
+        createdAt: true,
+        trialEndsAt: true,
+      },
       orderBy: { createdAt: "desc" },
     }),
     db.platformExpense.findMany({
-      select: { amount: true, isRecurring: true, frequency: true },
+      select: {
+        amount: true,
+        isRecurring: true,
+        frequency: true,
+        date: true,
+        category: true,
+        description: true,
+        vendor: true,
+      },
+      orderBy: { date: "asc" },
     }),
   ])
 
@@ -61,12 +70,44 @@ export default async function AdminReportsPage() {
 
   // ── Platform expenses / burn ───────────────────────────────────────────────
 
-  const monthlyBurn = platformExpenses.reduce((s, e) => {
-    if (!e.isRecurring) return s
-    return s + (e.frequency === "annual" ? e.amount / 12 : e.amount)
+  // Deduplicate recurring by template key — auto-generated copies must not inflate the rate
+  const expTemplateKey = (e: typeof platformExpenses[0]) =>
+    `${e.description}|||${e.vendor ?? ""}|||${e.amount}|||${e.category}|||${e.frequency}`
+  const uniqueRecurring = new Map<string, typeof platformExpenses[0]>()
+  for (const e of platformExpenses.filter((x) => x.isRecurring)) {
+    uniqueRecurring.set(expTemplateKey(e), e)
+  }
+  const monthlyBurn = [...uniqueRecurring.values()].reduce((s, e) => {
+    if (e.frequency === "annual") return s + e.amount / 12
+    return s + e.amount
   }, 0)
   const netMrr = stripeMrr - monthlyBurn
   const marginPct = stripeMrr > 0 ? Math.round((netMrr / stripeMrr) * 100) : null
+
+  // ── Expense actuals ────────────────────────────────────────────────────────
+
+  const thisMonth = now.getMonth()
+  const thisYear  = now.getFullYear()
+
+  const mtdExpenses = platformExpenses.filter((e) => {
+    const d = new Date(e.date)
+    return d.getMonth() === thisMonth && d.getFullYear() === thisYear
+  })
+  const ytdExpenses = platformExpenses.filter((e) => new Date(e.date).getFullYear() === thisYear)
+
+  const mtdTotal  = mtdExpenses.reduce((s, e) => s + e.amount, 0)
+  const ytdTotal  = ytdExpenses.reduce((s, e) => s + e.amount, 0)
+
+  // Category breakdown (YTD actuals)
+  const EXPENSE_CATEGORY_LABELS: Record<string, string> = {
+    cloud: "Cloud Computing", email: "Email Service", sem: "Search Ads / SEM",
+    saas: "SaaS Tools", payroll: "Payroll / Contractors", other: "Other",
+  }
+  const expByCategory: Record<string, number> = {}
+  for (const e of ytdExpenses) {
+    expByCategory[e.category] = (expByCategory[e.category] ?? 0) + e.amount
+  }
+  const expCatTotal = Object.values(expByCategory).reduce((s, v) => s + v, 0)
 
   // ── Plan distribution ──────────────────────────────────────────────────────
 
@@ -81,6 +122,15 @@ export default async function AdminReportsPage() {
   // ── Monthly new signups (last 12 months) ───────────────────────────────────
 
   const months = last12Months()
+
+  // Monthly spend — last 12 months
+  const expMonthlySpend: Record<string, number> = {}
+  for (const key of months) expMonthlySpend[key] = 0
+  for (const e of platformExpenses) {
+    const key = monthKey(new Date(e.date))
+    if (key in expMonthlySpend) expMonthlySpend[key] += e.amount
+  }
+  const maxMonthlySpend = Math.max(...months.map((k) => expMonthlySpend[k]), 1)
   const signupsByMonth: Record<string, { total: number; converted: number }> = {}
   for (const key of months) signupsByMonth[key] = { total: 0, converted: 0 }
 
@@ -123,9 +173,19 @@ export default async function AdminReportsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Revenue & Growth</h1>
-        <p className="text-sm text-gray-400 mt-1">PoolOS subscription metrics — not pool company data</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Revenue & Growth</h1>
+          <p className="text-sm text-gray-400 mt-1">PoolOS subscription metrics — not pool company data</p>
+        </div>
+        <a
+          href="/api/export/admin-reports"
+          download
+          className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </a>
       </div>
 
       {/* ── MRR / ARR KPIs ─────────────────────────────────────────────────── */}
@@ -185,6 +245,115 @@ export default async function AdminReportsPage() {
           </div>
         ))}
       </div>
+
+      {/* ── P&L summary ───────────────────────────────────────────────────── */}
+      <Card>
+        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900 text-sm">Profit & Loss</h2>
+          <Link href="/admin/expenses" className="text-xs text-sky-600 hover:underline">Manage expenses →</Link>
+        </div>
+        <div className="px-5 py-4 grid sm:grid-cols-3 gap-4 border-b border-gray-100">
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Stripe MRR</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stripeMrr)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Monthly recurring revenue</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Monthly Burn</p>
+            <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(monthlyBurn)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Recurring infrastructure costs</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Net MRR</p>
+            <p className={`text-2xl font-bold mt-1 ${netMrr >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              {stripeMrr > 0 ? formatCurrency(netMrr) : "—"}
+            </p>
+            {marginPct !== null && (
+              <p className="text-xs text-gray-400 mt-0.5">{marginPct}% margin</p>
+            )}
+          </div>
+        </div>
+        <div className="px-5 py-4 grid sm:grid-cols-3 gap-4">
+          <div>
+            <p className="text-xs text-gray-500 font-medium">This Month (actual)</p>
+            <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(mtdTotal)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Month-to-date spend</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">YTD Spend</p>
+            <p className="text-xl font-bold text-gray-900 mt-1">{formatCurrency(ytdTotal)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Jan – now</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">YTD Net</p>
+            <p className={`text-xl font-bold mt-1 ${(stripeMrr * (now.getMonth() + 1)) - ytdTotal >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+              {formatCurrency((stripeMrr * (now.getMonth() + 1)) - ytdTotal)}
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">MRR × months − YTD spend</p>
+          </div>
+        </div>
+      </Card>
+
+      {/* ── Expense breakdown by category (YTD) ────────────────────────────── */}
+      {Object.keys(expByCategory).length > 0 && (
+        <Card>
+          <div className="px-5 py-3 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900 text-sm">YTD Spend by Category</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {Object.entries(expByCategory)
+              .sort(([, a], [, b]) => b - a)
+              .map(([cat, total]) => {
+                const pct = expCatTotal > 0 ? Math.round((total / expCatTotal) * 100) : 0
+                return (
+                  <div key={cat} className="flex items-center gap-4 px-5 py-3">
+                    <span className="text-xs font-medium text-gray-600 w-36 shrink-0 truncate">
+                      {EXPENSE_CATEGORY_LABELS[cat] ?? cat}
+                    </span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-2 hidden sm:block">
+                      <div className="bg-sky-500 h-2 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="text-right shrink-0 ml-auto">
+                      <span className="text-sm font-semibold text-gray-900">{formatCurrency(total)}</span>
+                      <span className="text-xs text-gray-400 ml-2">{pct}%</span>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
+        </Card>
+      )}
+
+      {/* ── Monthly spend trend ─────────────────────────────────────────────── */}
+      <Card>
+        <div className="px-5 py-3 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900 text-sm">Monthly Spend — Last 12 Months</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Actual expenses recorded each month</p>
+        </div>
+        <div className="p-5">
+          {months.every((k) => expMonthlySpend[k] === 0) ? (
+            <p className="text-sm text-gray-400 text-center py-6">No expenses recorded in the last 12 months.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {months.map((key) => {
+                const spend = expMonthlySpend[key]
+                const pct = Math.round((spend / maxMonthlySpend) * 100)
+                return (
+                  <div key={key} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 w-12 shrink-0 text-right">{monthLabel(key)}</span>
+                    <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+                      <div className="h-full bg-red-400 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 w-20 shrink-0 text-right">
+                      {spend > 0 ? formatCurrency(spend) : "—"}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* ── Plan breakdown + Conversion funnel ─────────────────────────────── */}
       <div className="grid lg:grid-cols-2 gap-5">
@@ -411,14 +580,16 @@ export default async function AdminReportsPage() {
         <Receipt className="w-5 h-5 text-gray-400 shrink-0" />
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-700">
-            Monthly burn: <span className="font-semibold text-gray-900">{monthlyBurn > 0 ? formatCurrency(monthlyBurn) : "not set"}</span>
+            Monthly burn rate: <span className="font-semibold text-gray-900">{monthlyBurn > 0 ? formatCurrency(monthlyBurn) : "not set"}</span>
             {monthlyBurn > 0 && marginPct !== null && (
               <span className={`ml-2 text-xs font-semibold px-2 py-0.5 rounded-full ${netMrr >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
                 {marginPct}% margin
               </span>
             )}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">Track cloud, email, SEM, and other operating costs to see true profit margin.</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            YTD: {formatCurrency(ytdTotal)} spent · {formatCurrency(mtdTotal)} this month · {uniqueRecurring.size} recurring expense{uniqueRecurring.size !== 1 ? "s" : ""}
+          </p>
         </div>
         <Link
           href="/admin/expenses"
