@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState } from "react"
+import { useActionState, useState } from "react"
 import Button from "@/components/ui/Button"
 
 import { EXPENSE_CATEGORIES } from "@/lib/expense-categories"
@@ -16,6 +16,7 @@ interface ExpenseFormProps {
   initialNotes?: string
   submitLabel?: string
   vendorNames?: string[]
+  showRecurring?: boolean
 }
 
 function today() {
@@ -32,11 +33,13 @@ export default function ExpenseForm({
   initialNotes,
   submitLabel = "Save Expense",
   vendorNames = [],
+  showRecurring = false,
 }: ExpenseFormProps) {
   const [, formAction, pending] = useActionState(async (_: unknown, formData: FormData) => {
     await action(formData)
     return null
   }, null)
+  const [isRecurring, setIsRecurring] = useState(false)
 
   return (
     <form action={formAction} className="space-y-5">
@@ -126,6 +129,38 @@ export default function ExpenseForm({
           className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500 resize-y"
         />
       </div>
+
+      {showRecurring && (
+        <div className="flex flex-wrap items-center gap-4 py-1">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              name="isRecurring"
+              value="true"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+              className="rounded border-gray-300 text-sky-600 focus:ring-sky-500"
+            />
+            <span className="text-sm text-gray-700">Make this a recurring expense</span>
+          </label>
+          {isRecurring && (
+            <select
+              name="frequency"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            >
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="annual">Annual</option>
+            </select>
+          )}
+          {isRecurring && (
+            <p className="text-xs text-gray-400 w-full -mt-2">
+              This expense will recur automatically. The first occurrence is recorded now.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="flex gap-3">
         <Button type="submit" disabled={pending}>

@@ -31,7 +31,7 @@ export default async function NewExpensePage() {
       <Card>
         <CardHeader><h2 className="font-semibold text-gray-900 text-sm">Expense Details</h2></CardHeader>
         <CardBody>
-          <ExpenseForm action={createExpense} vendorNames={vendors.map((v) => v.name)} />
+          <ExpenseForm action={createExpense} vendorNames={vendors.map((v) => v.name)} showRecurring />
         </CardBody>
       </Card>
     </div>
