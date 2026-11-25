@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
+import ServiceWorkerRegistration from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,6 +30,15 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PoolOS",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -44,6 +54,7 @@ export default function RootLayout({
       <body className="h-full">
         {children}
         <CookieConsent />
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );
