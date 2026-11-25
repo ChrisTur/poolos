@@ -48,7 +48,9 @@ export async function GET(req: NextRequest) {
   })
 
   if (!tokenRes.ok) {
-    const res = NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Failed to authenticate with Google.")}`)
+    const body = await tokenRes.json().catch(() => ({}))
+    const msg = `Google auth failed: ${(body as { error?: string }).error ?? tokenRes.status}`
+    const res = NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`)
     res.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" })
     return res
   }
