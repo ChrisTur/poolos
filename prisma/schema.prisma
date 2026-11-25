@@ -105,7 +105,8 @@ model User {
   updatedAt DateTime @updatedAt
 
   email     String  @unique
-  password  String
+  password  String?
+  googleId  String? @unique
   firstName String
   lastName  String
   role      String  @default("technician") // owner | technician
