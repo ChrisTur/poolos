@@ -4,7 +4,7 @@ import { createDuePlatformExpenses } from "@/lib/actions/platform-expenses"
 import AddExpenseForm from "./AddExpenseForm"
 import DeleteExpenseButton from "./DeleteExpenseButton"
 import Link from "next/link"
-import { Receipt, RefreshCw, Pencil } from "lucide-react"
+import { Receipt, RefreshCw, Pencil, Download } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -50,13 +50,18 @@ export default async function AdminExpensesPage() {
     .filter((e) => new Date(e.date).getFullYear() === thisYear)
     .reduce((s, e) => s + e.amount, 0)
 
-  // Monthly recurring burn — sum of all recurring monthly expenses + (annual / 12)
-  const monthlyBurn = expenses
-    .filter((e) => e.isRecurring)
-    .reduce((s, e) => {
-      if (e.frequency === "annual") return s + e.amount / 12
-      return s + e.amount
-    }, 0)
+  // Monthly recurring burn — deduplicate by template key first so auto-generated
+  // copies of the same subscription don't inflate the rate.
+  const templateKey = (e: typeof expenses[0]) =>
+    `${e.description}|||${e.vendor ?? ""}|||${e.amount}|||${e.category}|||${e.frequency}`
+  const uniqueRecurring = new Map<string, typeof expenses[0]>()
+  for (const e of expenses.filter((x) => x.isRecurring)) {
+    uniqueRecurring.set(templateKey(e), e)
+  }
+  const monthlyBurn = [...uniqueRecurring.values()].reduce((s, e) => {
+    if (e.frequency === "annual") return s + e.amount / 12
+    return s + e.amount
+  }, 0)
 
   // ── Category breakdown ────────────────────────────────────────────────────
 
@@ -67,9 +72,19 @@ export default async function AdminExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Platform Expenses</h1>
-        <p className="text-sm text-gray-400 mt-1">Track PoolOS operating costs — cloud, email, SEM, and more</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Platform Expenses</h1>
+          <p className="text-sm text-gray-400 mt-1">Track PoolOS operating costs — cloud, email, SEM, and more</p>
+        </div>
+        <a
+          href="/api/export/admin-expenses"
+          download
+          className="shrink-0 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </a>
       </div>
 
       {/* ── KPI cards ──────────────────────────────────────────────────────── */}
