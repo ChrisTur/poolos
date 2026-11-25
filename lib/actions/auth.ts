@@ -144,6 +144,10 @@ export async function login(formData: FormData) {
     return { error: "Invalid email or password." }
   }
 
+  if (!user.password) {
+    return { error: "This account uses Google sign-in. Use the 'Continue with Google' button to sign in." }
+  }
+
   const valid = await bcrypt.compare(password, user.password)
   if (!valid) return { error: "Invalid email or password." }
 
@@ -264,6 +268,9 @@ export async function changePassword(formData: FormData) {
   if (!dbUser) {
     authLog.error({ userId, userEmail, role: session.role, companyId: session.companyId }, "changePassword: user not found in DB")
     return { error: "Account not found. Please sign out and sign back in." }
+  }
+  if (!dbUser.password) {
+    return { error: "Your account uses Google sign-in and doesn't have a password." }
   }
 
   const hashed = await bcrypt.hash(password, 12)
