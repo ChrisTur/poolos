@@ -64,8 +64,11 @@ export default function AppShell({ children, viewAsCompany, planData, appBanner,
           <NotificationBell notifications={notifications} />
         </div>
 
-        {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0 sticky top-0 z-10">
+        {/* Mobile top bar — paddingTop absorbs iOS status bar with viewport-fit=cover */}
+        <header
+          className="lg:hidden flex items-center gap-3 px-4 py-3 bg-white border-b border-gray-200 shrink-0 sticky top-0 z-10"
+          style={{ paddingTop: "max(0.75rem, calc(0.75rem + env(safe-area-inset-top, 0px)))" }}
+        >
           <div className="flex items-center gap-1.5 flex-1 min-w-0">
             <Waves className="w-4 h-4 text-sky-600 shrink-0" />
             {firstName
