@@ -25,6 +25,12 @@ function LoginForm() {
         </div>
       )}
 
+      {searchParams.get("error") && (
+        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          {searchParams.get("error")}
+        </div>
+      )}
+
       <a
         href="/api/auth/google"
         className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors mb-5"
