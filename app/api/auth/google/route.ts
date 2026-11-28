@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import { randomBytes } from "crypto"
 
 export async function GET(request: NextRequest) {
+  const { searchParams } = request.nextUrl
+  const isConnect = searchParams.get("connect") === "1"
   const origin = new URL(request.url).origin
   const state = randomBytes(16).toString("hex")
+  const isSecure = origin.startsWith("https://")
 
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
@@ -19,15 +22,23 @@ export async function GET(request: NextRequest) {
     `https://accounts.google.com/o/oauth2/v2/auth?${params}`
   )
 
-  // Set cookie on the redirect response directly — cookies() from next/headers
-  // doesn't merge its Set-Cookie headers onto a NextResponse.redirect object.
   response.cookies.set("google_oauth_state", state, {
     httpOnly: true,
-    secure: origin.startsWith("https://"),
+    secure: isSecure,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 10,
   })
+
+  if (isConnect) {
+    response.cookies.set("google_oauth_action", "connect", {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 10,
+    })
+  }
 
   return response
 }

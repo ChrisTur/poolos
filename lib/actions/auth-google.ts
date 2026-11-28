@@ -1,10 +1,11 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { createSession, setSessionCookie } from "@/lib/auth"
+import { createSession, setSessionCookie, getSession } from "@/lib/auth"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { resend, FROM, buildWelcomeHtml } from "@/lib/email"
+import { revalidatePath } from "next/cache"
 
 function slugify(name: string) {
   return name
@@ -91,4 +92,20 @@ export async function finishGoogleSignup(formData: FormData) {
   }).catch(() => {})
 
   redirect("/onboarding")
+}
+
+export async function disconnectGoogle() {
+  const session = await getSession()
+  if (!session?.userId) return { error: "Not authenticated." }
+
+  const user = await db.user.findUnique({ where: { id: session.userId } })
+  if (!user) return { error: "User not found." }
+  if (!user.googleId) return { error: "No Google account connected." }
+  if (!user.password) {
+    return { error: "You must set a password before disconnecting Google, otherwise you won't be able to sign in." }
+  }
+
+  await db.user.update({ where: { id: session.userId }, data: { googleId: null } })
+  revalidatePath("/settings/account")
+  return { success: true }
 }
