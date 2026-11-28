@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
-import { createSession, COOKIE_NAME } from "@/lib/auth"
+import { createSession, getSession, COOKIE_NAME } from "@/lib/auth"
 
 interface GoogleTokenResponse {
   access_token: string
@@ -24,13 +24,16 @@ export async function GET(req: NextRequest) {
   const code  = searchParams.get("code")
   const state = searchParams.get("state")
 
-  // Read state from request cookies (reading from next/headers works fine)
+  // Read state and action from request cookies
   const jar = await cookies()
-  const savedState = jar.get("google_oauth_state")?.value
+  const savedState  = jar.get("google_oauth_state")?.value
+  const oauthAction = jar.get("google_oauth_action")?.value  // "connect" | undefined
+  const isConnect   = oauthAction === "connect"
 
   if (!code || !state || state !== savedState) {
     const res = NextResponse.redirect(`${origin}/login?error=${encodeURIComponent("Invalid OAuth state. Please try again.")}`)
-    res.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" })
+    res.cookies.set("google_oauth_state",  "", { maxAge: 0, path: "/" })
+    res.cookies.set("google_oauth_action", "", { maxAge: 0, path: "/" })
     return res
   }
 
@@ -72,6 +75,37 @@ export async function GET(req: NextRequest) {
   }
 
   const isSecure = origin.startsWith("https://")
+
+  // ── Connect flow: link Google to an already-signed-in account ────────────
+  if (isConnect) {
+    const clearAction = (res: NextResponse) => {
+      res.cookies.set("google_oauth_state",  "", { maxAge: 0, path: "/" })
+      res.cookies.set("google_oauth_action", "", { maxAge: 0, path: "/" })
+      return res
+    }
+
+    const session = await getSession()
+    if (!session?.userId) {
+      return clearAction(NextResponse.redirect(`${origin}/login`))
+    }
+
+    // Reject if this Google account is already linked to a different user
+    const taken = await db.user.findUnique({ where: { googleId: googleUser.sub } })
+    if (taken && taken.id !== session.userId) {
+      return clearAction(NextResponse.redirect(
+        `${origin}/settings/account?error=${encodeURIComponent("That Google account is already linked to another user.")}`
+      ))
+    }
+
+    await db.user.update({
+      where: { id: session.userId },
+      data:  { googleId: googleUser.sub },
+    })
+
+    return clearAction(NextResponse.redirect(`${origin}/settings/account?connected=1`))
+  }
+
+  // ── Normal sign-in / sign-up flow ────────────────────────────────────────
 
   // Find existing user by googleId or email
   const existing = await db.user.findFirst({
